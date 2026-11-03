@@ -1,5 +1,5 @@
 // Jackpot service worker: alles offline beschikbaar, nieuwe versie wordt op de achtergrond opgehaald.
-const CACHE = "jackpot-v1";
+const CACHE = "jackpot-v2";
 const FILES = ["./", "./index.html", "./manifest.webmanifest", "./icon-192.png", "./icon-512.png", "./apple-touch-icon.png"];
 
 self.addEventListener("install", (e) => {

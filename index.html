@@ -171,6 +171,26 @@ footer{ margin-top:18px; display:flex; justify-content:space-between; align-item
 footer button{ font-size:13px; background:none; border:0; color:var(--ivory-dim); text-decoration:underline; padding:4px 0; }
 .rules{ margin-top:14px; font-size:13px; color:var(--ivory-dim); line-height:1.5; }
 .rules summary{ cursor:pointer; color:var(--ivory); }
+.install{ margin:0 0 12px; padding:10px 12px; border-radius:10px; background:rgba(231,184,79,.14); border:1.5px solid var(--gold); font-size:13px; line-height:1.45; }
+.install b{ display:block; color:var(--gold); margin-bottom:2px; }
+.install .other{ color:var(--ivory-dim); }
+.install .row{ display:flex; gap:8px; margin-top:6px; }
+.install button{ font-size:13px; font-weight:700; padding:6px 12px; border-radius:999px; border:1.5px solid var(--ivory-dim); background:transparent; color:var(--ivory); }
+.install button.primary{ background:var(--ivory); color:var(--ink); border-color:var(--ivory); }
+body.play .install{ margin-bottom:8px; padding:8px 10px; font-size:12px; }
+/* help sheet (? button): rules, manual, origin */
+.help{ position:fixed; inset:0; z-index:25; background:rgba(0,0,0,.55); overflow-y:auto; -webkit-overflow-scrolling:touch; padding:max(12px,env(safe-area-inset-top,0px)) 12px max(12px,env(safe-area-inset-bottom,0px)); }
+.help[hidden]{ display:none; }
+.helpcard{ max-width:480px; margin:0 auto; background:var(--felt); border:1.5px solid var(--gold); border-radius:14px; padding:14px 16px 18px; color:var(--ivory); font-size:14px; line-height:1.5; box-shadow:0 10px 30px rgba(0,0,0,.45); position:relative; }
+.helpcard h2{ margin:0 0 4px; font-size:24px; font-weight:900; padding-right:48px; }
+.helpcard h3{ margin:18px 0 6px; font-size:17px; font-weight:700; color:var(--gold); }
+.helpcard p{ margin:0 0 8px; }
+.helpcard ul{ margin:0 0 8px; padding-left:18px; }
+.helpcard li{ margin:0 0 6px; }
+.helpcard b{ color:var(--gold); font-weight:700; }
+.helpcard .x{ position:absolute; top:8px; right:8px; width:44px; height:44px; border-radius:50%; border:1.5px solid var(--ivory-dim); background:transparent; color:var(--ivory); font-size:22px; line-height:1; padding:0; }
+.helpcard .done{ display:block; margin:18px auto 0; font-size:16px; font-weight:700; padding:10px 24px; border-radius:999px; border:0; background:var(--ivory); color:var(--ink); }
+.mode button.help-btn{ width:34px; padding:6px 0; text-align:center; }
 .die.blank{ background:linear-gradient(#e6dcc4,#cfc3a6); box-shadow:0 5px 0 #a89c7b, 0 8px 14px rgba(0,0,0,.35); display:flex; align-items:center; justify-content:center; font-size:38px; font-weight:900; color:rgba(27,26,23,.45); }
 .die.picking{ outline:3px solid var(--gold); outline-offset:3px; }
 .picker{ display:none; justify-content:center; gap:8px; margin:0 0 12px; }
@@ -275,43 +295,47 @@ body.play .picker.open{ margin:-6px 0 14px; }
 </head>
 <body>
 <div class="overlay" id="overlay" aria-hidden="true"><span id="overlayText"></span></div>
-<div class="scanbox" id="scanbox"><video id="scanvideo" playsinline muted></video><p id="scanmsg">Richt de camera op de QR van de ander</p><div><input id="scancode" placeholder="of typ de code"><button id="scanOk">Overnemen</button></div><button id="scanClose">Sluiten</button></div>
+<div class="scanbox" id="scanbox"><video id="scanvideo" playsinline muted></video><p id="scanmsg" data-i18n="scanAim"></p><div><input id="scancode" data-i18n-placeholder="scanType"><button id="scanOk" data-i18n="scanTake"></button></div><button id="scanClose" data-i18n="close"></button></div>
+<div class="help" id="help" hidden role="dialog" aria-modal="true"><div class="helpcard" id="helpcard"></div></div>
 <main>
 <header>
   <h1>Jackpot</h1>
-  <div class="mode" role="group" aria-label="Weergave">
-    <button id="mKans" aria-pressed="false">Kansen</button>
-    <button id="mSound" aria-pressed="true" aria-label="Geluid">🔊</button>
-    <button id="mView" aria-pressed="false">Meer</button>
+  <div class="mode" role="group" data-i18n-aria="view">
+    <button id="mLang" aria-pressed="false">EN</button>
+    <button id="mKans" aria-pressed="false" data-i18n="odds"></button>
+    <button id="mSound" aria-pressed="true" data-i18n-aria="sound">🔊</button>
+    <button id="mView" aria-pressed="false"></button>
+    <button id="mHelp" class="help-btn" aria-pressed="false" data-i18n-aria="help">?</button>
   </div>
 </header>
+<div class="install" id="install" hidden></div>
 
 <div class="players" id="players"></div>
-<div class="nameform" id="nameform"><input id="nameInput" type="text" maxlength="20" placeholder="Naam" autocomplete="off"><button id="nameOk">Opslaan</button><button class="cancel" id="nameCancel">Annuleren</button></div>
-<button class="alltime" id="alltime" title="Tik om bij te werken"></button>
+<div class="nameform" id="nameform"><input id="nameInput" type="text" maxlength="20" data-i18n-placeholder="name" autocomplete="off"><button id="nameOk" data-i18n="save"></button><button class="cancel" id="nameCancel" data-i18n="cancel"></button></div>
+<button class="alltime" id="alltime" data-i18n-title="alltimeTitle"></button>
 <div class="alltimeform" id="alltimeform"></div>
-<div class="sessionbar" id="sessionbar" style="display:none"><button id="endSession">Einde sessie</button><button id="shareStand">Deel stand</button></div>
-<div class="playerlinks"><button class="addplayer" id="addPlayer">Speler toevoegen</button><button class="addplayer" id="notUs">Ben je niet Stijn of Daan?</button></div>
-<div class="nameform" id="twoform"><input id="twoA" type="text" maxlength="20" placeholder="Speler 1" autocomplete="off"><input id="twoB" type="text" maxlength="20" placeholder="Speler 2" autocomplete="off"><button id="twoOk">Opslaan</button><button class="cancel" id="twoCancel">Annuleren</button></div>
+<div class="sessionbar" id="sessionbar" style="display:none"><button id="endSession" data-i18n="endSession"></button><button id="shareStand" data-i18n="shareStand"></button></div>
+<div class="playerlinks"><button class="addplayer" id="addPlayer" data-i18n="addPlayer"></button><button class="addplayer" id="notUs" data-i18n="notUs"></button></div>
+<div class="nameform" id="twoform"><input id="twoA" type="text" maxlength="20" data-i18n-placeholder="player1" autocomplete="off"><input id="twoB" type="text" maxlength="20" data-i18n-placeholder="player2" autocomplete="off"><button id="twoOk" data-i18n="save"></button><button class="cancel" id="twoCancel" data-i18n="cancel"></button></div>
 
-<section class="box" aria-label="Bord"><div class="tiles" id="tiles"></div></section>
+<section class="box" data-i18n-aria="board"><div class="tiles" id="tiles"></div></section>
 <div class="boardstat">
-  <span>Jackpot <b id="pj">–</b></span>
-  <span><b id="es">–</b> slokken</span>
-  <span>Saldo <b id="net">–</b></span>
+  <span><span data-i18n="jackpot"></span> <b id="pj">–</b></span>
+  <span><b id="es">–</b> <span data-i18n="sips"></span></span>
+  <span><span data-i18n="net"></span> <b id="net">–</b></span>
 </div>
 <div class="special" id="special"></div>
 
-<section aria-label="Dobbelstenen">
+<section data-i18n-aria="dice">
   <div class="dice">
-    <button class="die" id="d1" aria-label="Dobbelsteen 1"></button>
+    <button class="die" id="d1"></button>
     <div class="sum" id="sum">7</div>
-    <button class="die" id="d2" aria-label="Dobbelsteen 2"></button>
-    <button class="undo" id="undo" aria-label="Laatste zet terugdraaien" title="Laatste zet terugdraaien">↶</button>
+    <button class="die" id="d2"></button>
+    <button class="undo" id="undo" data-i18n-aria="undo" data-i18n-title="undo">↶</button>
   </div>
-  <div class="picker" id="picker" aria-label="Kies ogen"></div>
-  <p class="dicehelp">Tik op een steen en kies de ogen. Veeg een tegel omhoog om hem om te klappen, omlaag om hem terug te zetten</p>
-  <button class="roll" id="roll">Dobbel</button>
+  <div class="picker" id="picker" data-i18n-aria="pickPips"></div>
+  <p class="dicehelp" data-i18n="diceHelp"></p>
+  <button class="roll" id="roll" data-i18n="roll"></button>
 </section>
 
 <section id="moves" class="moves" aria-live="polite"></section>
@@ -320,25 +344,30 @@ body.play .picker.open{ margin:-6px 0 14px; }
 <div class="meer" id="meer">
 <section class="hist" id="hist"></section>
 <footer>
-  <span>Variant</span>
-  <div class="mode" role="group" aria-label="Spelvariant">
-    <button id="mNormal" aria-pressed="true">Normaal</button>
-    <button id="mExtreme" aria-pressed="false">Extreme</button>
+  <span data-i18n="variant"></span>
+  <div class="mode" role="group" data-i18n-aria="variantAria">
+    <button id="mNormal" aria-pressed="true" data-i18n="normal"></button>
+    <button id="mExtreme" aria-pressed="false" data-i18n="extreme"></button>
   </div>
 </footer>
 
 <footer class="stratbar">
-  <span id="strat">Advies: hoogste jackpotkans</span>
-  <button id="toggleStrat">Wissel naar minste slokken</button>
+  <span id="strat"></span>
+  <button id="toggleStrat"></button>
 </footer>
 <footer>
-  <button id="resetScores">Score en geschiedenis wissen</button>
-  <button id="reset">Bord resetten</button>
+  <button id="resetScores" data-i18n="clearScores"></button>
+  <button id="reset" data-i18n="resetBoard"></button>
 </footer>
 
 <details class="rules">
-  <summary>Regels</summary>
-  Negen tegels, altijd twee dobbelstenen. Per worp klap je één tegel om: de som, of het getal van één van de twee stenen. Alles dicht is jackpot: de rest trekt een atje. Kun je niets omklappen, dan drink je zelf zoveel slokken als er tegels open staan. Bij Extreme drink je de som van de open getallen. Jackpot van binnen naar buiten: 2 atjes. Van buiten naar binnen: 3 atjes. Van hoog naar laag of laag naar hoog: 4 atjes. Drie keer op rij dezelfde ogen, ook door beurten heen: atje kruk, spel gaat door. De kansen gaan uit van optimaal doorspelen vanaf dat bord. Saldo = verwachte eigen slokken min 10 slokken per tegenstander maal de jackpotkans; lager is beter.
+  <summary data-i18n="rules"></summary>
+  <span data-i18n="rulesText"></span>
+</details>
+<details class="rules" id="installHelp">
+  <summary data-i18n="installHelp"></summary>
+  <div><b data-i18n="installAndroidLbl"></b> <span data-i18n="installAndroid"></span></div>
+  <div><b data-i18n="installIosLbl"></b> <span data-i18n="installIos"></span></div>
 </details>
 </div>
 </main>
@@ -2648,11 +2677,210 @@ var qrcode = function() {
   "use strict";
   var FULL=511, ROLLS=[];
   for(var a=1;a<=6;a++)for(var b=1;b<=6;b++)ROLLS.push([a,b]);
+
+  /* ---- dictionary ---- */
+  var I18N={
+    nl:{
+      langAria:"Switch to English",
+      view:"Weergave", odds:"Kansen", sound:"Geluid", more:"Meer", game:"Spel",
+      scanAim:"Richt de camera op de QR van de ander", scanType:"of typ de code", scanTake:"Overnemen",
+      close:"Sluiten", save:"Opslaan", cancel:"Annuleren", cont:"Verder",
+      name:"Naam", newName:"Naam nieuwe speler", player1:"Speler 1", player2:"Speler 2",
+      alltimeTitle:"Tik om bij te werken", editStand:"Stand bewerken", allTime:"Totaalstand (alle sessies)", drawBtn:"Gelijk",
+      jpSession:"Jackpots deze sessie", jpSessionLc:"jackpots deze sessie", takeQr:"Stand overnemen (QR)",
+      endSession:"Einde sessie", shareStand:"Deel stand", addPlayer:"Speler toevoegen", notUs:"Ben je niet Stijn of Daan?",
+      board:"Bord", jackpot:"Jackpot", jackpotLc:"jackpot", net:"Saldo",
+      sip:"slok", sips:"slokken", chug:"atje", chugs:"atjes", stool:"kruk", stools:"kruk", turn:"beurt", million:"mln",
+      noSpecial:"Geen speciale jackpot meer mogelijk.", stillPossible:"Nog mogelijk: ", oneIn:"1 op {n}",
+      dice:"Dobbelstenen", die:"Dobbelsteen {n}", notEntered:"nog niet ingevoerd", undo:"Laatste zet terugdraaien", pickPips:"Kies ogen",
+      diceHelp:"Tik op een steen en kies de ogen. Veeg een tegel omhoog om hem om te klappen, omlaag om hem terug te zetten", roll:"Dobbel",
+      tile:"Tegel {n}", closed:" (dicht)", nameTitle:"Tik om naam te wijzigen",
+      hint:"{n} is aan de beurt. Gooi en voer de worp in.", noMove:"Met {a} en {b} kan hier niets meer. Voer de nieuwe worp in.",
+      jackpotBang:"Jackpot!", flip:"Draai {n} om", die1:"steen 1", die2:"steen 2", sum:"som", or:" of ", advice:"advies",
+      stoolNotice:"Atje kruk voor {n}{x}. Spel gaat door.",
+      bakShout:"Bak!", bak:"bak", throwsJackpot:"{n} gooit jackpot.", next:"Volgende speler",
+      dead:"Dood", deadBang:"Dood!", oof:"OOF!", rolled:"Gegooid:", drinks:"{n} drinkt {s}.", deadSips:"dood, {s}",
+      deathFrom:"Kans op dood vanaf dit bord: {p} ({c} van de 36 worpen).", deathHere:"Kans op dood hier: {p}.", wrongRoll:"Verkeerde worp ingevoerd",
+      tap:"Tik om verder te gaan",
+      statPre:"Kans vooraf {a}, laagste punt onderweg {b}.", allOpt:"Alle {n} keuzes optimaal.", oneSub:"Met één suboptimale keuze. Vet.", nSub:"Met {n} suboptimale keuzes. Nog vetter.",
+      medalTitle:{2:"Dikke jackpot!",3:"Monsterjackpot!",4:"Historisch!"},
+      own:{Stijn:["Op eigen tegel. Daan: {x}bak.","De 1 is thuisgekomen bij Stijn."],Daan:["Op eigen tegel. Stijn: {x}bak.","De 9 is thuisgekomen bij Daan."]},
+      stolenLines:{Stijn:["Daan pakt de Stijn special.","Stijn, dat is jouw tegel. 2x bak."],Daan:["Stijn pakt de Daan special.","Op Daans eigen tegel. 2x bak, Daan."]},
+      stolenBang:"Gestolen!", stolen:"gestolen", crying:"{n} gaat huilen van blijdschap",
+      specialBang:"{n} special!", superSpecialBang:"{n} super special!", specialQ:"{n} special?", superQ:"{n} super special?", special:"special", superSpecial:"super special",
+      joooow:"Joooow!", oneMore:"Nog één voor {s}!", stillOpen:"{s} nog open",
+      stoolQ:"Kruk?", stoolAria:"Kruk", stoolChug:"atje kruk", stoolChugBig:"ADTJE KRUK",
+      drinkN:"Drink {s}, {a}.",
+      aanhef:["pik","maat","broer","lul","gozer","gozermaat","broertje","makker","kerel","vriend","kanjer","mattie","baas","chef","kampioen","ouwe","jongen","sukkel","tijger","brada","grote vriend","legende","vlerk"],
+      waardering:["Petje af, {n}.","Dit gaat de boeken in, {n}.","Hier doen we het voor, {n}.","Geen woorden, {n}. Alleen bewondering.","{n} vertelt dit nog aan zijn kleinkinderen.","Even stil zijn voor {n}.","De bar mag even applaudisseren voor {n}."],
+      flavor:{1:"Bijna!!",2:"Bijna!",3:"Zo dichtbij.",4:"Had erger gekund.",5:"Matige beurt.",6:"Lol.",7:"Lol.",8:"Wat was dit?",9:"Geen tegel geraakt. Legendarisch."},
+      luck:{bad:"Slecht",meh:"Matig",normal:"Normaal",good:"Goed",great:"Heel goed",legend:"Legendarisch"},
+      luckVerdict:{
+        bad:"Slecht. {stat} Dit was objectief vreselijk en is hierbij officieel erkend.",
+        meh:"Matig. {stat} De dobbelstenen waren niet jullie vriend.",
+        normal:"Normaal. {stat} Keurig gemiddeld, niets te melden.",
+        good:"Goed. {stat} Boven verwachting.",
+        great:"Heel goed. {stat} Dit soort avonden zijn schaars.",
+        legend:"Legendarisch. {stat} Geniet ervan, dit komt niet terug."
+      },
+      expected:"Verwacht {e} jackpots in {t}, gegooid {j}.",
+      pointFor:"Punt voor {n}.", draw:"Gelijkspel, allebei een half punt.",
+      session:"Sessie", sessionIs:"Sessie: {c}", hTurns:"beurten", hSipsPerTurn:"slokken/beurt", hOptimal:"optimaal", hLuck:"geluk",
+      becomes:"Totaalstand wordt Stijn {a} tegen {b} Daan.", settle:"Verrekenen en afsluiten",
+      sessionClosed:"Sessie gesloten", vs:"Stijn {a} tegen {b} Daan", scanWith:"Scan met de andere telefoon: Stand bewerken, Stand overnemen (QR)", orType:"of typ: {c}",
+      taken:"Stand overgenomen", badCode:"Geen geldige code.", noCam:"Camera scannen kan hier niet. Typ de code van de ander.", noCam2:"Geen camera. Typ de code van de ander.",
+      standText:"Jackpot totaalstand: Stijn {a} tegen {b} Daan",
+      hist:"Geschiedenis", histEmpty:"Nog geen beurten gespeeld.", now:"Nu · {n}", busy:"bezig", immediate:"meteen fout",
+      pat:{hl:"Hoog naar laag",lh:"Laag naar hoog",oi:"Buiten naar binnen",io:"Binnen naar buiten"},
+      patFull:{hl:"Van hoog naar laag",lh:"Van laag naar hoog",oi:"Van buiten naar binnen",io:"Van binnen naar buiten"},
+      variant:"Variant", variantAria:"Spelvariant", normal:"Normaal", extreme:"Extreme",
+      strat:["hoogste jackpotkans","minste slokken","beste saldo (bak = 10 slokken)"], adviceLbl:"Advies: {s}", switchTo:"Wissel naar {s}",
+      clearScores:"Score en geschiedenis wissen", clearSure:"Zeker? Tik nogmaals om te wissen", resetBoard:"Bord resetten",
+      rules:"Regels",
+      rulesText:"Negen tegels, altijd twee dobbelstenen. Per worp klap je één tegel om: de som, of het getal van één van de twee stenen. Alles dicht is jackpot: de rest trekt een atje. Kun je niets omklappen, dan drink je zelf zoveel slokken als er tegels open staan. Bij Extreme drink je de som van de open getallen. Jackpot van binnen naar buiten: 2 atjes. Van buiten naar binnen: 3 atjes. Van hoog naar laag of laag naar hoog: 4 atjes. Drie keer op rij dezelfde ogen, ook door beurten heen: atje kruk, spel gaat door. De kansen gaan uit van optimaal doorspelen vanaf dat bord. Saldo = verwachte eigen slokken min 10 slokken per tegenstander maal de jackpotkans; lager is beter.",
+      and:"en",
+      help:"Hulp", helpTitle:"Jackpot", helpSub:"Spelregels, handleiding en oorsprong",
+      helpRulesH:"Spelregels",
+      helpRules:[
+        "**Negen tegels** (1 t/m 9) en altijd **twee dobbelstenen**. Per worp klap je **één tegel** om: de som van de stenen, of het getal van één van de twee stenen.",
+        "**Alles dicht is jackpot**: de rest trekt een atje.",
+        "**Kun je niets omklappen**, dan ben je dood en drink je zelf zoveel slokken als er tegels open staan. Bij **Extreme** drink je de som van de open getallen.",
+        "**Speciale jackpots** (de volgorde waarin je omklapt): van binnen naar buiten 2 atjes, van buiten naar binnen 3 atjes, van hoog naar laag of van laag naar hoog 4 atjes.",
+        "**Atje kruk**: drie keer op rij dezelfde ogen, ook door beurten heen. De gooier trekt een atje (op een kruk) en het spel gaat gewoon door.",
+        "**Stijn- en Daan-tegel**: de 1 is van Stijn, de 9 van Daan. Sluit je de jackpot op je eigen tegel, dan is het een special (met een patroon erbij: super special). Sluit de ander hem op jouw tegel, dan is hij gestolen: 2x bak.",
+        "**Kansen en saldo**: de kansen gaan uit van optimaal doorspelen vanaf dat bord. Saldo = verwachte eigen slokken min 10 slokken per tegenstander maal de jackpotkans; lager is beter."
+      ],
+      helpManualH:"Handleiding",
+      helpManual:[
+        "**Spelers**: tik op een speler om hem aan de beurt te zetten. Tik nogmaals op de actieve speler om de naam te wijzigen. Onder de spelers: een speler toevoegen, of de twee namen vervangen.",
+        "**Gooien**: tik op **Dobbel** om digitaal te gooien, of gooi echte stenen en tik op een steen om de ogen in te voeren.",
+        "**Tegels**: tik op een voorgestelde zet, of veeg een tegel omhoog om hem om te klappen en omlaag om hem terug te zetten. Met ↶ draai je de laatste zet terug. Na een dood herstel je een typfout met 'Verkeerde worp ingevoerd'.",
+        "**Kansen**: de knop Kansen toont per zet de jackpotkans, de verwachte slokken en het saldo, plus het advies. Welk advies (jackpotkans, minste slokken of saldo) stel je in onder Meer.",
+        "**Meer**: de geschiedenis van alle beurten met de keuzes en kansen, de variant (Normaal of Extreme), het advies, score en geschiedenis wissen en het bord resetten.",
+        "**Sessie (Stijn en Daan)**: 'Einde sessie' telt de jackpots van de avond, geeft een oordeel over het geluk en verrekent de totaalstand. 'Deel stand' toont een QR-code; op de andere telefoon lees je die via Stand bewerken, Stand overnemen (QR), of typ je de code over.",
+        "**Geluid en taal**: 🔊 zet het geluid aan of uit; EN/NL wisselt de taal. Alles blijft op je eigen telefoon opgeslagen; er is geen account.",
+        "**Installeren**: Android, Chrome: menu (⋮) rechtsboven, 'App installeren'. iPhone, Safari: Delen, naar beneden scrollen, 'Zet op beginscherm'."
+      ],
+      helpOriginH:"Oorsprong",
+      helpOrigin:[
+        "Jackpot stamt af van **Shut the Box**, een kroegspel dat volgens de overlevering al eeuwen door Normandische vissers en in Engelse pubs wordt gespeeld: een houten bakje met negen klepjes, twee dobbelstenen, en de kunst om ze allemaal dicht te krijgen.",
+        "Deze versie is het drankspel dat **Stijn en Daan** ervan maakten: een jackpot kost de rest een atje, dood zijn kost jezelf slokken, en daar kwamen de specials, atje kruk en de eigen tegels (de 1 van Stijn, de 9 van Daan) bovenop. De totaalstand tussen die twee loopt over alle sessies door.",
+        "De app is gebouwd in 2026 zodat het spel overal mee kan, ook zonder bakje. De kansen zijn geen schatting: voor alle 511 mogelijke borden is het optimale spel doorgerekend."
+      ],
+      installTitle:"Zet Jackpot op je beginscherm",
+      installIos:"Safari: tik op Delen (het vierkant met de pijl omhoog), scrol naar beneden en tik op 'Zet op beginscherm'.",
+      installAndroid:"Chrome: menu (⋮) rechtsboven, tik op 'App installeren' of 'Toevoegen aan startscherm'.",
+      installBtn:"Installeren", later:"Later", installHelp:"Installeren als app", installAndroidLbl:"Android (Chrome):", installIosLbl:"iPhone (Safari):"
+    },
+    en:{
+      langAria:"Wissel naar Nederlands",
+      view:"View", odds:"Odds", sound:"Sound", more:"More", game:"Game",
+      scanAim:"Point the camera at the other phone's QR", scanType:"or type the code", scanTake:"Import",
+      close:"Close", save:"Save", cancel:"Cancel", cont:"Continue",
+      name:"Name", newName:"New player's name", player1:"Player 1", player2:"Player 2",
+      alltimeTitle:"Tap to update", editStand:"Edit score", allTime:"All-time score (all sessions)", drawBtn:"Draw",
+      jpSession:"Jackpots this session", jpSessionLc:"jackpots this session", takeQr:"Import score (QR)",
+      endSession:"End session", shareStand:"Share score", addPlayer:"Add player", notUs:"Not Stijn or Daan?",
+      board:"Board", jackpot:"Jackpot", jackpotLc:"jackpot", net:"Net",
+      sip:"sip", sips:"sips", chug:"chug", chugs:"chugs", stool:"stool", stools:"stools", turn:"turn", million:"million",
+      noSpecial:"No special jackpot possible any more.", stillPossible:"Still on: ", oneIn:"1 in {n}",
+      dice:"Dice", die:"Die {n}", notEntered:"not entered yet", undo:"Undo last move", pickPips:"Pick pips",
+      diceHelp:"Tap a die and pick the pips. Swipe a tile up to flip it down, swipe down to put it back", roll:"Roll",
+      tile:"Tile {n}", closed:" (down)", nameTitle:"Tap to change name",
+      hint:"{n}'s turn. Roll and enter the pips.", noMove:"Nothing left to flip with {a} and {b}. Enter the new roll.",
+      jackpotBang:"Jackpot!", flip:"Flip {n}", die1:"die 1", die2:"die 2", sum:"sum", or:" or ", advice:"advice",
+      stoolNotice:"Stool chug for {n}{x}. The game goes on.",
+      bakShout:"Chug!", bak:"chug", throwsJackpot:"{n} rolls a jackpot.", next:"Next player",
+      dead:"Dead", deadBang:"Dead!", oof:"OOF!", rolled:"Rolled:", drinks:"{n} drinks {s}.", deadSips:"dead, {s}",
+      deathFrom:"Chance of dying from this board: {p} ({c} of 36 rolls).", deathHere:"Chance of dying here: {p}.", wrongRoll:"Wrong roll entered",
+      tap:"Tap to continue",
+      statPre:"Jackpot chance at the start {a}, lowest point along the way {b}.", allOpt:"All {n} choices optimal.", oneSub:"With one suboptimal choice. Sick.", nSub:"With {n} suboptimal choices. Even sicker.",
+      medalTitle:{2:"Big fat jackpot!",3:"Monster jackpot!",4:"Historic!"},
+      own:{Stijn:["On his own tile. Daan: {x}chug.","The 1 has come home to Stijn."],Daan:["On his own tile. Stijn: {x}chug.","The 9 has come home to Daan."]},
+      stolenLines:{Stijn:["Daan nicks the Stijn special.","Stijn, that's your tile. 2x chug."],Daan:["Stijn nicks the Daan special.","On Daan's own tile. 2x chug, Daan."]},
+      stolenBang:"Stolen!", stolen:"stolen", crying:"{n} is crying with joy",
+      specialBang:"{n} special!", superSpecialBang:"{n} super special!", specialQ:"{n} special?", superQ:"{n} super special?", special:"special", superSpecial:"super special",
+      joooow:"Joooow!", oneMore:"One more for {s}!", stillOpen:"{s} still on",
+      stoolQ:"Stool?", stoolAria:"Stool", stoolChug:"stool chug", stoolChugBig:"STOOL CHUG",
+      drinkN:"Drink {s}, {a}.",
+      aanhef:["mate","bro","pal","buddy","legend","champ","chief","boss","big man","geezer","muppet","tiger","old chap","son","numpty","lad","my friend","captain","sunshine","wally","you absolute unit"],
+      waardering:["Hats off, {n}.","One for the books, {n}.","This is what we do it for, {n}.","No words, {n}. Only admiration.","{n} will tell the grandkids about this one.","A moment of silence for {n}.","The bar may applaud {n}."],
+      flavor:{1:"So close!!",2:"So close!",3:"Nearly.",4:"Could have been worse.",5:"Mediocre turn.",6:"Lol.",7:"Lol.",8:"What was that?",9:"Not a single tile. Legendary."},
+      luck:{bad:"Bad",meh:"Meh",normal:"Normal",good:"Good",great:"Very good",legend:"Legendary"},
+      luckVerdict:{
+        bad:"Bad. {stat} This was objectively dreadful and is hereby officially acknowledged.",
+        meh:"Meh. {stat} The dice were not your friends.",
+        normal:"Normal. {stat} Neatly average, nothing to report.",
+        good:"Good. {stat} Above expectations.",
+        great:"Very good. {stat} Nights like this are rare.",
+        legend:"Legendary. {stat} Enjoy it, this won't come round again."
+      },
+      expected:"Expected {e} jackpots in {t}, rolled {j}.",
+      pointFor:"Point for {n}.", draw:"Draw, half a point each.",
+      session:"Session", sessionIs:"Session: {c}", hTurns:"turns", hSipsPerTurn:"sips/turn", hOptimal:"optimal", hLuck:"luck",
+      becomes:"All-time score becomes Stijn {a} to {b} Daan.", settle:"Settle and close",
+      sessionClosed:"Session closed", vs:"Stijn {a} to {b} Daan", scanWith:"Scan with the other phone: Edit score, Import score (QR)", orType:"or type: {c}",
+      taken:"Score imported", badCode:"Not a valid code.", noCam:"Camera scanning isn't available here. Type the other person's code.", noCam2:"No camera. Type the other person's code.",
+      standText:"Jackpot all-time score: Stijn {a} to {b} Daan",
+      hist:"History", histEmpty:"No turns played yet.", now:"Now · {n}", busy:"in progress", immediate:"dead straight away",
+      pat:{hl:"High to low",lh:"Low to high",oi:"Outside in",io:"Inside out"},
+      patFull:{hl:"High to low",lh:"Low to high",oi:"Outside in",io:"Inside out"},
+      variant:"Variant", variantAria:"Game variant", normal:"Normal", extreme:"Extreme",
+      strat:["highest jackpot chance","fewest sips","best net (chug = 10 sips)"], adviceLbl:"Advice: {s}", switchTo:"Switch to {s}",
+      clearScores:"Clear score and history", clearSure:"Sure? Tap again to clear", resetBoard:"Reset board",
+      rules:"Rules",
+      rulesText:"Nine tiles, always two dice. Each roll you flip one tile: the sum, or the number on either die. All tiles down is a jackpot: everyone else does a chug. If you can't flip anything, you drink as many sips as there are tiles still open. In Extreme you drink the sum of the open numbers. Jackpot from inside out: 2 chugs. Outside in: 3 chugs. High to low or low to high: 4 chugs. The same pips three times in a row, also across turns: stool chug, the game goes on. The odds assume optimal play from that board onwards. Net = your expected own sips minus 10 sips per opponent times the jackpot chance; lower is better.",
+      and:"and",
+      help:"Help", helpTitle:"Jackpot", helpSub:"Rules, manual and origin",
+      helpRulesH:"Rules",
+      helpRules:[
+        "**Nine tiles** (1 to 9) and always **two dice**. Each roll you flip **one tile**: the sum of the dice, or the number on either die.",
+        "**All tiles down is a jackpot**: everyone else does a chug.",
+        "**If you can't flip anything** you're dead and drink as many sips as there are tiles still open. In **Extreme** you drink the sum of the open numbers.",
+        "**Special jackpots** (the order you flip in): inside out 2 chugs, outside in 3 chugs, high to low or low to high 4 chugs.",
+        "**Stool chug**: the same pips three times in a row, also across turns. The roller does a chug (standing on a stool) and the game simply goes on.",
+        "**Stijn's and Daan's tiles**: the 1 belongs to Stijn, the 9 to Daan. Close the jackpot on your own tile and it's a special (with a pattern as well: a super special). If the other one closes it on your tile, it's stolen: 2x chug.",
+        "**Odds and net**: the odds assume optimal play from that board onwards. Net = your expected own sips minus 10 sips per opponent times the jackpot chance; lower is better."
+      ],
+      helpManualH:"Manual",
+      helpManual:[
+        "**Players**: tap a player to give them the turn. Tap the active player again to change the name. Below the players: add a player, or replace the two names.",
+        "**Rolling**: tap **Roll** to roll digitally, or roll real dice and tap a die to enter the pips.",
+        "**Tiles**: tap a suggested move, or swipe a tile up to flip it down and down to put it back. ↶ undoes the last move. After a death, 'Wrong roll entered' fixes a typo.",
+        "**Odds**: the Odds button shows the jackpot chance, expected sips and net for every move, plus the advice. Which advice (jackpot chance, fewest sips or net) is set under More.",
+        "**More**: the history of every turn with its choices and odds, the variant (Normal or Extreme), the advice, clearing the score and history, and resetting the board.",
+        "**Session (Stijn and Daan)**: 'End session' counts the night's jackpots, judges the luck and settles the all-time score. 'Share score' shows a QR code; the other phone reads it via Edit score, Import score (QR), or types the code.",
+        "**Sound and language**: 🔊 turns the sound on or off; EN/NL switches the language. Everything stays on your own phone; there is no account.",
+        "**Installing**: Android, Chrome: menu (⋮) top right, 'Install app'. iPhone, Safari: Share, scroll down, 'Add to Home Screen'."
+      ],
+      helpOriginH:"Origin",
+      helpOrigin:[
+        "Jackpot descends from **Shut the Box**, a pub game said to have been played for centuries by Norman fishermen and in English pubs: a wooden box with nine flaps, two dice, and the art of getting them all down.",
+        "This version is the drinking game **Stijn and Daan** made of it: a jackpot costs everyone else a chug, dying costs you sips, and the specials, the stool chug and the personal tiles (Stijn's 1, Daan's 9) grew on top. The all-time score between the two runs across every session.",
+        "The app was built in 2026 so the game can come along anywhere, box or no box. The odds are not an estimate: optimal play has been worked out for all 511 possible boards."
+      ],
+      installTitle:"Put Jackpot on your home screen",
+      installIos:"Safari: tap Share (the square with the arrow), scroll down and tap 'Add to Home Screen'.",
+      installAndroid:"Chrome: menu (⋮) top right, tap 'Install app' or 'Add to Home screen'.",
+      installBtn:"Install", later:"Later", installHelp:"Install as an app", installAndroidLbl:"Android (Chrome):", installIosLbl:"iPhone (Safari):"
+    }
+  };
+  function t(key,vars){
+    var d=I18N[S.lang]||I18N.nl, v=d[key];
+    if(v===undefined) v=I18N.nl[key];
+    if(v===undefined) return key;
+    if(typeof v!=="string") return v;
+    if(vars) v=v.replace(/\{(\w+)\}/g,function(m,k){ return Object.prototype.hasOwnProperty.call(vars,k)?String(vars[k]):m; });
+    return v;
+  }
+  function sips(n){ return n+" "+(n===1?t("sip"):t("sips")); }
+  function pickOne(arr){ return arr[Math.floor(Math.random()*arr.length)]; }
+
   function pop(s){var c=0;while(s){c+=s&1;s>>=1;}return c;}
   function tilesum(s){var t=0;for(var i=1;i<=9;i++)if(s>>(i-1)&1)t+=i;return t;}
   function moves(s,a,b){
     var out=[], seen={};
-    [[a,"steen 1"],[b,"steen 2"],[a+b,"som"]].forEach(function(m){
+    [[a,"die1"],[b,"die2"],[a+b,"sum"]].forEach(function(m){
       var v=m[0]; if(v<1||v>9||!(s>>(v-1)&1)) return;
       if(seen[v]){seen[v].labels.push(m[1]);return;}
       seen[v]={v:v,next:s&~(1<<(v-1)),labels:[m[1]]}; out.push(seen[v]);
@@ -2693,26 +2921,79 @@ var qrcode = function() {
 
   /* ---- state ---- */
   var S={ players:[{name:"Stijn",slokken:0,jackpots:0,atjes:0,kruk:0},{name:"Daan",slokken:0,jackpots:0,atjes:0,kruk:0}],
-          active:0, board:FULL, d1:null, d2:null, extreme:false, strat:2, kans:false, sound:true, view:"play", alltime:{"stijn":6.5,"daan":15.5}, decisions:[], turns:[], ended:null, streak:[], kruk:0 };
+          active:0, board:FULL, d1:null, d2:null, extreme:false, strat:2, kans:false, sound:true, view:"play", lang:"nl", alltime:{"stijn":6.5,"daan":15.5}, decisions:[], turns:[], ended:null, streak:[], kruk:0 };
   function save(){ try{ localStorage.setItem("jackpot-state", JSON.stringify(S)); }catch(e){} }
   function load(){
-    try{ var raw=localStorage.getItem("jackpot-state"); if(raw){ var o=JSON.parse(raw); if(o&&o.players&&o.players.length) S=o; } }catch(e){}
+    var raw=null;
+    try{ raw=localStorage.getItem("jackpot-state"); if(raw){ var o=JSON.parse(raw); if(o&&o.players&&o.players.length) S=o; } }catch(e){}
     if(typeof S.board!=="number") S.board=FULL;
     S.decisions=S.decisions||[]; S.turns=S.turns||[]; if(S.ended===undefined)S.ended=null; if(S.kans===undefined)S.kans=false; if(S.sound===undefined)S.sound=true; if(!S.view)S.view="play"; if(!S.alltime)S.alltime={"stijn":6.5,"daan":15.5}; if(S.alltime.stijn===15.5&&S.alltime.daan===6.5){S.alltime={"stijn":6.5,"daan":15.5};} S.streak=S.streak||[]; S.kruk=S.kruk||0; S.players.forEach(function(p){p.kruk=p.kruk||0;});
+    if(S.lang!=="nl"&&S.lang!=="en") S.lang=raw?"nl":(/^nl/i.test(String(navigator.language||""))?"nl":"en");
   }
   var pick=null, animClass="", fresh=false, rolling=false;
   load();
 
   var el=function(id){return document.getElementById(id);};
-  function pct(x,d){return (x*100).toFixed(d||1).replace(".",",")+"%";}
+  function dsep(s){ return S.lang==="nl"?s.replace(".",","):s; }
+  function pct(x,d){return dsep((x*100).toFixed(d||1))+"%";}
   function decimalsFor(list){ var seen={}; for(var i=0;i<list.length;i++){ var k=(list[i]*100).toFixed(1); if(seen[k])return 2; seen[k]=1; } return 1; }
-  function num(x){return x.toFixed(1).replace(".",",");}
-  function snum(x){return (x>0?"+":"")+x.toFixed(1).replace(".",",");}
-  var STRAT=["hoogste jackpotkans","minste slokken","beste saldo (bak = 10 slokken)"];
+  function num(x){return dsep(x.toFixed(1));}
+  function snum(x){return (x>0?"+":"")+dsep(x.toFixed(1));}
   function esc(s){return String(s).replace(/[&<>"]/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c];});}
   function penalty(){return S.extreme?tilesum(S.board):pop(S.board);}
   function others(){ return S.players.filter(function(p,i){return i!==S.active;}).map(function(p){return p.name;}); }
-  function joinNames(a){ return a.length<=1?a.join(""):a.slice(0,-1).join(", ")+" en "+a[a.length-1]; }
+  function joinNames(a){ return a.length<=1?a.join(""):a.slice(0,-1).join(", ")+" "+t("and")+" "+a[a.length-1]; }
+
+  /* ---- language ---- */
+  function applyLang(){
+    document.documentElement.lang=S.lang;
+    var attrs=[["data-i18n",function(e,v){e.textContent=v;}],["data-i18n-placeholder",function(e,v){e.setAttribute("placeholder",v);}],["data-i18n-aria",function(e,v){e.setAttribute("aria-label",v);}],["data-i18n-title",function(e,v){e.setAttribute("title",v);}]];
+    attrs.forEach(function(s){ Array.prototype.forEach.call(document.querySelectorAll("["+s[0]+"]"),function(e){ s[1](e,String(t(e.getAttribute(s[0])))); }); });
+    var lb=el("mLang"); lb.textContent=S.lang==="nl"?"EN":"NL"; lb.setAttribute("aria-label",t("langAria"));
+    el("resetScores").classList.remove("confirm");
+    renderInstall();
+    if(!el("help").hidden) renderHelp();
+  }
+
+  /* ---- install help ---- */
+  var installEvt=null;
+  function isStandalone(){ try{ return (window.matchMedia&&window.matchMedia("(display-mode: standalone)").matches)||navigator.standalone===true; }catch(e){ return false; } }
+  function isIOS(){ var ua=navigator.userAgent||""; return /iPhone|iPad|iPod/.test(ua)||(/Macintosh/.test(ua)&&navigator.maxTouchPoints>1); }
+  function isMobile(){ var ua=navigator.userAgent||""; return isIOS()||/Android/i.test(ua); }
+  function installDismissed(){ try{ return localStorage.getItem("jackpot-install-dismissed")==="1"; }catch(e){ return false; } }
+  function dismissInstall(){ try{ localStorage.setItem("jackpot-install-dismissed","1"); }catch(e){} var b=el("install"); if(b)b.hidden=true; }
+  function renderInstall(){
+    var b=el("install"); if(!b)return;
+    if(isStandalone()||installDismissed()||(!isMobile()&&!installEvt)){ b.hidden=true; return; }
+    var ios=isIOS();
+    b.innerHTML='<b>'+esc(t("installTitle"))+'</b><div>'+esc(t(ios?"installIos":"installAndroid"))+'</div><div class="other">'+esc(t(ios?"installAndroid":"installIos"))+'</div>'+
+      '<div class="row">'+(installEvt?'<button class="primary" id="installGo">'+esc(t("installBtn"))+'</button>':'')+'<button id="installLater">'+esc(t("later"))+'</button></div>';
+    b.hidden=false;
+    if(installEvt) el("installGo").onclick=function(){ var ev=installEvt; installEvt=null; try{ ev.prompt(); if(ev.userChoice) ev.userChoice.then(function(c){ if(c&&c.outcome==="accepted") dismissInstall(); },function(){}); }catch(e){} renderInstall(); };
+    el("installLater").onclick=dismissInstall;
+  }
+  window.addEventListener("beforeinstallprompt",function(e){ e.preventDefault(); installEvt=e; renderInstall(); });
+  window.addEventListener("appinstalled",function(){ installEvt=null; dismissInstall(); });
+
+  /* ---- help sheet (? button) ---- */
+  function md(s){ return esc(s).replace(/\*\*(.+?)\*\*/g,"<b>$1</b>"); }
+  function helpOpen(){ return !el("help").hidden; }
+  function renderHelp(){
+    function list(key){ return '<ul>'+t(key).map(function(s){ return '<li>'+md(s)+'</li>'; }).join("")+'</ul>'; }
+    function paras(key){ return t(key).map(function(s){ return '<p>'+md(s)+'</p>'; }).join(""); }
+    el("helpcard").innerHTML='<button class="x" id="helpX" aria-label="'+esc(t("close"))+'">×</button>'+
+      '<h2>'+esc(t("helpTitle"))+'</h2><p class="empty">'+esc(t("helpSub"))+'</p>'+
+      '<h3>'+esc(t("helpRulesH"))+'</h3>'+list("helpRules")+
+      '<h3>'+esc(t("helpManualH"))+'</h3>'+list("helpManual")+
+      '<h3>'+esc(t("helpOriginH"))+'</h3>'+paras("helpOrigin")+
+      '<button class="done" id="helpDone">'+esc(t("close"))+'</button>';
+    el("helpX").onclick=closeHelp; el("helpDone").onclick=closeHelp;
+  }
+  function openHelp(){ renderHelp(); el("help").hidden=false; el("help").scrollTop=0; el("mHelp").setAttribute("aria-pressed","true"); }
+  function closeHelp(){ el("help").hidden=true; el("mHelp").setAttribute("aria-pressed","false"); }
+  el("mHelp").onclick=function(){ if(helpOpen())closeHelp(); else openHelp(); };
+  el("help").addEventListener("click",function(e){ if(e.target===el("help"))closeHelp(); });
+  document.addEventListener("keydown",function(e){ if(e.key==="Escape"&&helpOpen())closeHelp(); });
 
   /* ---- sound ---- */
   var AC=null;
@@ -2738,7 +3019,6 @@ var qrcode = function() {
       [0,0.22,0.44].forEach(function(t,i){ tone(2093+i*300,1.1+t,0.25,"sine",0.12); }); }
   };
   function play_(name,arg){ if(S.sound&&sfx[name])try{sfx[name](arg);}catch(e){} }
-  var AANHEF=["pik","maat","broer","lul","gozer","gozermaat","broertje","makker","kerel","vriend","kanjer","mattie","baas","chef","kampioen","ouwe","jongen","sukkel","tijger","brada","grote vriend","legende","vlerk"];
   var MEDAL_COL={2:["#b87333","#8a5422"],3:["#cfd3d8","#8e949c"],4:["#f2c744","#b8890f"]};
   function medalSvg(atjes,cls){
     var c=MEDAL_COL[atjes]||MEDAL_COL[4];
@@ -2748,35 +3028,33 @@ var qrcode = function() {
       '<circle cx="30" cy="52" r="14" fill="none" stroke="'+c[1]+'" stroke-width="1.5"/>'+
       '<text x="30" y="58" text-anchor="middle" font-family="Georgia,serif" font-weight="900" font-size="17" fill="#fff8e6">'+atjes+'x</text></svg>';
   }
-  var WAARDERING=["Petje af, {n}.","Dit gaat de boeken in, {n}.","Hier doen we het voor, {n}.","Geen woorden, {n}. Alleen bewondering.","{n} vertelt dit nog aan zijn kleinkinderen.","Even stil zijn voor {n}.","De bar mag even applaudisseren voor {n}."];
   function overlayMedal(sp,name,othersTxt){
     var o=el("overlay"); clearTimeout(overlayTimer); o.className="overlay jackpot big";
-    var title={2:"Dikke jackpot!",3:"Monsterjackpot!",4:"Historisch!"}[sp.atjes]||"Jackpot!";
-    el("overlayText").innerHTML=medalSvg(sp.atjes,"bigmedal")+'<span class="title">'+esc(title)+'</span><small>'+esc(sp.label)+'. '+esc(othersTxt)+': '+sp.atjes+'x bak!</small><small>'+esc(WAARDERING[Math.floor(Math.random()*WAARDERING.length)].replace("{n}",name))+'</small>';
+    var title=t("medalTitle")[sp.atjes]||t("jackpotBang");
+    el("overlayText").innerHTML=medalSvg(sp.atjes,"bigmedal")+'<span class="title">'+esc(title)+'</span><small>'+esc(patLabel(sp.key))+'. '+esc(othersTxt)+': '+sp.atjes+'x '+esc(t("bak"))+'!</small><small>'+esc(pickOne(t("waardering")).replace("{n}",name))+'</small>';
     void o.offsetWidth; o.className="overlay jackpot big show";
     overlayTimer=setTimeout(function(){ o.className="overlay"; },8200);
   }
-  var OWN_TXT={Stijn:["Op eigen tegel. Daan: bak.","De 1 is thuisgekomen bij Stijn."],Daan:["Op eigen tegel. Stijn: bak.","De 9 is thuisgekomen bij Daan."]};
   function overlayOwn(name,atjes){
     var o=el("overlay"); clearTimeout(overlayTimer); o.className="overlay jackpot big";
-    var lines=OWN_TXT[name]||[]; if(atjes>1) lines=[lines[0].replace("bak.",atjes+"x bak."),lines[1]];
-    el("overlayText").innerHTML='<div class="ownface">'+(name==="Stijn"?FACE_STIJN:FACE_DAAN)+'</div><span class="title">'+esc(name)+' special!</span><small>'+esc(lines[0])+'</small><small>'+esc(lines[1])+'</small>';
+    var lines=(t("own")[name]||["",""]).map(function(l){ return l.replace("{x}",atjes>1?atjes+"x ":""); });
+    el("overlayText").innerHTML='<div class="ownface">'+(name==="Stijn"?FACE_STIJN:FACE_DAAN)+'</div><span class="title">'+esc(t("specialBang",{n:name}))+'</span><small>'+esc(lines[0])+'</small><small>'+esc(lines[1])+'</small>';
     void o.offsetWidth; o.className="overlay jackpot big show";
     overlayTimer=setTimeout(function(){ o.className="overlay"; },7000);
   }
   function stickOverlay(){
     var o=el("overlay"); clearTimeout(overlayTimer);
     if(o.className.indexOf("sticky")<0) o.className=o.className.replace(" show"," sticky show");
-    if(!el("overlayText").querySelector(".tap")) el("overlayText").insertAdjacentHTML("beforeend",'<span class="tap">Tik om verder te gaan</span>');
+    if(!el("overlayText").querySelector(".tap")) el("overlayText").insertAdjacentHTML("beforeend",'<span class="tap">'+esc(t("tap"))+'</span>');
   }
   function jackpotStats(decs){
     var sub=0, minP=1, pre=cur().PJ[2][FULL];
     decs.forEach(function(d){ if(d.chosen!==d.best)sub++; d.options.forEach(function(o){ if(o.v===d.chosen&&o.p<minP)minP=o.p; }); });
-    var l1="Kans vooraf "+pct(pre)+", laagste punt onderweg "+pct(minP)+".";
-    var l2=sub===0?"Alle "+decs.length+" keuzes optimaal.":sub===1?"Met één suboptimale keuze. Vet.":"Met "+sub+" suboptimale keuzes. Nog vetter.";
+    var l1=t("statPre",{a:pct(pre),b:pct(minP)});
+    var l2=sub===0?t("allOpt",{n:decs.length}):sub===1?t("oneSub"):t("nSub",{n:sub});
     return '<small class="jstat">'+esc(l1)+'</small><small class="jstat">'+esc(l2)+'</small>';
   }
-  var KRUK_SVG='<svg viewBox="0 0 200 260" xmlns="http://www.w3.org/2000/svg" aria-label="Kruk">'+
+  function krukSvg(){ return '<svg viewBox="0 0 200 260" xmlns="http://www.w3.org/2000/svg" aria-label="'+esc(t("stoolAria"))+'">'+
     '<g stroke="#2a1708" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">'+
     '<path d="M40 70 L22 250" fill="none" stroke="#8a5a2b" stroke-width="12"/>'+
     '<path d="M160 70 L178 250" fill="none" stroke="#8a5a2b" stroke-width="12"/>'+
@@ -2787,10 +3065,10 @@ var qrcode = function() {
     '<ellipse cx="100" cy="62" rx="82" ry="26" fill="#c98b4b"/>'+
     '<ellipse cx="100" cy="52" rx="82" ry="26" fill="#e0a860"/>'+
     '<ellipse cx="100" cy="52" rx="58" ry="16" fill="none" stroke="#b7823f" stroke-width="2"/>'+
-    '</g></svg>';
+    '</g></svg>'; }
   function overlayKruk(){
     var o=el("overlay"); o.className="overlay kruk big";
-    el("overlayText").innerHTML=KRUK_SVG+"<small>ADTJE KRUK</small>";
+    el("overlayText").innerHTML=krukSvg()+"<small>"+esc(t("stoolChugBig"))+"</small>";
     void o.offsetWidth; o.className="overlay kruk big show";
     setTimeout(function(){ o.className="overlay"; },4800);
   }
@@ -2798,7 +3076,7 @@ var qrcode = function() {
   function overlay(kind,text,sub,ms){
     var o=el("overlay"), sticky=ms===0; clearTimeout(overlayTimer); o.className="overlay "+kind+(sticky?" sticky":""); o.style.background="";
     if(sub&&!Array.isArray(sub))sub=[sub];
-    el("overlayText").innerHTML=esc(text)+(sub?sub.map(function(l){return "<small>"+esc(l)+"</small>";}).join(""):"")+(sticky?'<span class="tap">Tik om verder te gaan</span>':"");
+    el("overlayText").innerHTML=esc(text)+(sub?sub.map(function(l){return "<small>"+esc(l)+"</small>";}).join(""):"")+(sticky?'<span class="tap">'+esc(t("tap"))+'</span>':"");
     void o.offsetWidth; o.className="overlay "+kind+(sticky?" sticky":"")+" show";
     if(!sticky) overlayTimer=setTimeout(function(){ o.className="overlay"; },ms||1700);
   }
@@ -2806,31 +3084,31 @@ var qrcode = function() {
 
   /* ---- render ---- */
   function atKey(i){ return S.players[i]?S.players[i].name.toLowerCase():null; }
-  function fmtAt(x){ return (Math.round(x*2)/2).toString().replace(".",","); }
+  function fmtAt(x){ return dsep((Math.round(x*2)/2).toString()); }
   function sdIdx(){ var si=-1, di=-1; S.players.forEach(function(p,i){ var k=p.name.toLowerCase(); if(k==="stijn"&&si<0)si=i; if(k==="daan"&&di<0)di=i; }); return (si>=0&&di>=0)?{s:si,d:di}:null; }
   function isStijnDaan(){ return !!sdIdx(); }
   function renderAlltime(){
     var e=el("alltime"), sd=sdIdx();
     if(!sd){ e.innerHTML=""; e.style.display="none"; el("sessionbar").style.display="none"; el("alltimeform").className="alltimeform"; return; }
-    el("sessionbar").style.display=""; e.style.display=""; e.innerHTML='Stand bewerken';
+    el("sessionbar").style.display=""; e.style.display=""; e.textContent=t("editStand");
   }
   function buildForm(){
     var sd=sdIdx(); if(!sd)return;
-    var h='<span class="formlabel">Totaalstand (alle sessies)</span>'+
+    var h='<span class="formlabel">'+esc(t("allTime"))+'</span>'+
       '<button data-bump="s">+1 Stijn</button><label>Stijn<input id="atS" type="number" step="0.5" inputmode="decimal" value="'+(S.alltime.stijn||0)+'"></label>'+
-      '<button data-bump="x">Gelijk</button>'+
+      '<button data-bump="x">'+esc(t("drawBtn"))+'</button>'+
       '<label>Daan<input id="atD" type="number" step="0.5" inputmode="decimal" value="'+(S.alltime.daan||0)+'"></label><button data-bump="d">+1 Daan</button>'+
-      '<span class="formlabel">Jackpots deze sessie</span>';
+      '<span class="formlabel">'+esc(t("jpSession"))+'</span>';
     S.players.forEach(function(p,i){ h+='<label>'+esc(p.name)+'<input class="sj" data-i="'+i+'" type="number" step="1" inputmode="numeric" value="'+p.jackpots+'"></label>'; });
-    h+='<button class="primary" id="atOk">Opslaan</button><button id="atCancel">Sluiten</button><button id="atScan">Stand overnemen (QR)</button>';
+    h+='<button class="primary" id="atOk">'+esc(t("save"))+'</button><button id="atCancel">'+esc(t("close"))+'</button><button id="atScan">'+esc(t("takeQr"))+'</button>';
     el("alltimeform").innerHTML=h;
   }
   function renderPlayers(){
     el("players").innerHTML=S.players.map(function(p,i){
       var k=p.name.toLowerCase(), sdx=sdIdx(), sd=!!sdx&&(i===sdx.s||i===sdx.d), va=sd?(S.alltime[k]||0):0, vo=sd?(S.alltime[k==="stijn"?"daan":"stijn"]||0):0;
-      return '<button class="player'+(i===S.active?' active':'')+'" data-i="'+i+'" title="Tik om naam te wijzigen">'+
-        (sd?'<span class="at'+(va>vo?' lead':'')+'">'+fmtAt(va)+'</span>':'')+'<span class="name">'+esc(p.name)+'</span>'+(sd?'<span class="sess">'+p.jackpots+'<small>jackpots deze sessie</small></span>':'')+
-        '<span class="stats"><b>'+p.slokken+'</b> slokken'+(sd?'':' · <b>'+p.jackpots+'</b> jackpot')+' · <b>'+p.atjes+'</b> atjes'+(p.kruk?' · <b>'+p.kruk+'</b> kruk':'')+'</span>'+((p.medals||[]).slice().sort(function(a,b){return b-a;}).map(function(a){return medalSvg(a);}).join(''))+'</button>';
+      return '<button class="player'+(i===S.active?' active':'')+'" data-i="'+i+'" title="'+esc(t("nameTitle"))+'">'+
+        (sd?'<span class="at'+(va>vo?' lead':'')+'">'+fmtAt(va)+'</span>':'')+'<span class="name">'+esc(p.name)+'</span>'+(sd?'<span class="sess">'+p.jackpots+'<small>'+esc(t("jpSessionLc"))+'</small></span>':'')+
+        '<span class="stats"><b>'+p.slokken+'</b> '+esc(p.slokken===1?t("sip"):t("sips"))+(sd?'':' · <b>'+p.jackpots+'</b> '+esc(t("jackpotLc")))+' · <b>'+p.atjes+'</b> '+esc(p.atjes===1?t("chug"):t("chugs"))+(p.kruk?' · <b>'+p.kruk+'</b> '+esc(p.kruk===1?t("stool"):t("stools")):'')+'</span>'+((p.medals||[]).slice().sort(function(a,b){return b-a;}).map(function(a){return medalSvg(a);}).join(''))+'</button>';
     }).join("");
   }
   var FACE_STIJN="<svg viewBox=\"0 0 40 60\" xmlns=\"http://www.w3.org/2000/svg\"><g fill=\"none\" stroke=\"#e9dcbd\" stroke-width=\"1.6\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M4 58 Q7 48 15 46 L16 38 M24 38 L25 46 Q33 48 36 58\"/><path d=\"M10 21 Q9 9 20 8 Q31 9 30 21 Q30 31 26 37 Q20 42 14 37 Q10 31 10 21 Z\" fill=\"#3a2211\"/><path d=\"M9 18 Q9 6 21 5 Q31 5 32 13 Q30 10 24 10 Q15 10 11 15 Q10 16 9 18 Z\" fill=\"#e9dcbd\"/><path d=\"M15 10 Q23 6 31 9\" stroke=\"#3a2211\" stroke-width=\"1\"/><path d=\"M10 22 Q7 22 8 26 Q9 28 10 27\"/><path d=\"M30 22 Q33 22 32 26 Q31 28 30 27\"/><path d=\"M13 20 L17 19 M23 19 L27 20\"/><path d=\"M14 23 L17 23 M23 23 L26 23\"/><path d=\"M20 22 L19 28 L21 28\"/><path d=\"M10 27 Q11 36 15 39 Q20 42 25 39 Q29 36 30 27\" stroke-width=\"3.2\" stroke-opacity=\".9\"/><path d=\"M12 31 Q13 35 16 37 M28 31 Q27 35 24 37\" stroke-width=\"1.2\"/><path d=\"M16 30 Q20 28.5 24 30\" stroke-width=\"2\"/><path d=\"M17 33 Q20 34 23 33\"/></g></svg>";
@@ -2841,7 +3119,7 @@ var qrcode = function() {
     var can={}; if(S.d1&&S.d2&&!S.ended) moves(S.board,S.d1,S.d2).forEach(function(m){can[m.v]=1;});
     for(var i=1;i<=9;i++){
       var open=S.board>>(i-1)&1;
-      html+='<button class="tile'+(open?(can[i]?' can':''):' down')+'" data-i="'+i+'" aria-pressed="'+(open?'false':'true')+'" aria-label="Tegel '+i+(open?'':' (dicht)')+'">'+(open?i:backs[i-1])+'</button>';
+      html+='<button class="tile'+(open?(can[i]?' can':''):' down')+'" data-i="'+i+'" aria-pressed="'+(open?'false':'true')+'" aria-label="'+esc(t("tile",{n:i})+(open?'':t("closed")))+'">'+(open?i:backs[i-1])+'</button>';
     }
     el("tiles").innerHTML=html;
     var T=cur(); el("pj").textContent=pct(T.PJ[S.strat][S.board]); el("es").textContent=num(T.ES[S.strat][S.board]); el("net").textContent=snum(T.NET[S.strat][S.board]);
@@ -2852,7 +3130,7 @@ var qrcode = function() {
   }
   function renderDie(id,v,n){
     var d=el(id); d.className="die"+(v?"":" blank")+(pick===n?" picking":"");
-    d.innerHTML=v?pips(v):"?"; d.setAttribute("aria-label","Dobbelsteen "+n+(v?": "+v:": nog niet ingevoerd"));
+    d.innerHTML=v?pips(v):"?"; d.setAttribute("aria-label",t("die",{n:n})+": "+(v?v:t("notEntered")));
   }
   function renderDice(){
     renderDie("d1",S.d1,1);renderDie("d2",S.d2,2);
@@ -2866,7 +3144,7 @@ var qrcode = function() {
   function keeps(m,al){
     var k=al.filter(function(a){ return PATS[a.k].ok(a.last,m.v)&&patV(a.k,m.next,m.v)>0; });
     if(!k.length) return "";
-    return '<br><span class="pat">'+k.map(function(a){ return a.name.toLowerCase()+" ("+a.atjes+"x)"+(S.kans?", 1 op "+oneIn(patV(a.k,m.next,m.v)):""); }).join(" · ")+'</span>';
+    return '<br><span class="pat">'+k.map(function(a){ return esc(patName(a.k).toLowerCase())+" ("+a.atjes+"x)"+(S.kans?", "+esc(t("oneIn",{n:oneIn(patV(a.k,m.next,m.v))})):""); }).join(" · ")+'</span>';
   }
   function bestOf(ms){
     var T=cur(), k=S.strat, best=ms[0];
@@ -2884,54 +3162,54 @@ var qrcode = function() {
     if(S.ended){
       if(S.ended.result==="jackpot"){
         var a=S.ended.atjes||1;
-        box.innerHTML='<div class="verdict jackpot pop"><h2 class="bak">'+esc(joinNames(S.ended.others))+': '+(a>1?a+'x ':'')+'Bak!</h2>'+(S.ended.special?'<p class="sub">'+esc(S.ended.special)+'</p>':'')+'<p>'+esc(S.ended.name)+' gooit jackpot.</p><button id="next">Volgende speler</button></div>';
+        box.innerHTML='<div class="verdict jackpot pop"><h2 class="bak">'+esc(joinNames(S.ended.others))+': '+(a>1?a+'x ':'')+esc(t("bakShout"))+'</h2>'+(S.ended.special?'<p class="sub">'+esc(patLabel(S.ended.special))+'</p>':'')+'<p>'+esc(t("throwsJackpot",{n:S.ended.name}))+'</p><button id="next">'+esc(t("next"))+'</button></div>';
       } else {
         var n=S.ended.slokken;
         var dc=S.ended.deathc||0;
-        box.innerHTML='<div class="verdict fout pop"><h2>Dood</h2><p class="sub">'+esc(flavor(S.ended.open||0))+'</p><p>Gegooid: <span class="mini">'+pips(S.ended.d1||1)+'</span><span class="mini">'+pips(S.ended.d2||1)+'</span></p><p>'+esc(S.ended.name)+' drinkt <b>'+n+'</b> '+(n===1?'slok':'slokken')+'.<br>Kans op dood vanaf dit bord: '+pct(dc/36,0)+' ('+dc+' van de 36 worpen).</p><button id="next">Volgende speler</button><button class="alt" id="oops">Verkeerde worp ingevoerd</button></div>';
+        box.innerHTML='<div class="verdict fout pop"><h2>'+esc(t("dead"))+'</h2><p class="sub">'+esc(flavor(S.ended.open||0))+'</p><p>'+esc(t("rolled"))+' <span class="mini">'+pips(S.ended.d1||1)+'</span><span class="mini">'+pips(S.ended.d2||1)+'</span></p><p>'+t("drinks",{n:esc(S.ended.name),s:'<b>'+n+'</b> '+esc(n===1?t("sip"):t("sips"))})+'<br>'+esc(t("deathFrom",{p:pct(dc/36,0),c:dc}))+'</p><button id="next">'+esc(t("next"))+'</button><button class="alt" id="oops">'+esc(t("wrongRoll"))+'</button></div>';
         el("oops").onclick=uncommit;
       }
       el("next").onclick=nextPlayer; return;
     }
     if(S.board===0){ commit("jackpot",0); return; }
-    if(!S.d1||!S.d2){ box.innerHTML='<p class="hint">'+esc(me)+' is aan de beurt. Gooi en voer de worp in.</p>'; return; }
+    if(!S.d1||!S.d2){ box.innerHTML='<p class="hint">'+esc(t("hint",{n:me}))+'</p>'; return; }
     var ms=moves(S.board,S.d1,S.d2);
     if(ms.length&&pop(S.board)===1&&fresh&&!flipping){
       fresh=false; var lastV=ms[0].v;
-      box.innerHTML='<p class="hint">Jackpot!</p>';
-      setTimeout(function(){ var t=el("tiles").querySelector('.tile[data-i="'+lastV+'"]'); flipTile(t,lastV,0.9); },250);
+      box.innerHTML='<p class="hint">'+esc(t("jackpotBang"))+'</p>';
+      setTimeout(function(){ var tl=el("tiles").querySelector('.tile[data-i="'+lastV+'"]'); flipTile(tl,lastV,0.9); },250);
       return;
     }
     if(!ms.length){
       if(fresh){ commit("fout",penalty()); return; }
-      box.innerHTML='<p class="hint">Met '+S.d1+' en '+S.d2+' kan hier niets meer. Voer de nieuwe worp in.</p>'; return;
+      box.innerHTML='<p class="hint">'+esc(t("noMove",{a:S.d1,b:S.d2}))+'</p>'; return;
     }
     var al=alivePats();
-    var best=bestOf(ms), html=S.kruk?'<div class="notice">Atje kruk voor '+esc(me)+(S.kruk>1?' ('+S.kruk+'x)':'')+'. Spel gaat door.</div>':"", dec=decimalsFor(ms.map(function(x){return T.PJ[S.strat][x.next];}));
+    var best=bestOf(ms), html=S.kruk?'<div class="notice">'+esc(t("stoolNotice",{n:me,x:S.kruk>1?' ('+S.kruk+'x)':''}))+'</div>':"", dec=decimalsFor(ms.map(function(x){return T.PJ[S.strat][x.next];}));
     ms.forEach(function(m){
-      var t=m.next;
+      var tt=m.next;
       html+='<button class="move'+(m===best?' best':'')+'" data-v="'+m.v+'">'+
         '<span class="num">'+m.v+'</span>'+
-        '<span class="lbl">Draai '+m.v+' om<small>'+m.labels.join(" of ")+(m===best?'<span class="adv"> · advies</span>':'')+keeps(m,al)+'</small></span>'+
-        '<span class="odds"><b>'+pct(T.PJ[S.strat][t],dec)+'</b>'+num(T.ES[S.strat][t])+' slokken<br>saldo '+snum(T.NET[S.strat][t])+'</span></button>';
+        '<span class="lbl">'+esc(t("flip",{n:m.v}))+'<small>'+esc(m.labels.map(function(l){return t(l);}).join(t("or")))+(m===best?'<span class="adv"> · '+esc(t("advice"))+'</span>':'')+keeps(m,al)+'</small></span>'+
+        '<span class="odds"><b>'+pct(T.PJ[S.strat][tt],dec)+'</b>'+num(T.ES[S.strat][tt])+' '+esc(t("sips"))+'<br>'+esc(t("net").toLowerCase())+' '+snum(T.NET[S.strat][tt])+'</span></button>';
     });
     box.innerHTML=html;
     Array.prototype.forEach.call(box.querySelectorAll(".move"),function(b){
-      b.onclick=function(){ var v=parseInt(b.getAttribute("data-v"),10), t=el("tiles").querySelector('.tile[data-i="'+v+'"]'); flipTile(t,v,0.5); };
+      b.onclick=function(){ var v=parseInt(b.getAttribute("data-v"),10), tl=el("tiles").querySelector('.tile[data-i="'+v+'"]'); flipTile(tl,v,0.5); };
     });
   }
 
   function renderHist(){
-    var h=el("hist"), T=cur(), html='<h3>Geschiedenis</h3>';
-    if(!S.turns.length && !S.decisions.length){ h.innerHTML=html+'<p class="empty">Nog geen beurten gespeeld.</p>'; return; }
+    var h=el("hist"), T=cur(), html='<h3>'+esc(t("hist"))+'</h3>';
+    if(!S.turns.length && !S.decisions.length){ h.innerHTML=html+'<p class="empty">'+esc(t("histEmpty"))+'</p>'; return; }
     // summary per player
     var stats=S.players.map(function(p){return {name:p.name,turns:0,jp:0,slokken:0,dec:0,opt:0};});
-    S.turns.forEach(function(t){
-      var s=stats[t.player]; if(!s)return;
-      s.turns++; if(t.result==="jackpot")s.jp++; s.slokken+=t.slokken;
-      t.decisions.forEach(function(d){ s.dec++; if(d.chosen===d.best)s.opt++; });
+    S.turns.forEach(function(tr){
+      var s=stats[tr.player]; if(!s)return;
+      s.turns++; if(tr.result==="jackpot")s.jp++; s.slokken+=tr.slokken;
+      tr.decisions.forEach(function(d){ s.dec++; if(d.chosen===d.best)s.opt++; });
     });
-    html+='<div class="summary"><span class="h"></span><span class="h">beurten</span><span class="h">jackpot</span><span class="h">slokken/beurt</span><span class="h">optimaal</span>';
+    html+='<div class="summary"><span class="h"></span><span class="h">'+esc(t("hTurns"))+'</span><span class="h">'+esc(t("jackpotLc"))+'</span><span class="h">'+esc(t("hSipsPerTurn"))+'</span><span class="h">'+esc(t("hOptimal"))+'</span>';
     stats.forEach(function(s){
       html+='<b>'+esc(s.name)+'</b><span>'+s.turns+'</span><span>'+(s.turns?pct(s.jp/s.turns):'–')+'</span><span>'+(s.turns?num(s.slokken/s.turns):'–')+'</span><span>'+(s.dec?pct(s.opt/s.dec):'–')+'</span>';
     });
@@ -2945,13 +3223,15 @@ var qrcode = function() {
       return s+'</span></div>';
     }
     if(S.decisions.length){
-      html+='<details class="turn" open><summary><span>Nu · '+esc(S.players[S.active].name)+'</span><span class="res">bezig</span></summary>'+S.decisions.map(decHtml).join("")+'</details>';
+      html+='<details class="turn" open><summary><span>'+esc(t("now",{n:S.players[S.active].name}))+'</span><span class="res">'+esc(t("busy"))+'</span></summary>'+S.decisions.map(decHtml).join("")+'</details>';
     }
-    S.turns.slice().reverse().forEach(function(t,k){
-      var n=S.turns.length-k, pname=S.players[t.player]?S.players[t.player].name:"?";
-      var res=t.result==="jackpot"?'<span class="res jp">'+(t.special?esc(t.special)+', ':'Jackpot, ')+(t.daanSp?((t.stolen?'gestolen ':'')+(t.lastSp||"Daan")+(t.special?' super special, ':' special, ')):'')+esc(joinNames(t.others||[]))+' '+(t.atjes>1?t.atjes+'x ':'')+'bak</span>':'<span class="res">dood, '+t.slokken+' '+(t.slokken===1?'slok':'slokken')+(typeof t.deathc==="number"?' ('+pct(t.deathc/36,0)+')':'')+(t.kruk?', atje kruk':'')+'</span>';
-      html+='<details class="turn"><summary><span>'+n+' · '+esc(pname)+(t.extreme?' · extreme':'')+'</span>'+res+'</summary>'+
-        (t.decisions.length?t.decisions.map(decHtml).join(""):'<div class="dec"><span></span><span class="empty">meteen fout</span></div>')+'</details>';
+    S.turns.slice().reverse().forEach(function(tr,k){
+      var n=S.turns.length-k, pname=S.players[tr.player]?S.players[tr.player].name:"?";
+      var res=tr.result==="jackpot"
+        ?'<span class="res jp">'+(tr.special?esc(patLabel(tr.special))+', ':esc(t("jackpot"))+', ')+(tr.daanSp?((tr.stolen?esc(t("stolen"))+' ':'')+esc(tr.lastSp||"Daan")+' '+esc(tr.special?t("superSpecial"):t("special"))+', '):'')+esc(joinNames(tr.others||[]))+' '+(tr.atjes>1?tr.atjes+'x ':'')+esc(t("bak"))+'</span>'
+        :'<span class="res">'+esc(t("deadSips",{s:sips(tr.slokken)}))+(typeof tr.deathc==="number"?' ('+pct(tr.deathc/36,0)+')':'')+(tr.kruk?', '+esc(t("stoolChug")):'')+'</span>';
+      html+='<details class="turn"><summary><span>'+n+' · '+esc(pname)+(tr.extreme?' · '+esc(t("extreme").toLowerCase()):'')+'</span>'+res+'</summary>'+
+        (tr.decisions.length?tr.decisions.map(decHtml).join(""):'<div class="dec"><span></span><span class="empty">'+esc(t("immediate"))+'</span></div>')+'</details>';
     });
     h.innerHTML=html;
   }
@@ -2965,18 +3245,22 @@ var qrcode = function() {
     S.board=m.next; S.d1=null; S.d2=null; pick=null; fresh=false; renderAll();
     var open=pop(S.board), al=open<=3?alivePats():[];
     if(al.length){
-      var names=al.map(function(a){return a.name.toLowerCase()+" ("+a.atjes+"x)";}).join(", ");
-      if(open===1) overlay("jackpot",S.board===256?"Daan super special?":S.board===1?"Stijn super special?":"Joooow!",["Nog één voor "+names+"!"],2600);
-      else overlay("jackpot","Joooow!",[names+" nog open"],1500);
-    } else if(S.board===256){ overlay("jackpot","Daan special?",null,1800); }
-    else if(S.board===1){ overlay("jackpot","Stijn special?",null,1800); }
+      var names=al.map(function(a){return patName(a.k).toLowerCase()+" ("+a.atjes+"x)";}).join(", ");
+      if(open===1) overlay("jackpot",S.board===256?t("superQ",{n:"Daan"}):S.board===1?t("superQ",{n:"Stijn"}):t("joooow"),[t("oneMore",{s:names})],2600);
+      else overlay("jackpot",t("joooow"),[t("stillOpen",{s:names})],1500);
+    } else if(S.board===256){ overlay("jackpot",t("specialQ",{n:"Daan"}),null,1800); }
+    else if(S.board===1){ overlay("jackpot",t("specialQ",{n:"Stijn"}),null,1800); }
   }
   var PATS=[
-    {name:"Hoog naar laag", atjes:4, ok:function(l,v){return l===null?v===9:v===l-1;}},
-    {name:"Laag naar hoog", atjes:4, ok:function(l,v){return l===null?v===1:v===l+1;}},
-    {name:"Buiten naar binnen", atjes:3, ok:function(l,v){return l===null||Math.abs(v-5)<=Math.abs(l-5);}},
-    {name:"Binnen naar buiten", atjes:2, ok:function(l,v){return l===null||Math.abs(v-5)>=Math.abs(l-5);}}
+    {key:"hl", atjes:4, ok:function(l,v){return l===null?v===9:v===l-1;}},
+    {key:"lh", atjes:4, ok:function(l,v){return l===null?v===1:v===l+1;}},
+    {key:"oi", atjes:3, ok:function(l,v){return l===null||Math.abs(v-5)<=Math.abs(l-5);}},
+    {key:"io", atjes:2, ok:function(l,v){return l===null||Math.abs(v-5)>=Math.abs(l-5);}}
   ];
+  function patName(k){ return t("pat")[PATS[k].key]; }
+  // Old saved turns stored the Dutch label; map it to a key so they render in either language.
+  var OLD_SPECIAL={"Van hoog naar laag":"hl","Van laag naar hoog":"lh","Van binnen naar buiten":"io","Van buiten naar binnen":"oi"};
+  function patLabel(s){ var k=OLD_SPECIAL[s]||s; return t("patFull")[k]||String(s); }
   var patMemo=[{},{},{},{}];
   function patV(k,s,last){
     if(s===0) return 1;
@@ -2997,29 +3281,29 @@ var qrcode = function() {
       for(var i=0;i<seq.length;i++){ if(!pt.ok(l,seq[i])){ok=false;break;} l=seq[i]; }
       if(!ok) return;
       var pr=patV(k,S.board,l);
-      if(pr>0) out.push({k:k,name:pt.name,atjes:pt.atjes,p:pr,last:l});
+      if(pr>0) out.push({k:k,atjes:pt.atjes,p:pr,last:l});
     });
     return out;
   }
-  function oneIn(pr){ var n=Math.round(1/pr); return n>=1e6?Math.round(n/1e6*10)/10+" mln":n.toLocaleString("nl-NL"); }
+  function oneIn(pr){ var n=Math.round(1/pr); return n>=1e6?dsep(String(Math.round(n/1e6*10)/10))+" "+t("million"):n.toLocaleString(S.lang==="nl"?"nl-NL":"en-GB"); }
   function renderSpecial(){
     var e=el("special"); if(S.ended||S.board===0){e.innerHTML="";return;}
     var al=alivePats();
-    if(!al.length){ e.innerHTML="Geen speciale jackpot meer mogelijk."; return; }
-    e.innerHTML="Nog mogelijk: "+al.map(function(a){ return "<b>"+a.name+"</b> ("+a.atjes+"x)"+'<span class="odd">, 1 op '+oneIn(a.p)+'</span>'; }).join(" · ");
+    if(!al.length){ e.textContent=t("noSpecial"); return; }
+    e.innerHTML=esc(t("stillPossible"))+al.map(function(a){ return "<b>"+esc(patName(a.k))+"</b> ("+a.atjes+"x)"+'<span class="odd">, '+esc(t("oneIn",{n:oneIn(a.p)}))+'</span>'; }).join(" · ");
   }
   function special(decs){
     if(decs.length!==9) return null;
     var seq=decs.map(function(d){return d.chosen;}), i, ok;
     for(ok=true,i=1;i<9;i++) if(seq[i]!==seq[i-1]-1) ok=false;
-    if(ok) return {label:"Van hoog naar laag", atjes:4};
+    if(ok) return {key:"hl", atjes:4};
     for(ok=true,i=1;i<9;i++) if(seq[i]!==seq[i-1]+1) ok=false;
-    if(ok) return {label:"Van laag naar hoog", atjes:4};
+    if(ok) return {key:"lh", atjes:4};
     var dist=seq.map(function(v){return Math.abs(v-5);});
     for(ok=true,i=1;i<9;i++) if(dist[i]<dist[i-1]) ok=false;
-    if(ok) return {label:"Van binnen naar buiten", atjes:2};
+    if(ok) return {key:"io", atjes:2};
     for(ok=true,i=1;i<9;i++) if(dist[i]>dist[i-1]) ok=false;
-    if(ok) return {label:"Van buiten naar binnen", atjes:3};
+    if(ok) return {key:"oi", atjes:3};
     return null;
   }
   function registerRoll(){
@@ -3029,13 +3313,11 @@ var qrcode = function() {
       S.streak=[]; var p=S.players[S.active]; p.atjes++; p.kruk++; S.kruk++;
       overlayKruk(); play_("dood");
     } else if(S.streak.length>=2&&S.streak[S.streak.length-2]===key){
-      overlay("kruk","Kruk?",null,1500);
+      overlay("kruk",t("stoolQ"),null,1500);
     }
   }
   function deathOdds(s){ var c=0; for(var r=0;r<36;r++) if(!moves(s,ROLLS[r][0],ROLLS[r][1]).length)c++; return c; }
-  function flavor(open){
-    return {1:"Bijna!!",2:"Bijna!",3:"Zo dichtbij.",4:"Had erger gekund.",5:"Matige beurt.",6:"Lol.",7:"Lol.",8:"Wat was dit?",9:"Geen tegel geraakt. Legendarisch."}[open]||"";
-  }
+  function flavor(open){ return t("flavor")[open]||""; }
   function commit(result,n){
     var p=S.players[S.active];
     var sp=result==="jackpot"?special(S.decisions):null, atjes=sp?sp.atjes:1;
@@ -3044,20 +3326,20 @@ var qrcode = function() {
     if(stolen&&!sp) atjes=2;
     var dc=result==="fout"?deathOdds(S.board):0, open=pop(S.board);
     var ld=S.decisions[S.decisions.length-1], lastSp=(result==="jackpot"&&ld)?(ld.chosen===9&&ld.prev===256?"Daan":ld.chosen===1&&ld.prev===1?"Stijn":null):null, daanSp=!!lastSp;
-    var turn={player:S.active, result:result, slokken:n, extreme:S.extreme, decisions:S.decisions, others:others(), d1:S.d1, d2:S.d2, special:sp?sp.label:null, atjes:atjes, kruk:S.kruk, deathc:dc, open:open, daanSp:daanSp, lastSp:lastSp, stolen:!!stolen};
+    var turn={player:S.active, result:result, slokken:n, extreme:S.extreme, decisions:S.decisions, others:others(), d1:S.d1, d2:S.d2, special:sp?sp.key:null, atjes:atjes, kruk:S.kruk, deathc:dc, open:open, daanSp:daanSp, lastSp:lastSp, stolen:!!stolen};
     if(result==="jackpot"){ p.jackpots++; S.players.forEach(function(q,i){ if(i!==S.active)q.atjes+=atjes; }); if(sp){ p.medals=p.medals||[]; p.medals.push(sp.atjes); } }
     else p.slokken+=n;
     S.turns.push(turn); S.decisions=[]; S.kruk=0;
     S.ended={result:result, slokken:n, name:p.name, others:turn.others, special:turn.special, atjes:atjes, deathc:dc, open:open, d1:S.d1, d2:S.d2};
     animClass="anim-"+result; fresh=false; renderAll();
-    if(result==="jackpot"){ if(sp){ overlayMedal(sp,p.name,joinNames(turn.others)); if(daanSp)el("overlayText").insertAdjacentHTML("beforeend",'<span class="title supersp">'+lastSp+' super special!</span>'); play_("special"); } else if(stolen){
-      var victim=lastSp, thief=p.name, lines={Stijn:["Daan pakt de Stijn special.","Stijn, dat is jouw tegel. 2x bak."],Daan:["Stijn pakt de Daan special.","Op Daans eigen tegel. 2x bak, Daan."]}[victim];
-      overlay("jackpot","Gestolen!",lines,6000); el("overlayText").insertAdjacentHTML("beforeend",'<span class="title supersp">'+esc(thief)+' gaat huilen van blijdschap</span>'); play_("special");
+    if(result==="jackpot"){ if(sp){ overlayMedal(sp,p.name,joinNames(turn.others)); if(daanSp)el("overlayText").insertAdjacentHTML("beforeend",'<span class="title supersp">'+esc(t("superSpecialBang",{n:lastSp}))+'</span>'); play_("special"); } else if(stolen){
+      var victim=lastSp, thief=p.name, lines=t("stolenLines")[victim];
+      overlay("jackpot",t("stolenBang"),lines,6000); el("overlayText").insertAdjacentHTML("beforeend",'<span class="title supersp">'+esc(t("crying",{n:thief}))+'</span>'); play_("special");
     } else if(daanSp){ overlayOwn(lastSp,atjes); play_("special"); }
-    else { overlay("jackpot","Jackpot!",null,4000); play_("jackpot"); }
+    else { overlay("jackpot",t("jackpotBang"),null,4000); play_("jackpot"); }
       el("overlayText").insertAdjacentHTML("beforeend",jackpotStats(turn.decisions)); stickOverlay(); }
     else {
-      overlay("dood",Math.random()<0.25?"OOF!":"Dood!",[flavor(open)+" Drink "+n+" "+(n===1?"slok":"slokken")+", "+AANHEF[Math.floor(Math.random()*AANHEF.length)]+".","Kans op dood hier: "+pct(dc/36,0)+"."],0);
+      overlay("dood",Math.random()<0.25?t("oof"):t("deadBang"),[flavor(open)+" "+t("drinkN",{s:sips(n),a:pickOne(t("aanhef"))}),t("deathHere",{p:pct(dc/36,0)})],0);
       var sour=0.6*(1-dc/36)+0.4*(1-(open-1)/8); sour=Math.max(0,Math.min(1,sour));
       el("overlay").style.background="hsla("+Math.round(32-32*sour)+",85%,"+Math.round(52-32*sour)+"%,.92)";
       el("overlayText").insertAdjacentHTML("beforeend",'<span class="dicerow"><span class="mini">'+pips(S.d1)+'</span><span class="mini">'+pips(S.d2)+'</span></span>');
@@ -3066,10 +3348,10 @@ var qrcode = function() {
     setTimeout(function(){animClass="";var b=el("tiles").parentNode;b.className="box";},1700);
   }
   function uncommit(){
-    var t=S.turns.pop(); if(!t)return;
-    var p=S.players[t.player];
-    if(t.result==="jackpot"){ p.jackpots--; S.players.forEach(function(q,i){ if(i!==t.player)q.atjes-=(t.atjes||1); }); if(t.special&&p.medals&&p.medals.length)p.medals.pop(); } else p.slokken-=t.slokken;
-    S.decisions=t.decisions; S.kruk=t.kruk||0; S.ended=null; S.d1=null; S.d2=null; renderAll();
+    var tn=S.turns.pop(); if(!tn)return;
+    var p=S.players[tn.player];
+    if(tn.result==="jackpot"){ p.jackpots--; S.players.forEach(function(q,i){ if(i!==tn.player)q.atjes-=(tn.atjes||1); }); if(tn.special&&p.medals&&p.medals.length)p.medals.pop(); } else p.slokken-=tn.slokken;
+    S.decisions=tn.decisions; S.kruk=tn.kruk||0; S.ended=null; S.d1=null; S.d2=null; renderAll();
   }
   function nextPlayer(){
     S.ended=null; S.board=FULL; S.d1=null; S.d2=null; pick=null; S.active=(S.active+1)%S.players.length;
@@ -3137,7 +3419,7 @@ var qrcode = function() {
   var nameTarget=null;
   function openName(i){
     nameTarget=i; var f=el("nameform"), inp=el("nameInput");
-    inp.value=i===null?"":S.players[i].name; inp.placeholder=i===null?"Naam nieuwe speler":"Naam";
+    inp.value=i===null?"":S.players[i].name; inp.placeholder=i===null?t("newName"):t("name");
     f.className="nameform open"; inp.focus();
   }
   function closeName(){ el("nameform").className="nameform"; nameTarget=null; }
@@ -3168,37 +3450,30 @@ var qrcode = function() {
   function sessionStats(){
     return S.players.map(function(p,i){
       var st={name:p.name,turns:0,dood:0,slokken:p.slokken,jackpots:p.jackpots,atjes:p.atjes,kruk:p.kruk||0,medals:(p.medals||[]).length,dec:0,opt:0};
-      S.turns.forEach(function(t){ if(t.player!==i)return; st.turns++; if(t.result==="fout")st.dood++; t.decisions.forEach(function(d){st.dec++; if(d.chosen===d.best)st.opt++;}); });
+      S.turns.forEach(function(tr){ if(tr.player!==i)return; st.turns++; if(tr.result==="fout")st.dood++; tr.decisions.forEach(function(d){st.dec++; if(d.chosen===d.best)st.opt++;}); });
       return st;
     });
   }
+  function luckLabel(z){ return z<-1.5?"bad":z<-0.5?"meh":z<0.5?"normal":z<1.5?"good":z<2.5?"great":"legend"; }
   function endPreview(){
     var sd=sdIdx(); if(!sd)return;
     var p0=S.players[sd.s], p1=S.players[sd.d], line, ns=S.alltime.stijn||0, nd=S.alltime.daan||0;
-    if(p0.jackpots>p1.jackpots){ ns+=1; line="Punt voor Stijn."; } else if(p1.jackpots>p0.jackpots){ nd+=1; line="Punt voor Daan."; } else { ns+=0.5; nd+=0.5; line="Gelijkspel, allebei een half punt."; }
+    if(p0.jackpots>p1.jackpots){ ns+=1; line=t("pointFor",{n:"Stijn"}); } else if(p1.jackpots>p0.jackpots){ nd+=1; line=t("pointFor",{n:"Daan"}); } else { ns+=0.5; nd+=0.5; line=t("draw"); }
     var T=cur(), pj=T.PJ[2][FULL], es=T.ES[2][FULL];
-    function luckLabel(z){ return z<-1.5?"Slecht":z<-0.5?"Matig":z<0.5?"Normaal":z<1.5?"Goed":z<2.5?"Heel goed":"Legendarisch"; }
     function luck(x){ var e=x.turns*pj, sd=Math.sqrt(Math.max(e*(1-pj),0.25)); var z=(x.jackpots-e)/sd; var ds=(x.turns*es-x.slokken)/Math.max(1,Math.sqrt(x.turns)*1.8); return {e:e,z:0.65*z+0.35*ds,es:x.turns*es}; }
     var tot={turns:0,jackpots:0,slokken:0}; sessionStats().forEach(function(x){tot.turns+=x.turns;tot.jackpots+=x.jackpots;tot.slokken+=x.slokken;});
     var L=luck(tot), zTot=L.z;
-    var cat=luckLabel(zTot), stat="Verwacht "+num(L.e)+" jackpots in "+tot.turns+" beurten, gegooid "+tot.jackpots+".";
-    var verdict={
-      "Slecht":"Slecht. "+stat+" Dit was objectief vreselijk en is hierbij officieel erkend.",
-      "Matig":"Matig. "+stat+" De dobbelstenen waren niet jullie vriend.",
-      "Normaal":"Normaal. "+stat+" Keurig gemiddeld, niets te melden.",
-      "Goed":"Goed. "+stat+" Boven verwachting.",
-      "Heel goed":"Heel goed. "+stat+" Dit soort avonden zijn schaars.",
-      "Legendarisch":"Legendarisch. "+stat+" Geniet ervan, dit komt niet terug."
-    }[cat];
+    var catKey=luckLabel(zTot), cat=t("luck")[catKey], stat=t("expected",{e:num(L.e),t:tot.turns+" "+(tot.turns===1?t("turn"):t("hTurns")),j:tot.jackpots});
+    var verdict=t("luckVerdict")[catKey].replace("{stat}",stat);
     var st=sessionStats(), rows=st.map(function(x){
       var l=luck(x);
-      return '<tr><td>'+esc(x.name)+'</td><td>'+x.jackpots+'<small>/'+num(l.e)+'</small></td><td>'+x.turns+'</td><td>'+x.slokken+'<small>/'+Math.round(l.es)+'</small></td><td>'+x.atjes+'</td><td>'+x.kruk+'</td><td>'+(x.dec?pct(x.opt/x.dec,0):"–")+'</td><td>'+(x.turns?luckLabel(l.z):"–")+'</td></tr>';
+      return '<tr><td>'+esc(x.name)+'</td><td>'+x.jackpots+'<small>/'+num(l.e)+'</small></td><td>'+x.turns+'</td><td>'+x.slokken+'<small>/'+Math.round(l.es)+'</small></td><td>'+x.atjes+'</td><td>'+x.kruk+'</td><td>'+(x.dec?pct(x.opt/x.dec,0):"–")+'</td><td>'+(x.turns?esc(t("luck")[luckLabel(l.z)]):"–")+'</td></tr>';
     }).join("");
     var box=el("moves");
-    box.innerHTML='<div class="verdict jackpot pop"><h2>Sessie</h2>'+
-      '<table class="sum"><tr><th></th><th>jackpot</th><th>beurten</th><th>slokken</th><th>atjes</th><th>kruk</th><th>optimaal</th><th>geluk</th></tr>'+rows+'</table><p class="sub">Sessie: '+esc(cat)+'</p><p class="verdicttxt">'+esc(verdict)+'</p>'+
-      '<p class="sub">'+esc(line)+'</p><p>Totaalstand wordt Stijn <b>'+fmtAt(ns)+'</b> tegen <b>'+fmtAt(nd)+'</b> Daan.</p>'+
-      '<button id="endOk">Verrekenen en afsluiten</button><button class="alt" id="endCancel">Annuleren</button></div>';
+    box.innerHTML='<div class="verdict jackpot pop"><h2>'+esc(t("session"))+'</h2>'+
+      '<table class="sum"><tr><th></th><th>'+esc(t("jackpotLc"))+'</th><th>'+esc(t("hTurns"))+'</th><th>'+esc(t("sips"))+'</th><th>'+esc(t("chugs"))+'</th><th>'+esc(t("stool"))+'</th><th>'+esc(t("hOptimal"))+'</th><th>'+esc(t("hLuck"))+'</th></tr>'+rows+'</table><p class="sub">'+esc(t("sessionIs",{c:cat}))+'</p><p class="verdicttxt">'+esc(verdict)+'</p>'+
+      '<p class="sub">'+esc(line)+'</p><p>'+t("becomes",{a:'<b>'+fmtAt(ns)+'</b>',b:'<b>'+fmtAt(nd)+'</b>'})+'</p>'+
+      '<button id="endOk">'+esc(t("settle"))+'</button><button class="alt" id="endCancel">'+esc(t("cancel"))+'</button></div>';
     el("endCancel").onclick=function(){ renderAll(); };
     el("endOk").onclick=function(){
       S.alltime.stijn=ns; S.alltime.daan=nd; S.alltimeStamp=Date.now();
@@ -3210,36 +3485,37 @@ var qrcode = function() {
   }
   el("endSession").onclick=endPreview;
   function standCode(){ return "JP1|"+(S.alltime.stijn||0)+"|"+(S.alltime.daan||0)+"|"+(S.alltimeStamp||0); }
-  function parseCode(t){ var m=/JP1\|([\d.,]+)\|([\d.,]+)\|(\d+)/.exec(String(t||"").trim()); if(!m)return null; return {stijn:parseFloat(m[1].replace(",",".")),daan:parseFloat(m[2].replace(",",".")),stamp:parseInt(m[3],10)}; }
+  function parseCode(c){ var m=/JP1\|([\d.,]+)\|([\d.,]+)\|(\d+)/.exec(String(c||"").trim()); if(!m)return null; return {stijn:parseFloat(m[1].replace(",",".")),daan:parseFloat(m[2].replace(",",".")),stamp:parseInt(m[3],10)}; }
   function qrSvg(text){ try{ var q=qrcode(0,"M"); q.addData(text); q.make(); return q.createSvgTag({cellSize:4,margin:0,scalable:true}); }catch(e){ return ""; } }
   function showQrPanel(line){
     var box=el("moves");
-    box.innerHTML='<div class="verdict jackpot pop"><h2>Sessie gesloten</h2><p class="sub">'+esc(line||"")+'</p><p>Stijn <b>'+fmtAt(S.alltime.stijn)+'</b> tegen <b>'+fmtAt(S.alltime.daan)+'</b> Daan</p>'+
-      '<p style="margin:0 0 4px">Scan met de andere telefoon: Stand bewerken, Stand overnemen (QR)</p><div class="qrbox">'+qrSvg(standCode())+'</div><p class="qrcode">of typ: '+esc(standCode())+'</p>'+
-      '<button id="qrDone">Verder</button></div>';
+    box.innerHTML='<div class="verdict jackpot pop"><h2>'+esc(t("sessionClosed"))+'</h2><p class="sub">'+esc(line||"")+'</p><p>'+t("vs",{a:'<b>'+fmtAt(S.alltime.stijn)+'</b>',b:'<b>'+fmtAt(S.alltime.daan)+'</b>'})+'</p>'+
+      '<p style="margin:0 0 4px">'+esc(t("scanWith"))+'</p><div class="qrbox">'+qrSvg(standCode())+'</div><p class="qrcode">'+esc(t("orType",{c:standCode()}))+'</p>'+
+      '<button id="qrDone">'+esc(t("cont"))+'</button></div>';
     el("qrDone").onclick=function(){ renderAll(); };
   }
   function applyCode(c){
-    var d=parseCode(c); if(!d){ el("scanmsg").textContent="Geen geldige code."; return false; }
+    var d=parseCode(c); if(!d){ el("scanmsg").textContent=t("badCode"); return false; }
     S.alltime.stijn=d.stijn; S.alltime.daan=d.daan; S.alltimeStamp=d.stamp; save(); closeScanner(); renderAll();
-    overlay("jackpot","Stand overgenomen",["Stijn "+fmtAt(d.stijn)+" tegen "+fmtAt(d.daan)+" Daan"],3000); return true;
+    overlay("jackpot",t("taken"),[t("vs",{a:fmtAt(d.stijn),b:fmtAt(d.daan)})],3000); return true;
   }
   var scanStream=null, scanTimer=null;
-  function closeScanner(){ el("scanbox").className="scanbox"; clearInterval(scanTimer); if(scanStream){ scanStream.getTracks().forEach(function(t){t.stop();}); scanStream=null; } }
+  function closeScanner(){ el("scanbox").className="scanbox"; clearInterval(scanTimer); if(scanStream){ scanStream.getTracks().forEach(function(tk){tk.stop();}); scanStream=null; } }
   function openScanner(){
-    var sb=el("scanbox"); sb.className="scanbox open"; el("scancode").value=""; el("scanmsg").textContent="Richt de camera op de QR van de ander";
-    if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia||!window.BarcodeDetector){ el("scanmsg").textContent="Camera scannen kan hier niet. Typ de code van de ander."; return; }
+    var sb=el("scanbox"); sb.className="scanbox open"; el("scancode").value=""; el("scanmsg").textContent=t("scanAim");
+    if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia||!window.BarcodeDetector){ el("scanmsg").textContent=t("noCam"); return; }
     navigator.mediaDevices.getUserMedia({video:{facingMode:"environment"}}).then(function(st){
       scanStream=st; var v=el("scanvideo"); v.srcObject=st; v.play();
       var det=new BarcodeDetector({formats:["qr_code"]});
       scanTimer=setInterval(function(){ det.detect(v).then(function(codes){ if(codes.length&&parseCode(codes[0].rawValue)) applyCode(codes[0].rawValue); }).catch(function(){}); },400);
-    }).catch(function(){ el("scanmsg").textContent="Geen camera. Typ de code van de ander."; });
+    }).catch(function(){ el("scanmsg").textContent=t("noCam2"); });
   }
   el("scanClose").onclick=closeScanner;
   el("scanOk").onclick=function(){ applyCode(el("scancode").value); };
   el("shareStand").onclick=function(){ showQrPanel(""); };
-  function standText(){ return "Jackpot totaalstand: Stijn "+fmtAt(S.alltime.stijn||0)+" tegen "+fmtAt(S.alltime.daan||0)+" Daan"; }
+  function standText(){ return t("standText",{a:fmtAt(S.alltime.stijn||0),b:fmtAt(S.alltime.daan||0)}); }
   el("mView").onclick=function(){ S.view=S.view==="play"?"meer":"play"; setMode(); };
+  el("mLang").onclick=function(){ S.lang=S.lang==="nl"?"en":"nl"; applyLang(); setStratLabels(); setMode(); };
   el("nameCancel").onclick=closeName;
   el("nameOk").onclick=function(){
     var nm=el("nameInput").value.trim(); if(!nm){closeName();return;}
@@ -3249,8 +3525,8 @@ var qrcode = function() {
   el("nameInput").addEventListener("keydown",function(e){ if(e.key==="Enter")el("nameOk").onclick(); if(e.key==="Escape")closeName(); });
   el("undo").onclick=function(){
     var d=S.decisions[S.decisions.length-1]; if(!d||S.ended||flipping)return;
-    var t=el("tiles").querySelector('.tile[data-i="'+d.chosen+'"]');
-    flipTile(t,d.chosen,0.5);
+    var tl=el("tiles").querySelector('.tile[data-i="'+d.chosen+'"]');
+    flipTile(tl,d.chosen,0.5);
   };
   el("d1").onclick=function(){ if(S.ended)return; pick=(pick===1?null:1); renderAll(); };
   el("d2").onclick=function(){ if(S.ended)return; pick=(pick===2?null:2); renderAll(); };
@@ -3277,11 +3553,11 @@ var qrcode = function() {
   el("resetScores").onclick=function(){
     var b=el("resetScores");
     if(!b.classList.contains("confirm")){
-      b.classList.add("confirm"); b.textContent="Zeker? Tik nogmaals om te wissen";
-      clearTimeout(confirmTimer); confirmTimer=setTimeout(function(){ b.classList.remove("confirm"); b.textContent="Score en geschiedenis wissen"; },4000);
+      b.classList.add("confirm"); b.textContent=t("clearSure");
+      clearTimeout(confirmTimer); confirmTimer=setTimeout(function(){ b.classList.remove("confirm"); b.textContent=t("clearScores"); },4000);
       return;
     }
-    clearTimeout(confirmTimer); b.classList.remove("confirm"); b.textContent="Score en geschiedenis wissen";
+    clearTimeout(confirmTimer); b.classList.remove("confirm"); b.textContent=t("clearScores");
     S.players.forEach(function(p){p.slokken=0;p.jackpots=0;p.atjes=0;p.kruk=0;p.medals=[];}); S.turns=[]; S.streak=[]; S.kruk=0; S.decisions=[]; S.ended=null; S.board=FULL; S.d1=null; S.d2=null; S.active=0; renderAll();
   };
   el("mNormal").onclick=function(){S.extreme=false;setMode();};
@@ -3291,17 +3567,18 @@ var qrcode = function() {
     el("mExtreme").setAttribute("aria-pressed",String(S.extreme));
     el("mKans").setAttribute("aria-pressed",String(S.kans));
     document.body.className=(S.kans?"":"nokans")+(S.view==="play"?" play":"");
-    el("mView").textContent=S.view==="play"?"Meer":"Spel"; el("mView").setAttribute("aria-pressed",String(S.view!=="play"));
+    el("mView").textContent=S.view==="play"?t("more"):t("game"); el("mView").setAttribute("aria-pressed",String(S.view!=="play"));
     el("mSound").textContent=S.sound?"🔊":"🔇"; el("mSound").setAttribute("aria-pressed",String(S.sound));
     renderAll();
   }
   function setStratLabels(){
     if(S.strat!==0&&S.strat!==1&&S.strat!==2)S.strat=2;
-    el("strat").textContent="Advies: "+STRAT[S.strat];
-    el("toggleStrat").textContent="Wissel naar "+STRAT[(S.strat+1)%3].split(" (")[0];
+    var ST=t("strat");
+    el("strat").textContent=t("adviceLbl",{s:ST[S.strat]});
+    el("toggleStrat").textContent=t("switchTo",{s:ST[(S.strat+1)%3].split(" (")[0]});
   }
   el("toggleStrat").onclick=function(){S.strat=(S.strat+1)%3;setStratLabels();renderAll();};
-  setStratLabels(); setMode();
+  applyLang(); setStratLabels(); setMode();
 })();
 </script>
 <script>

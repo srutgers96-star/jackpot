@@ -20,8 +20,21 @@ Instructies voor Claude op de laptop (gekoppeld aan GitHub). Alles staat klaar i
 - De QR-scanner (Stand bewerken, Stand overnemen) werkt op dit https-adres wel, in tegenstelling tot een los HTML-bestand.
 
 ## Updaten
-- Nieuwe versie van de app: overschrijf `index.html` en push. Verhoog in `sw.js` de regel `const CACHE = "jackpot-v1";` naar `v2`, `v3`, enzovoort, zodat telefoons de nieuwe versie zeker ophalen.
+- Nieuwe versie van de app: overschrijf `index.html` en push. Verhoog in `sw.js` de regel `const CACHE = "jackpot-v2";` naar `v3`, `v4`, enzovoort, zodat telefoons de nieuwe versie zeker ophalen.
 - Scores en de totaalstand staan in de browseropslag per telefoon en blijven bij een update behouden.
+
+## Taal
+- De app is tweetalig (NL/EN); de knop `EN`/`NL` linksboven in de kopregel wisselt. Alle teksten staan in het `I18N`-object bovenin het app-script in `index.html` (`nl` en `en` hebben dezelfde sleutels); een nieuwe tekst komt dus in beide talen.
+- Eerste keer openen: Nederlands als de browser Nederlands is, anders Engels. De keuze wordt onthouden.
+
+## Installeren (voor vrienden)
+- Link: `https://srutgers96-star.github.io/jackpot/`
+- Android, Chrome: menu (⋮) rechtsboven, "App installeren" of "Toevoegen aan startscherm".
+- iPhone, Safari: Delen (vierkant met pijl omhoog), naar beneden scrollen, "Zet op beginscherm".
+- De app laat dit zelf ook zien, bovenaan tot je op "Later" tikt, en altijd onder Meer, "Installeren als app".
+
+## Logo
+- `icon-512.png`, `icon-192.png` en `apple-touch-icon.png` zijn met een klein Python-script (Pillow) getekend: een ivoren tegel met een gouden J en twee dobbelstenen (1 en 6). `icon.svg` is dezelfde tekening in vectorvorm.
 
 ## Later: apk
 Dezelfde `index.html` kan ongewijzigd in de `www`-map van een Capacitor-project:
