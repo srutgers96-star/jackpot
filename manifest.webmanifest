@@ -1,0 +1,16 @@
+{
+  "name": "Jackpot",
+  "short_name": "Jackpot",
+  "description": "Het drankspel Jackpot, met kansen, score en specials.",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#1e5239",
+  "theme_color": "#1e5239",
+  "lang": "nl",
+  "icons": [
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ]
+}

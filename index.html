@@ -1,0 +1,3313 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Jackpot</title>
+<meta name="theme-color" content="#1e5239">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Jackpot">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,700;9..144,900&display=swap">
+<style>
+:root{
+  --felt:#1e5239; --ivory:#f3e9d2; --ivory-dim:#cfc3a6; --ink:#1b1a17;
+  --gold:#e7b84f; --red:#c84b3a; --green:#8fd19e;
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px);
+  padding-bottom:env(safe-area-inset-bottom,0px);
+  color-scheme:dark;
+}
+@media (prefers-color-scheme:dark){ :root:not([data-theme="light"]){ --felt:#1b4a34; } }
+:root[data-theme="dark"]{ --felt:#1b4a34; }
+html{ scroll-padding-top:env(safe-area-inset-top,0px); height:100%; }
+*{ box-sizing:border-box; }
+body{
+  margin:0; min-height:100%; background:var(--felt); color:var(--ivory);
+  font-family:"Fraunces",Georgia,"Times New Roman",serif;
+  background-image:radial-gradient(ellipse at 50% 0%, rgba(255,255,255,.07), transparent 60%);
+  -webkit-tap-highlight-color:transparent;
+}
+main{ max-width:480px; margin:0 auto; padding:16px 14px 28px; }
+button{ font:inherit; cursor:pointer; }
+button:focus-visible{ outline:3px solid var(--gold); outline-offset:2px; }
+
+header{ display:flex; align-items:baseline; justify-content:space-between; gap:8px; margin-bottom:12px; }
+h1{ font-size:28px; font-weight:900; margin:0; }
+.mode{ display:flex; gap:6px; }
+.mode button{ font-size:13px; font-weight:700; padding:6px 10px; border-radius:999px; border:1.5px solid var(--ivory-dim); background:transparent; color:var(--ivory-dim); }
+.mode button[aria-pressed="true"]{ background:var(--ivory); color:var(--ink); border-color:var(--ivory); }
+
+/* players */
+.players{ display:grid; grid-auto-flow:column; grid-auto-columns:1fr; gap:8px; margin-bottom:12px; }
+.player{ border:1.5px solid rgba(243,233,210,.25); border-radius:10px; padding:8px 10px; background:rgba(0,0,0,.18); text-align:left; color:var(--ivory); }
+.player.active{ border-color:var(--gold); background:rgba(231,184,79,.14); }
+.player .name{ font-weight:700; font-size:16px; display:block; }
+.player .stats{ font-size:12px; color:var(--ivory-dim); display:block; margin-top:2px; }
+.player .at{ display:block; text-align:center; font-size:12px; color:var(--ivory-dim); margin:-2px 0 4px; line-height:1; }
+.player .at.lead{ color:var(--gold); }
+.player .sess{ display:block; text-align:center; font-size:30px; font-weight:900; color:var(--ivory); margin:4px 0 2px; line-height:1; }
+.player .sess small{ display:block; font-size:11px; font-weight:500; color:var(--ivory-dim); margin-top:3px; }
+.sessionbar{ display:flex; justify-content:center; gap:8px; margin:0 0 10px; }
+.sessionbar button{ font-size:14px; font-weight:700; padding:8px 14px; border-radius:999px; border:1.5px solid var(--ivory-dim); background:transparent; color:var(--ivory); }
+
+.player .stats b{ color:var(--ivory); font-weight:700; }
+.nameform{ display:none; gap:8px; margin:0 0 12px; }
+.nameform.open{ display:flex; }
+.nameform input{ flex:1; font:inherit; font-size:16px; padding:8px 10px; border-radius:8px; border:1.5px solid var(--ivory-dim); background:rgba(0,0,0,.25); color:var(--ivory); min-width:0; }
+.nameform button{ font-size:14px; font-weight:700; padding:8px 14px; border-radius:999px; border:0; background:var(--ivory); color:var(--ink); }
+.nameform button.cancel{ background:transparent; color:var(--ivory-dim); text-decoration:underline; }
+footer button.confirm{ color:var(--red); font-weight:700; }
+.playerlinks{ display:flex; justify-content:space-between; }
+.alltime{ display:block; margin:-4px 0 6px; font-size:13px; color:var(--ivory-dim); background:none; border:0; width:100%; text-decoration:underline; }
+.alltime b{ color:var(--ivory); font-size:20px; font-weight:900; }
+.alltime .lead{ color:var(--gold); }
+
+
+.alltimeform{ display:none; gap:8px; margin:0 0 12px; flex-wrap:wrap; justify-content:center; }
+.alltimeform.open{ display:flex; }
+.alltimeform .formlabel{ flex-basis:100%; text-align:center; font-size:12px; color:var(--ivory-dim); margin-top:4px; }
+.alltimeform label{ display:flex; flex-direction:column; align-items:center; gap:3px; font-size:11px; color:var(--ivory-dim); }
+.alltimeform input{ width:70px; font:inherit; font-size:16px; padding:8px; border-radius:8px; border:1.5px solid var(--ivory-dim); background:rgba(0,0,0,.25); color:var(--ivory); text-align:center; }
+.alltimeform button{ font-size:14px; font-weight:700; padding:8px 12px; border-radius:999px; border:1.5px solid var(--ivory-dim); background:transparent; color:var(--ivory); }
+.alltimeform button.primary{ background:var(--ivory); color:var(--ink); border-color:var(--ivory); }
+.addplayer{ display:block; margin:-4px 0 12px; background:none; border:0; color:var(--ivory-dim); font-size:12px; text-decoration:underline; padding:2px 0; }
+
+/* board */
+.box{ background:linear-gradient(#5a3a1f,#3f2614); border-radius:14px; padding:12px 8px 10px; box-shadow:inset 0 2px 0 rgba(255,255,255,.12), 0 10px 30px rgba(0,0,0,.35); }
+.tiles{ display:grid; grid-template-columns:repeat(9,1fr); gap:5px; touch-action:none; perspective:500px; }
+.tile *{ pointer-events:none; }
+.tile.down svg{ width:94%; height:auto; display:block; }
+.tile{
+  font-weight:700; font-size:clamp(18px,6vw,26px); line-height:1; aspect-ratio:1/1.9; border-radius:5px; border:0; color:var(--ink);
+  background:linear-gradient(#fff8e6,#e9dcbd); box-shadow:0 3px 0 #b9a985, 0 4px 6px rgba(0,0,0,.3);
+  transition:transform .12s, background .12s; padding:10px 0 0; transform-origin:50% 0%; user-select:none; -webkit-user-select:none; display:flex; align-items:flex-start; justify-content:center;
+}
+.tile.down{ background:linear-gradient(#4a2e1a,#3a2211); color:rgba(243,233,210,.55); box-shadow:inset 0 2px 4px rgba(0,0,0,.6); transform:translateY(3px); align-items:center; padding-top:0; font-size:clamp(16px,5.5vw,24px); }
+.tile.can{ box-shadow:0 0 0 3px var(--gold), 0 3px 0 #b9a985, 0 0 18px rgba(231,184,79,.7); transform:translateY(-6px) scale(1.18); position:relative; z-index:2; }
+.overlay.kruk{ background:rgba(40,70,140,.88); }
+.overlay.kruk span{ font-size:min(16vw,80px); }
+.overlay.kruk.big span{ transform:none; }
+.overlay.kruk.big svg{ width:min(82vw,60vh); height:auto; display:block; margin:0 auto; filter:drop-shadow(0 12px 24px rgba(0,0,0,.45)); }
+.overlay.kruk.big small{ font-size:min(13vw,64px); font-weight:900; letter-spacing:.04em; margin-top:10px; }
+.overlay.kruk.big.show{ animation-duration:4.5s; }
+.verdict .sub{ color:var(--gold); font-weight:700; margin:0 0 8px; }
+.verdict table.sum{ width:100%; border-collapse:collapse; font-size:12px; margin:6px 0 10px; }
+.verdict table.sum th{ font-weight:500; color:var(--ivory-dim); font-size:10px; padding:2px; }
+.verdict table.sum td{ padding:3px 2px; text-align:center; }
+.verdict table.sum td:first-child{ text-align:left; font-weight:700; }
+.verdict table.sum small{ color:var(--ivory-dim); font-size:10px; }
+.verdict .verdicttxt{ font-size:13px; color:var(--ivory); margin:0 0 10px; }
+.verdict.fout .sub{ color:var(--ivory); }
+.notice{ margin:8px 0 0; padding:10px 12px; border-radius:10px; background:rgba(40,70,140,.35); border:1.5px solid rgba(140,170,240,.6); font-size:14px; text-align:center; }
+.boardstat{ display:flex; justify-content:space-between; margin:8px 4px 0; font-size:13px; color:var(--ivory-dim); }
+.boardstat b{ color:var(--ivory); font-weight:700; }
+.special{ margin:6px 4px 0; font-size:12px; color:var(--ivory-dim); line-height:1.5; }
+.special b{ color:var(--gold); font-weight:700; }
+.special .odd{ color:var(--ivory); }
+body.nokans .special .odd{ display:none; }
+.move .lbl small .pat{ color:var(--gold); }
+
+/* dice */
+.dice{ display:flex; justify-content:center; align-items:center; gap:18px; margin:20px 0 6px; position:relative; }
+.die{
+  width:84px; height:84px; border-radius:16px; border:0; background:linear-gradient(#fffdf6,#efe7d2);
+  box-shadow:0 5px 0 #c4b793, 0 8px 14px rgba(0,0,0,.35); display:grid; grid-template-columns:repeat(3,1fr); grid-template-rows:repeat(3,1fr); padding:12px;
+}
+.die:active{ transform:translateY(3px); box-shadow:0 2px 0 #c4b793, 0 4px 8px rgba(0,0,0,.35); }
+.pip{ width:14px; height:14px; border-radius:50%; background:var(--ink); place-self:center; opacity:0; }
+.pip.on{ opacity:1; }
+.sum{ font-size:40px; font-weight:900; color:var(--gold); min-width:56px; text-align:center; }
+.dicehelp{ text-align:center; font-size:13px; color:var(--ivory-dim); margin:0 0 12px; }
+.roll{ display:block; width:100%; max-width:360px; margin:0 auto 16px; font-size:26px; font-weight:900; letter-spacing:.02em; padding:18px 22px; border-radius:16px; border:0; background:var(--gold); color:var(--ink); box-shadow:0 6px 0 #a67c22, 0 10px 20px rgba(0,0,0,.3); }
+.roll:active{ transform:translateY(4px); box-shadow:0 2px 0 #a67c22, 0 4px 10px rgba(0,0,0,.3); }
+
+/* moves */
+.moves{ display:grid; gap:8px; }
+.move{ display:grid; grid-template-columns:auto 1fr auto; align-items:center; gap:12px; width:100%; text-align:left; padding:12px 14px; border-radius:10px; border:1.5px solid rgba(243,233,210,.25); background:rgba(0,0,0,.18); color:var(--ivory); }
+.move.best{ border-color:var(--gold); background:rgba(231,184,79,.12); }
+.move .num{ font-size:30px; font-weight:900; width:44px; text-align:center; }
+.move .lbl{ font-size:14px; }
+.move .lbl small{ display:block; color:var(--ivory-dim); font-size:12px; }
+.move .odds{ text-align:right; font-size:13px; line-height:1.3; color:var(--ivory-dim); }
+.move .odds b{ display:block; font-size:18px; color:var(--ivory); font-weight:700; }
+
+.verdict{ margin-top:8px; padding:18px 16px; border-radius:12px; text-align:center; }
+.verdict.fout{ background:rgba(200,75,58,.22); border:1.5px solid var(--red); }
+.verdict.jackpot{ background:rgba(231,184,79,.18); border:1.5px solid var(--gold); }
+.verdict h2{ margin:0 0 4px; font-size:30px; font-weight:900; }
+.verdict h2.bak{ font-size:38px; color:var(--gold); }
+.verdict p{ margin:0 0 12px; color:var(--ivory-dim); }
+.verdict button{ font-size:16px; font-weight:700; padding:10px 20px; border-radius:999px; border:0; background:var(--ivory); color:var(--ink); }
+
+.undo{ position:absolute; right:0; top:50%; transform:translateY(-50%); width:44px; height:44px; border-radius:50%; border:1.5px solid var(--ivory-dim); background:transparent; color:var(--ivory); font-size:22px; line-height:1; padding:0; }
+.undo:disabled{ opacity:.25; }
+
+/* history */
+.hist{ margin-top:26px; }
+.hist h3{ font-size:18px; margin:0 0 8px; font-weight:700; }
+.summary{ display:grid; grid-template-columns:1fr auto auto auto auto; gap:4px 10px; font-size:13px; margin-bottom:12px; }
+.summary span{ color:var(--ivory-dim); }
+.summary .h{ font-size:11px; }
+.summary b{ font-weight:700; }
+.turn{ border-top:1px solid rgba(243,233,210,.18); padding:8px 0; }
+.turn summary{ cursor:pointer; font-size:14px; display:flex; justify-content:space-between; gap:8px; list-style:none; }
+.turn summary::-webkit-details-marker{ display:none; }
+.turn summary .res{ color:var(--ivory-dim); }
+.turn summary .res.jp{ color:var(--gold); font-weight:700; }
+.dec{ display:grid; grid-template-columns:52px 1fr; gap:8px; align-items:baseline; font-size:13px; padding:5px 0 0 6px; }
+.dec .roll-lbl{ color:var(--ivory-dim); }
+.dec .opt{ display:inline-block; margin-right:10px; color:var(--ivory-dim); white-space:nowrap; }
+.dec .opt.chosen{ color:var(--ivory); font-weight:700; text-decoration:underline; text-decoration-color:var(--gold); }
+.dec .opt.miss{ color:var(--red); }
+.dec .opt .p{ font-size:11px; }
+.empty{ color:var(--ivory-dim); font-size:13px; }
+
+footer{ margin-top:18px; display:flex; justify-content:space-between; align-items:center; font-size:13px; color:var(--ivory-dim); flex-wrap:wrap; gap:6px; }
+footer button{ font-size:13px; background:none; border:0; color:var(--ivory-dim); text-decoration:underline; padding:4px 0; }
+.rules{ margin-top:14px; font-size:13px; color:var(--ivory-dim); line-height:1.5; }
+.rules summary{ cursor:pointer; color:var(--ivory); }
+.die.blank{ background:linear-gradient(#e6dcc4,#cfc3a6); box-shadow:0 5px 0 #a89c7b, 0 8px 14px rgba(0,0,0,.35); display:flex; align-items:center; justify-content:center; font-size:38px; font-weight:900; color:rgba(27,26,23,.45); }
+.die.picking{ outline:3px solid var(--gold); outline-offset:3px; }
+.picker{ display:none; justify-content:center; gap:8px; margin:0 0 12px; }
+.picker.open{ display:flex; }
+.picker button{ width:46px; height:46px; border-radius:10px; border:0; background:linear-gradient(#fffdf6,#efe7d2); box-shadow:0 3px 0 #c4b793; display:grid; grid-template-columns:repeat(3,1fr); grid-template-rows:repeat(3,1fr); padding:6px; }
+.picker .pip{ width:8px; height:8px; }
+.hint{ text-align:center; color:var(--ivory-dim); font-size:14px; padding:14px 0; }
+@keyframes shake{ 10%,90%{transform:translateX(-2px)} 20%,80%{transform:translateX(4px)} 30%,50%,70%{transform:translateX(-7px)} 40%,60%{transform:translateX(7px)} }
+@keyframes redflash{ 0%{box-shadow:0 0 0 0 rgba(200,75,58,.9), inset 0 0 0 100px rgba(200,75,58,.5)} 100%{box-shadow:0 0 0 24px rgba(200,75,58,0), inset 0 0 0 100px rgba(200,75,58,0)} }
+@keyframes goldflash{ 0%{box-shadow:0 0 0 0 rgba(231,184,79,1), inset 0 0 0 100px rgba(231,184,79,.6)} 100%{box-shadow:0 0 0 40px rgba(231,184,79,0), inset 0 0 0 100px rgba(231,184,79,0)} }
+.box.anim-fout{ animation:shake .6s cubic-bezier(.36,.07,.19,.97), redflash 1.2s ease-out; }
+.box.anim-jackpot{ animation:goldflash 1.6s ease-out; }
+.verdict.pop{ animation:popin .35s cubic-bezier(.2,1.4,.4,1); }
+@keyframes popin{ from{transform:scale(.7);opacity:0} to{transform:scale(1);opacity:1} }
+.verdict .alt{ display:block; margin:10px auto 0; background:none; border:0; color:var(--ivory-dim); font-size:13px; text-decoration:underline; padding:2px; }
+body.nokans .odds, body.nokans .boardstat, body.nokans .dec .p, body.nokans footer.stratbar, body.nokans .lbl small .adv{ display:none; }
+body.nokans .move.best{ border-color:rgba(243,233,210,.25); background:rgba(0,0,0,.18); }
+.overlay{ position:fixed; inset:0; display:flex; align-items:center; justify-content:center; pointer-events:none; opacity:0; z-index:20; }
+.overlay.show{ animation:overlay 3.6s ease-out forwards; }
+.overlay.sticky.show{ animation:overlayin .35s ease-out forwards; pointer-events:auto; cursor:pointer; }
+@keyframes overlayin{ from{opacity:0} to{opacity:1} }
+.overlay small.jstat{ font-size:min(4.6vw,19px); font-weight:500; margin-top:4px; }
+.overlay .tap{ display:block; margin-top:22px; font-size:min(4.5vw,18px); font-weight:500; opacity:.75; }
+.overlay.dood{ background:rgba(160,40,30,.85); }
+.overlay.jackpot{ background:rgba(231,184,79,.9); }
+.overlay span{ font-size:min(26vw,120px); font-weight:900; color:#fff; text-shadow:0 6px 30px rgba(0,0,0,.5); transform:rotate(-6deg); text-align:center; line-height:1; }
+.overlay span small{ display:block; font-size:min(7vw,32px); font-weight:700; margin-top:14px; }
+.overlay span small+small{ margin-top:6px; font-size:min(5.5vw,24px); font-weight:500; }
+.overlay.jackpot span{ color:var(--ink); }
+@keyframes overlay{ 0%{opacity:0} 6%{opacity:1} 80%{opacity:1} 100%{opacity:0} }
+.die.rolling{ animation:tumble .12s linear infinite; }
+@keyframes tumble{ 0%{transform:rotate(-8deg) translateY(-2px)} 50%{transform:rotate(8deg) translateY(2px)} 100%{transform:rotate(-8deg) translateY(-2px)} }
+body.play{ position:fixed; inset:0; overflow:hidden; overscroll-behavior:none; }
+body.play main{ height:100%; display:flex; flex-direction:column; padding-bottom:10px; }
+body.play .meer{ display:none; }
+body.play #moves{ flex:1; min-height:0; overflow-y:auto; -webkit-overflow-scrolling:touch; }
+body.play .dicehelp{ display:none; }
+body.play main{ padding-top:10px; }
+body.play header{ margin-bottom:8px; }
+body.play h1{ font-size:22px; }
+body.play .players{ margin-bottom:6px; gap:6px; }
+body.play .player{ padding:5px 8px; }
+body.play .player .sess{ font-size:22px; margin:2px 0 0; }
+body.play .player .sess small{ font-size:10px; margin-top:1px; }
+body.play .player .stats{ font-size:11px; }
+body.play .alltime{ margin:0 0 2px; font-size:12px; }
+body.play .sessionbar{ margin:0 0 6px; }
+body.play .sessionbar button{ padding:5px 12px; font-size:13px; }
+body.play .playerlinks{ margin-bottom:4px; }
+body.play .addplayer{ margin:0; font-size:11px; }
+body.play .box{ padding:8px 6px 6px; }
+body.play .boardstat{ margin-top:4px; font-size:12px; }
+body.play .special{ margin-top:3px; font-size:11px; line-height:1.3; }
+body.play .die{ width:64px; height:64px; padding:9px; border-radius:13px; }
+body.play .die .pip{ width:11px; height:11px; }
+body.play .sum{ font-size:30px; }
+body.play .roll{ font-size:20px; padding:11px 20px; border-radius:13px; box-shadow:0 4px 0 #a67c22, 0 8px 16px rgba(0,0,0,.3); }
+body.play .move{ padding:8px 12px; gap:10px; }
+body.play .move .num{ font-size:24px; width:36px; }
+body.play .verdict{ padding:10px 12px; margin-top:4px; }
+body.play .verdict h2{ font-size:24px; }
+body.play .verdict h2.bak{ font-size:30px; }
+body.play .verdict p{ margin:0 0 6px; font-size:14px; }
+body.play .verdict .mini{ width:30px; height:30px; padding:4px; }
+body.play .verdict .mini .pip{ width:6px; height:6px; }
+body.play .verdict button{ padding:8px 18px; font-size:15px; }
+body.play .verdict .alt{ margin-top:6px; font-size:12px; }
+body.play .undo{ width:38px; height:38px; font-size:19px; }
+body.play .hint{ padding:8px 0; }
+body.play .dice{ margin:14px 0 18px; }
+body.play .roll{ margin:0 auto 10px; }
+body.play .picker.open{ margin:-6px 0 14px; }
+.medal{ display:inline-block; width:18px; height:24px; vertical-align:middle; margin-left:2px; }
+.overlay.jackpot.big span{ transform:none; position:relative; }
+.overlay.jackpot.big .bigmedal{ width:min(70vw,52vh); height:auto; display:block; margin:0 auto 6px; filter:drop-shadow(0 12px 24px rgba(0,0,0,.35)); animation:medalspin 1.1s cubic-bezier(.2,1.3,.4,1); }
+@keyframes medalspin{ from{transform:scale(.2) rotate(-30deg);opacity:0} to{transform:scale(1) rotate(0);opacity:1} }
+.overlay.jackpot.big .title{ font-size:min(14vw,68px); display:block; }
+.overlay.jackpot.big .supersp{ font-size:min(11vw,52px); color:#c84b3a; margin-top:10px; animation:superpulse .7s ease-in-out infinite alternate; }
+@keyframes superpulse{ from{transform:scale(1) rotate(-3deg)} to{transform:scale(1.12) rotate(3deg)} }
+.overlay.jackpot.big small{ font-size:min(6.5vw,30px); }
+.overlay.jackpot.big small+small{ font-size:min(5.2vw,24px); font-weight:500; }
+.overlay.jackpot.big.show{ animation-duration:8s; }
+.overlay .ownface{ width:min(46vw,220px); height:min(46vw,220px); border-radius:50%; background:radial-gradient(#5a3a1f,#3a2211); margin:0 auto 10px; display:flex; align-items:flex-end; justify-content:center; overflow:hidden; box-shadow:0 0 0 6px var(--gold), 0 14px 30px rgba(0,0,0,.4); animation:facepop .8s cubic-bezier(.2,1.4,.4,1); }
+.overlay .ownface svg{ width:78%; height:auto; display:block; margin-bottom:-6%; }
+@keyframes facepop{ from{transform:scale(.3);opacity:0} to{transform:scale(1);opacity:1} }
+.qrbox{ background:#fff; padding:10px; border-radius:12px; display:inline-block; margin:8px auto 4px; }
+.qrbox svg{ display:block; width:min(56vw,220px); height:auto; }
+.qrcode{ font-size:12px; color:var(--ivory-dim); margin:0 0 8px; }
+.scanbox{ position:fixed; inset:0; background:#000; z-index:30; display:none; flex-direction:column; align-items:center; justify-content:center; }
+.scanbox.open{ display:flex; }
+.scanbox video{ width:100%; max-width:480px; max-height:70vh; object-fit:cover; }
+.scanbox p{ color:#fff; margin:12px; text-align:center; font-size:14px; }
+.scanbox button{ font-size:16px; font-weight:700; padding:10px 22px; border-radius:999px; border:0; background:var(--ivory); color:var(--ink); margin:6px; }
+.scanbox input{ font:inherit; font-size:16px; padding:8px 12px; border-radius:8px; border:0; width:220px; text-align:center; }
+.overlay .dicerow{ display:flex; justify-content:center; gap:14px; margin:16px 0 4px; }
+.overlay .mini{ width:54px; height:54px; border-radius:11px; background:linear-gradient(#fffdf6,#efe7d2); display:grid; grid-template-columns:repeat(3,1fr); grid-template-rows:repeat(3,1fr); padding:8px; box-shadow:0 4px 0 #c4b793; transform:none; }
+.overlay .mini .pip{ width:9px; height:9px; }
+.verdict .mini{ display:inline-grid; width:40px; height:40px; border-radius:8px; background:linear-gradient(#fffdf6,#efe7d2); grid-template-columns:repeat(3,1fr); grid-template-rows:repeat(3,1fr); padding:6px; vertical-align:middle; margin:0 3px; box-shadow:0 3px 0 #c4b793; }
+.verdict .mini .pip{ width:7px; height:7px; }
+@media (prefers-reduced-motion:reduce){ *{ transition:none !important; animation:none !important; } .overlay.show{ opacity:1; } }
+</style>
+</head>
+<body>
+<div class="overlay" id="overlay" aria-hidden="true"><span id="overlayText"></span></div>
+<div class="scanbox" id="scanbox"><video id="scanvideo" playsinline muted></video><p id="scanmsg">Richt de camera op de QR van de ander</p><div><input id="scancode" placeholder="of typ de code"><button id="scanOk">Overnemen</button></div><button id="scanClose">Sluiten</button></div>
+<main>
+<header>
+  <h1>Jackpot</h1>
+  <div class="mode" role="group" aria-label="Weergave">
+    <button id="mKans" aria-pressed="false">Kansen</button>
+    <button id="mSound" aria-pressed="true" aria-label="Geluid">🔊</button>
+    <button id="mView" aria-pressed="false">Meer</button>
+  </div>
+</header>
+
+<div class="players" id="players"></div>
+<div class="nameform" id="nameform"><input id="nameInput" type="text" maxlength="20" placeholder="Naam" autocomplete="off"><button id="nameOk">Opslaan</button><button class="cancel" id="nameCancel">Annuleren</button></div>
+<button class="alltime" id="alltime" title="Tik om bij te werken"></button>
+<div class="alltimeform" id="alltimeform"></div>
+<div class="sessionbar" id="sessionbar" style="display:none"><button id="endSession">Einde sessie</button><button id="shareStand">Deel stand</button></div>
+<div class="playerlinks"><button class="addplayer" id="addPlayer">Speler toevoegen</button><button class="addplayer" id="notUs">Ben je niet Stijn of Daan?</button></div>
+<div class="nameform" id="twoform"><input id="twoA" type="text" maxlength="20" placeholder="Speler 1" autocomplete="off"><input id="twoB" type="text" maxlength="20" placeholder="Speler 2" autocomplete="off"><button id="twoOk">Opslaan</button><button class="cancel" id="twoCancel">Annuleren</button></div>
+
+<section class="box" aria-label="Bord"><div class="tiles" id="tiles"></div></section>
+<div class="boardstat">
+  <span>Jackpot <b id="pj">–</b></span>
+  <span><b id="es">–</b> slokken</span>
+  <span>Saldo <b id="net">–</b></span>
+</div>
+<div class="special" id="special"></div>
+
+<section aria-label="Dobbelstenen">
+  <div class="dice">
+    <button class="die" id="d1" aria-label="Dobbelsteen 1"></button>
+    <div class="sum" id="sum">7</div>
+    <button class="die" id="d2" aria-label="Dobbelsteen 2"></button>
+    <button class="undo" id="undo" aria-label="Laatste zet terugdraaien" title="Laatste zet terugdraaien">↶</button>
+  </div>
+  <div class="picker" id="picker" aria-label="Kies ogen"></div>
+  <p class="dicehelp">Tik op een steen en kies de ogen. Veeg een tegel omhoog om hem om te klappen, omlaag om hem terug te zetten</p>
+  <button class="roll" id="roll">Dobbel</button>
+</section>
+
+<section id="moves" class="moves" aria-live="polite"></section>
+
+
+<div class="meer" id="meer">
+<section class="hist" id="hist"></section>
+<footer>
+  <span>Variant</span>
+  <div class="mode" role="group" aria-label="Spelvariant">
+    <button id="mNormal" aria-pressed="true">Normaal</button>
+    <button id="mExtreme" aria-pressed="false">Extreme</button>
+  </div>
+</footer>
+
+<footer class="stratbar">
+  <span id="strat">Advies: hoogste jackpotkans</span>
+  <button id="toggleStrat">Wissel naar minste slokken</button>
+</footer>
+<footer>
+  <button id="resetScores">Score en geschiedenis wissen</button>
+  <button id="reset">Bord resetten</button>
+</footer>
+
+<details class="rules">
+  <summary>Regels</summary>
+  Negen tegels, altijd twee dobbelstenen. Per worp klap je één tegel om: de som, of het getal van één van de twee stenen. Alles dicht is jackpot: de rest trekt een atje. Kun je niets omklappen, dan drink je zelf zoveel slokken als er tegels open staan. Bij Extreme drink je de som van de open getallen. Jackpot van binnen naar buiten: 2 atjes. Van buiten naar binnen: 3 atjes. Van hoog naar laag of laag naar hoog: 4 atjes. Drie keer op rij dezelfde ogen, ook door beurten heen: atje kruk, spel gaat door. De kansen gaan uit van optimaal doorspelen vanaf dat bord. Saldo = verwachte eigen slokken min 10 slokken per tegenstander maal de jackpotkans; lager is beter.
+</details>
+</div>
+</main>
+
+<script>
+//---------------------------------------------------------------------
+//
+// QR Code Generator for JavaScript
+//
+// Copyright (c) 2009 Kazuhiko Arase
+//
+// URL: http://www.d-project.com/
+//
+// Licensed under the MIT license:
+//  http://www.opensource.org/licenses/mit-license.php
+//
+// The word 'QR Code' is registered trademark of
+// DENSO WAVE INCORPORATED
+//  http://www.denso-wave.com/qrcode/faqpatent-e.html
+//
+//---------------------------------------------------------------------
+
+var qrcode = function() {
+
+  //---------------------------------------------------------------------
+  // qrcode
+  //---------------------------------------------------------------------
+
+  /**
+   * qrcode
+   * @param typeNumber 1 to 40
+   * @param errorCorrectionLevel 'L','M','Q','H'
+   */
+  var qrcode = function(typeNumber, errorCorrectionLevel) {
+
+    var PAD0 = 0xEC;
+    var PAD1 = 0x11;
+
+    var _typeNumber = typeNumber;
+    var _errorCorrectionLevel = QRErrorCorrectionLevel[errorCorrectionLevel];
+    var _modules = null;
+    var _moduleCount = 0;
+    var _dataCache = null;
+    var _dataList = [];
+
+    var _this = {};
+
+    var makeImpl = function(test, maskPattern) {
+
+      _moduleCount = _typeNumber * 4 + 17;
+      _modules = function(moduleCount) {
+        var modules = new Array(moduleCount);
+        for (var row = 0; row < moduleCount; row += 1) {
+          modules[row] = new Array(moduleCount);
+          for (var col = 0; col < moduleCount; col += 1) {
+            modules[row][col] = null;
+          }
+        }
+        return modules;
+      }(_moduleCount);
+
+      setupPositionProbePattern(0, 0);
+      setupPositionProbePattern(_moduleCount - 7, 0);
+      setupPositionProbePattern(0, _moduleCount - 7);
+      setupPositionAdjustPattern();
+      setupTimingPattern();
+      setupTypeInfo(test, maskPattern);
+
+      if (_typeNumber >= 7) {
+        setupTypeNumber(test);
+      }
+
+      if (_dataCache == null) {
+        _dataCache = createData(_typeNumber, _errorCorrectionLevel, _dataList);
+      }
+
+      mapData(_dataCache, maskPattern);
+    };
+
+    var setupPositionProbePattern = function(row, col) {
+
+      for (var r = -1; r <= 7; r += 1) {
+
+        if (row + r <= -1 || _moduleCount <= row + r) continue;
+
+        for (var c = -1; c <= 7; c += 1) {
+
+          if (col + c <= -1 || _moduleCount <= col + c) continue;
+
+          if ( (0 <= r && r <= 6 && (c == 0 || c == 6) )
+              || (0 <= c && c <= 6 && (r == 0 || r == 6) )
+              || (2 <= r && r <= 4 && 2 <= c && c <= 4) ) {
+            _modules[row + r][col + c] = true;
+          } else {
+            _modules[row + r][col + c] = false;
+          }
+        }
+      }
+    };
+
+    var getBestMaskPattern = function() {
+
+      var minLostPoint = 0;
+      var pattern = 0;
+
+      for (var i = 0; i < 8; i += 1) {
+
+        makeImpl(true, i);
+
+        var lostPoint = QRUtil.getLostPoint(_this);
+
+        if (i == 0 || minLostPoint > lostPoint) {
+          minLostPoint = lostPoint;
+          pattern = i;
+        }
+      }
+
+      return pattern;
+    };
+
+    var setupTimingPattern = function() {
+
+      for (var r = 8; r < _moduleCount - 8; r += 1) {
+        if (_modules[r][6] != null) {
+          continue;
+        }
+        _modules[r][6] = (r % 2 == 0);
+      }
+
+      for (var c = 8; c < _moduleCount - 8; c += 1) {
+        if (_modules[6][c] != null) {
+          continue;
+        }
+        _modules[6][c] = (c % 2 == 0);
+      }
+    };
+
+    var setupPositionAdjustPattern = function() {
+
+      var pos = QRUtil.getPatternPosition(_typeNumber);
+
+      for (var i = 0; i < pos.length; i += 1) {
+
+        for (var j = 0; j < pos.length; j += 1) {
+
+          var row = pos[i];
+          var col = pos[j];
+
+          if (_modules[row][col] != null) {
+            continue;
+          }
+
+          for (var r = -2; r <= 2; r += 1) {
+
+            for (var c = -2; c <= 2; c += 1) {
+
+              if (r == -2 || r == 2 || c == -2 || c == 2
+                  || (r == 0 && c == 0) ) {
+                _modules[row + r][col + c] = true;
+              } else {
+                _modules[row + r][col + c] = false;
+              }
+            }
+          }
+        }
+      }
+    };
+
+    var setupTypeNumber = function(test) {
+
+      var bits = QRUtil.getBCHTypeNumber(_typeNumber);
+
+      for (var i = 0; i < 18; i += 1) {
+        var mod = (!test && ( (bits >> i) & 1) == 1);
+        _modules[Math.floor(i / 3)][i % 3 + _moduleCount - 8 - 3] = mod;
+      }
+
+      for (var i = 0; i < 18; i += 1) {
+        var mod = (!test && ( (bits >> i) & 1) == 1);
+        _modules[i % 3 + _moduleCount - 8 - 3][Math.floor(i / 3)] = mod;
+      }
+    };
+
+    var setupTypeInfo = function(test, maskPattern) {
+
+      var data = (_errorCorrectionLevel << 3) | maskPattern;
+      var bits = QRUtil.getBCHTypeInfo(data);
+
+      // vertical
+      for (var i = 0; i < 15; i += 1) {
+
+        var mod = (!test && ( (bits >> i) & 1) == 1);
+
+        if (i < 6) {
+          _modules[i][8] = mod;
+        } else if (i < 8) {
+          _modules[i + 1][8] = mod;
+        } else {
+          _modules[_moduleCount - 15 + i][8] = mod;
+        }
+      }
+
+      // horizontal
+      for (var i = 0; i < 15; i += 1) {
+
+        var mod = (!test && ( (bits >> i) & 1) == 1);
+
+        if (i < 8) {
+          _modules[8][_moduleCount - i - 1] = mod;
+        } else if (i < 9) {
+          _modules[8][15 - i - 1 + 1] = mod;
+        } else {
+          _modules[8][15 - i - 1] = mod;
+        }
+      }
+
+      // fixed module
+      _modules[_moduleCount - 8][8] = (!test);
+    };
+
+    var mapData = function(data, maskPattern) {
+
+      var inc = -1;
+      var row = _moduleCount - 1;
+      var bitIndex = 7;
+      var byteIndex = 0;
+      var maskFunc = QRUtil.getMaskFunction(maskPattern);
+
+      for (var col = _moduleCount - 1; col > 0; col -= 2) {
+
+        if (col == 6) col -= 1;
+
+        while (true) {
+
+          for (var c = 0; c < 2; c += 1) {
+
+            if (_modules[row][col - c] == null) {
+
+              var dark = false;
+
+              if (byteIndex < data.length) {
+                dark = ( ( (data[byteIndex] >>> bitIndex) & 1) == 1);
+              }
+
+              var mask = maskFunc(row, col - c);
+
+              if (mask) {
+                dark = !dark;
+              }
+
+              _modules[row][col - c] = dark;
+              bitIndex -= 1;
+
+              if (bitIndex == -1) {
+                byteIndex += 1;
+                bitIndex = 7;
+              }
+            }
+          }
+
+          row += inc;
+
+          if (row < 0 || _moduleCount <= row) {
+            row -= inc;
+            inc = -inc;
+            break;
+          }
+        }
+      }
+    };
+
+    var createBytes = function(buffer, rsBlocks) {
+
+      var offset = 0;
+
+      var maxDcCount = 0;
+      var maxEcCount = 0;
+
+      var dcdata = new Array(rsBlocks.length);
+      var ecdata = new Array(rsBlocks.length);
+
+      for (var r = 0; r < rsBlocks.length; r += 1) {
+
+        var dcCount = rsBlocks[r].dataCount;
+        var ecCount = rsBlocks[r].totalCount - dcCount;
+
+        maxDcCount = Math.max(maxDcCount, dcCount);
+        maxEcCount = Math.max(maxEcCount, ecCount);
+
+        dcdata[r] = new Array(dcCount);
+
+        for (var i = 0; i < dcdata[r].length; i += 1) {
+          dcdata[r][i] = 0xff & buffer.getBuffer()[i + offset];
+        }
+        offset += dcCount;
+
+        var rsPoly = QRUtil.getErrorCorrectPolynomial(ecCount);
+        var rawPoly = qrPolynomial(dcdata[r], rsPoly.getLength() - 1);
+
+        var modPoly = rawPoly.mod(rsPoly);
+        ecdata[r] = new Array(rsPoly.getLength() - 1);
+        for (var i = 0; i < ecdata[r].length; i += 1) {
+          var modIndex = i + modPoly.getLength() - ecdata[r].length;
+          ecdata[r][i] = (modIndex >= 0)? modPoly.getAt(modIndex) : 0;
+        }
+      }
+
+      var totalCodeCount = 0;
+      for (var i = 0; i < rsBlocks.length; i += 1) {
+        totalCodeCount += rsBlocks[i].totalCount;
+      }
+
+      var data = new Array(totalCodeCount);
+      var index = 0;
+
+      for (var i = 0; i < maxDcCount; i += 1) {
+        for (var r = 0; r < rsBlocks.length; r += 1) {
+          if (i < dcdata[r].length) {
+            data[index] = dcdata[r][i];
+            index += 1;
+          }
+        }
+      }
+
+      for (var i = 0; i < maxEcCount; i += 1) {
+        for (var r = 0; r < rsBlocks.length; r += 1) {
+          if (i < ecdata[r].length) {
+            data[index] = ecdata[r][i];
+            index += 1;
+          }
+        }
+      }
+
+      return data;
+    };
+
+    var createData = function(typeNumber, errorCorrectionLevel, dataList) {
+
+      var rsBlocks = QRRSBlock.getRSBlocks(typeNumber, errorCorrectionLevel);
+
+      var buffer = qrBitBuffer();
+
+      for (var i = 0; i < dataList.length; i += 1) {
+        var data = dataList[i];
+        buffer.put(data.getMode(), 4);
+        buffer.put(data.getLength(), QRUtil.getLengthInBits(data.getMode(), typeNumber) );
+        data.write(buffer);
+      }
+
+      // calc num max data.
+      var totalDataCount = 0;
+      for (var i = 0; i < rsBlocks.length; i += 1) {
+        totalDataCount += rsBlocks[i].dataCount;
+      }
+
+      if (buffer.getLengthInBits() > totalDataCount * 8) {
+        throw 'code length overflow. ('
+          + buffer.getLengthInBits()
+          + '>'
+          + totalDataCount * 8
+          + ')';
+      }
+
+      // end code
+      if (buffer.getLengthInBits() + 4 <= totalDataCount * 8) {
+        buffer.put(0, 4);
+      }
+
+      // padding
+      while (buffer.getLengthInBits() % 8 != 0) {
+        buffer.putBit(false);
+      }
+
+      // padding
+      while (true) {
+
+        if (buffer.getLengthInBits() >= totalDataCount * 8) {
+          break;
+        }
+        buffer.put(PAD0, 8);
+
+        if (buffer.getLengthInBits() >= totalDataCount * 8) {
+          break;
+        }
+        buffer.put(PAD1, 8);
+      }
+
+      return createBytes(buffer, rsBlocks);
+    };
+
+    _this.addData = function(data, mode) {
+
+      mode = mode || 'Byte';
+
+      var newData = null;
+
+      switch(mode) {
+      case 'Numeric' :
+        newData = qrNumber(data);
+        break;
+      case 'Alphanumeric' :
+        newData = qrAlphaNum(data);
+        break;
+      case 'Byte' :
+        newData = qr8BitByte(data);
+        break;
+      case 'Kanji' :
+        newData = qrKanji(data);
+        break;
+      default :
+        throw 'mode:' + mode;
+      }
+
+      _dataList.push(newData);
+      _dataCache = null;
+    };
+
+    _this.isDark = function(row, col) {
+      if (row < 0 || _moduleCount <= row || col < 0 || _moduleCount <= col) {
+        throw row + ',' + col;
+      }
+      return _modules[row][col];
+    };
+
+    _this.getModuleCount = function() {
+      return _moduleCount;
+    };
+
+    _this.make = function() {
+      if (_typeNumber < 1) {
+        var typeNumber = 1;
+
+        for (; typeNumber < 40; typeNumber++) {
+          var rsBlocks = QRRSBlock.getRSBlocks(typeNumber, _errorCorrectionLevel);
+          var buffer = qrBitBuffer();
+
+          for (var i = 0; i < _dataList.length; i++) {
+            var data = _dataList[i];
+            buffer.put(data.getMode(), 4);
+            buffer.put(data.getLength(), QRUtil.getLengthInBits(data.getMode(), typeNumber) );
+            data.write(buffer);
+          }
+
+          var totalDataCount = 0;
+          for (var i = 0; i < rsBlocks.length; i++) {
+            totalDataCount += rsBlocks[i].dataCount;
+          }
+
+          if (buffer.getLengthInBits() <= totalDataCount * 8) {
+            break;
+          }
+        }
+
+        _typeNumber = typeNumber;
+      }
+
+      makeImpl(false, getBestMaskPattern() );
+    };
+
+    _this.createTableTag = function(cellSize, margin) {
+
+      cellSize = cellSize || 2;
+      margin = (typeof margin == 'undefined')? cellSize * 4 : margin;
+
+      var qrHtml = '';
+
+      qrHtml += '<table style="';
+      qrHtml += ' border-width: 0px; border-style: none;';
+      qrHtml += ' border-collapse: collapse;';
+      qrHtml += ' padding: 0px; margin: ' + margin + 'px;';
+      qrHtml += '">';
+      qrHtml += '<tbody>';
+
+      for (var r = 0; r < _this.getModuleCount(); r += 1) {
+
+        qrHtml += '<tr>';
+
+        for (var c = 0; c < _this.getModuleCount(); c += 1) {
+          qrHtml += '<td style="';
+          qrHtml += ' border-width: 0px; border-style: none;';
+          qrHtml += ' border-collapse: collapse;';
+          qrHtml += ' padding: 0px; margin: 0px;';
+          qrHtml += ' width: ' + cellSize + 'px;';
+          qrHtml += ' height: ' + cellSize + 'px;';
+          qrHtml += ' background-color: ';
+          qrHtml += _this.isDark(r, c)? '#000000' : '#ffffff';
+          qrHtml += ';';
+          qrHtml += '"/>';
+        }
+
+        qrHtml += '</tr>';
+      }
+
+      qrHtml += '</tbody>';
+      qrHtml += '</table>';
+
+      return qrHtml;
+    };
+
+    _this.createSvgTag = function(cellSize, margin, alt, title) {
+
+      var opts = {};
+      if (typeof arguments[0] == 'object') {
+        // Called by options.
+        opts = arguments[0];
+        // overwrite cellSize and margin.
+        cellSize = opts.cellSize;
+        margin = opts.margin;
+        alt = opts.alt;
+        title = opts.title;
+      }
+
+      cellSize = cellSize || 2;
+      margin = (typeof margin == 'undefined')? cellSize * 4 : margin;
+
+      // Compose alt property surrogate
+      alt = (typeof alt === 'string') ? {text: alt} : alt || {};
+      alt.text = alt.text || null;
+      alt.id = (alt.text) ? alt.id || 'qrcode-description' : null;
+
+      // Compose title property surrogate
+      title = (typeof title === 'string') ? {text: title} : title || {};
+      title.text = title.text || null;
+      title.id = (title.text) ? title.id || 'qrcode-title' : null;
+
+      var size = _this.getModuleCount() * cellSize + margin * 2;
+      var c, mc, r, mr, qrSvg='', rect;
+
+      rect = 'l' + cellSize + ',0 0,' + cellSize +
+        ' -' + cellSize + ',0 0,-' + cellSize + 'z ';
+
+      qrSvg += '<svg version="1.1" xmlns="http://www.w3.org/2000/svg"';
+      qrSvg += !opts.scalable ? ' width="' + size + 'px" height="' + size + 'px"' : '';
+      qrSvg += ' viewBox="0 0 ' + size + ' ' + size + '" ';
+      qrSvg += ' preserveAspectRatio="xMinYMin meet"';
+      qrSvg += (title.text || alt.text) ? ' role="img" aria-labelledby="' +
+          escapeXml([title.id, alt.id].join(' ').trim() ) + '"' : '';
+      qrSvg += '>';
+      qrSvg += (title.text) ? '<title id="' + escapeXml(title.id) + '">' +
+          escapeXml(title.text) + '</title>' : '';
+      qrSvg += (alt.text) ? '<description id="' + escapeXml(alt.id) + '">' +
+          escapeXml(alt.text) + '</description>' : '';
+      qrSvg += '<rect width="100%" height="100%" fill="white" cx="0" cy="0"/>';
+      qrSvg += '<path d="';
+
+      for (r = 0; r < _this.getModuleCount(); r += 1) {
+        mr = r * cellSize + margin;
+        for (c = 0; c < _this.getModuleCount(); c += 1) {
+          if (_this.isDark(r, c) ) {
+            mc = c*cellSize+margin;
+            qrSvg += 'M' + mc + ',' + mr + rect;
+          }
+        }
+      }
+
+      qrSvg += '" stroke="transparent" fill="black"/>';
+      qrSvg += '</svg>';
+
+      return qrSvg;
+    };
+
+    _this.createDataURL = function(cellSize, margin) {
+
+      cellSize = cellSize || 2;
+      margin = (typeof margin == 'undefined')? cellSize * 4 : margin;
+
+      var size = _this.getModuleCount() * cellSize + margin * 2;
+      var min = margin;
+      var max = size - margin;
+
+      return createDataURL(size, size, function(x, y) {
+        if (min <= x && x < max && min <= y && y < max) {
+          var c = Math.floor( (x - min) / cellSize);
+          var r = Math.floor( (y - min) / cellSize);
+          return _this.isDark(r, c)? 0 : 1;
+        } else {
+          return 1;
+        }
+      } );
+    };
+
+    _this.createImgTag = function(cellSize, margin, alt) {
+
+      cellSize = cellSize || 2;
+      margin = (typeof margin == 'undefined')? cellSize * 4 : margin;
+
+      var size = _this.getModuleCount() * cellSize + margin * 2;
+
+      var img = '';
+      img += '<img';
+      img += '\u0020src="';
+      img += _this.createDataURL(cellSize, margin);
+      img += '"';
+      img += '\u0020width="';
+      img += size;
+      img += '"';
+      img += '\u0020height="';
+      img += size;
+      img += '"';
+      if (alt) {
+        img += '\u0020alt="';
+        img += escapeXml(alt);
+        img += '"';
+      }
+      img += '/>';
+
+      return img;
+    };
+
+    var escapeXml = function(s) {
+      var escaped = '';
+      for (var i = 0; i < s.length; i += 1) {
+        var c = s.charAt(i);
+        switch(c) {
+        case '<': escaped += '&lt;'; break;
+        case '>': escaped += '&gt;'; break;
+        case '&': escaped += '&amp;'; break;
+        case '"': escaped += '&quot;'; break;
+        default : escaped += c; break;
+        }
+      }
+      return escaped;
+    };
+
+    var _createHalfASCII = function(margin) {
+      var cellSize = 1;
+      margin = (typeof margin == 'undefined')? cellSize * 2 : margin;
+
+      var size = _this.getModuleCount() * cellSize + margin * 2;
+      var min = margin;
+      var max = size - margin;
+
+      var y, x, r1, r2, p;
+
+      var blocks = {
+        '██': '█',
+        '█ ': '▀',
+        ' █': '▄',
+        '  ': ' '
+      };
+
+      var blocksLastLineNoMargin = {
+        '██': '▀',
+        '█ ': '▀',
+        ' █': ' ',
+        '  ': ' '
+      };
+
+      var ascii = '';
+      for (y = 0; y < size; y += 2) {
+        r1 = Math.floor((y - min) / cellSize);
+        r2 = Math.floor((y + 1 - min) / cellSize);
+        for (x = 0; x < size; x += 1) {
+          p = '█';
+
+          if (min <= x && x < max && min <= y && y < max && _this.isDark(r1, Math.floor((x - min) / cellSize))) {
+            p = ' ';
+          }
+
+          if (min <= x && x < max && min <= y+1 && y+1 < max && _this.isDark(r2, Math.floor((x - min) / cellSize))) {
+            p += ' ';
+          }
+          else {
+            p += '█';
+          }
+
+          // Output 2 characters per pixel, to create full square. 1 character per pixels gives only half width of square.
+          ascii += (margin < 1 && y+1 >= max) ? blocksLastLineNoMargin[p] : blocks[p];
+        }
+
+        ascii += '\n';
+      }
+
+      if (size % 2 && margin > 0) {
+        return ascii.substring(0, ascii.length - size - 1) + Array(size+1).join('▀');
+      }
+
+      return ascii.substring(0, ascii.length-1);
+    };
+
+    _this.createASCII = function(cellSize, margin) {
+      cellSize = cellSize || 1;
+
+      if (cellSize < 2) {
+        return _createHalfASCII(margin);
+      }
+
+      cellSize -= 1;
+      margin = (typeof margin == 'undefined')? cellSize * 2 : margin;
+
+      var size = _this.getModuleCount() * cellSize + margin * 2;
+      var min = margin;
+      var max = size - margin;
+
+      var y, x, r, p;
+
+      var white = Array(cellSize+1).join('██');
+      var black = Array(cellSize+1).join('  ');
+
+      var ascii = '';
+      var line = '';
+      for (y = 0; y < size; y += 1) {
+        r = Math.floor( (y - min) / cellSize);
+        line = '';
+        for (x = 0; x < size; x += 1) {
+          p = 1;
+
+          if (min <= x && x < max && min <= y && y < max && _this.isDark(r, Math.floor((x - min) / cellSize))) {
+            p = 0;
+          }
+
+          // Output 2 characters per pixel, to create full square. 1 character per pixels gives only half width of square.
+          line += p ? white : black;
+        }
+
+        for (r = 0; r < cellSize; r += 1) {
+          ascii += line + '\n';
+        }
+      }
+
+      return ascii.substring(0, ascii.length-1);
+    };
+
+    _this.renderTo2dContext = function(context, cellSize) {
+      cellSize = cellSize || 2;
+      var length = _this.getModuleCount();
+      for (var row = 0; row < length; row++) {
+        for (var col = 0; col < length; col++) {
+          context.fillStyle = _this.isDark(row, col) ? 'black' : 'white';
+          context.fillRect(row * cellSize, col * cellSize, cellSize, cellSize);
+        }
+      }
+    }
+
+    return _this;
+  };
+
+  //---------------------------------------------------------------------
+  // qrcode.stringToBytes
+  //---------------------------------------------------------------------
+
+  qrcode.stringToBytesFuncs = {
+    'default' : function(s) {
+      var bytes = [];
+      for (var i = 0; i < s.length; i += 1) {
+        var c = s.charCodeAt(i);
+        bytes.push(c & 0xff);
+      }
+      return bytes;
+    }
+  };
+
+  qrcode.stringToBytes = qrcode.stringToBytesFuncs['default'];
+
+  //---------------------------------------------------------------------
+  // qrcode.createStringToBytes
+  //---------------------------------------------------------------------
+
+  /**
+   * @param unicodeData base64 string of byte array.
+   * [16bit Unicode],[16bit Bytes], ...
+   * @param numChars
+   */
+  qrcode.createStringToBytes = function(unicodeData, numChars) {
+
+    // create conversion map.
+
+    var unicodeMap = function() {
+
+      var bin = base64DecodeInputStream(unicodeData);
+      var read = function() {
+        var b = bin.read();
+        if (b == -1) throw 'eof';
+        return b;
+      };
+
+      var count = 0;
+      var unicodeMap = {};
+      while (true) {
+        var b0 = bin.read();
+        if (b0 == -1) break;
+        var b1 = read();
+        var b2 = read();
+        var b3 = read();
+        var k = String.fromCharCode( (b0 << 8) | b1);
+        var v = (b2 << 8) | b3;
+        unicodeMap[k] = v;
+        count += 1;
+      }
+      if (count != numChars) {
+        throw count + ' != ' + numChars;
+      }
+
+      return unicodeMap;
+    }();
+
+    var unknownChar = '?'.charCodeAt(0);
+
+    return function(s) {
+      var bytes = [];
+      for (var i = 0; i < s.length; i += 1) {
+        var c = s.charCodeAt(i);
+        if (c < 128) {
+          bytes.push(c);
+        } else {
+          var b = unicodeMap[s.charAt(i)];
+          if (typeof b == 'number') {
+            if ( (b & 0xff) == b) {
+              // 1byte
+              bytes.push(b);
+            } else {
+              // 2bytes
+              bytes.push(b >>> 8);
+              bytes.push(b & 0xff);
+            }
+          } else {
+            bytes.push(unknownChar);
+          }
+        }
+      }
+      return bytes;
+    };
+  };
+
+  //---------------------------------------------------------------------
+  // QRMode
+  //---------------------------------------------------------------------
+
+  var QRMode = {
+    MODE_NUMBER :    1 << 0,
+    MODE_ALPHA_NUM : 1 << 1,
+    MODE_8BIT_BYTE : 1 << 2,
+    MODE_KANJI :     1 << 3
+  };
+
+  //---------------------------------------------------------------------
+  // QRErrorCorrectionLevel
+  //---------------------------------------------------------------------
+
+  var QRErrorCorrectionLevel = {
+    L : 1,
+    M : 0,
+    Q : 3,
+    H : 2
+  };
+
+  //---------------------------------------------------------------------
+  // QRMaskPattern
+  //---------------------------------------------------------------------
+
+  var QRMaskPattern = {
+    PATTERN000 : 0,
+    PATTERN001 : 1,
+    PATTERN010 : 2,
+    PATTERN011 : 3,
+    PATTERN100 : 4,
+    PATTERN101 : 5,
+    PATTERN110 : 6,
+    PATTERN111 : 7
+  };
+
+  //---------------------------------------------------------------------
+  // QRUtil
+  //---------------------------------------------------------------------
+
+  var QRUtil = function() {
+
+    var PATTERN_POSITION_TABLE = [
+      [],
+      [6, 18],
+      [6, 22],
+      [6, 26],
+      [6, 30],
+      [6, 34],
+      [6, 22, 38],
+      [6, 24, 42],
+      [6, 26, 46],
+      [6, 28, 50],
+      [6, 30, 54],
+      [6, 32, 58],
+      [6, 34, 62],
+      [6, 26, 46, 66],
+      [6, 26, 48, 70],
+      [6, 26, 50, 74],
+      [6, 30, 54, 78],
+      [6, 30, 56, 82],
+      [6, 30, 58, 86],
+      [6, 34, 62, 90],
+      [6, 28, 50, 72, 94],
+      [6, 26, 50, 74, 98],
+      [6, 30, 54, 78, 102],
+      [6, 28, 54, 80, 106],
+      [6, 32, 58, 84, 110],
+      [6, 30, 58, 86, 114],
+      [6, 34, 62, 90, 118],
+      [6, 26, 50, 74, 98, 122],
+      [6, 30, 54, 78, 102, 126],
+      [6, 26, 52, 78, 104, 130],
+      [6, 30, 56, 82, 108, 134],
+      [6, 34, 60, 86, 112, 138],
+      [6, 30, 58, 86, 114, 142],
+      [6, 34, 62, 90, 118, 146],
+      [6, 30, 54, 78, 102, 126, 150],
+      [6, 24, 50, 76, 102, 128, 154],
+      [6, 28, 54, 80, 106, 132, 158],
+      [6, 32, 58, 84, 110, 136, 162],
+      [6, 26, 54, 82, 110, 138, 166],
+      [6, 30, 58, 86, 114, 142, 170]
+    ];
+    var G15 = (1 << 10) | (1 << 8) | (1 << 5) | (1 << 4) | (1 << 2) | (1 << 1) | (1 << 0);
+    var G18 = (1 << 12) | (1 << 11) | (1 << 10) | (1 << 9) | (1 << 8) | (1 << 5) | (1 << 2) | (1 << 0);
+    var G15_MASK = (1 << 14) | (1 << 12) | (1 << 10) | (1 << 4) | (1 << 1);
+
+    var _this = {};
+
+    var getBCHDigit = function(data) {
+      var digit = 0;
+      while (data != 0) {
+        digit += 1;
+        data >>>= 1;
+      }
+      return digit;
+    };
+
+    _this.getBCHTypeInfo = function(data) {
+      var d = data << 10;
+      while (getBCHDigit(d) - getBCHDigit(G15) >= 0) {
+        d ^= (G15 << (getBCHDigit(d) - getBCHDigit(G15) ) );
+      }
+      return ( (data << 10) | d) ^ G15_MASK;
+    };
+
+    _this.getBCHTypeNumber = function(data) {
+      var d = data << 12;
+      while (getBCHDigit(d) - getBCHDigit(G18) >= 0) {
+        d ^= (G18 << (getBCHDigit(d) - getBCHDigit(G18) ) );
+      }
+      return (data << 12) | d;
+    };
+
+    _this.getPatternPosition = function(typeNumber) {
+      return PATTERN_POSITION_TABLE[typeNumber - 1];
+    };
+
+    _this.getMaskFunction = function(maskPattern) {
+
+      switch (maskPattern) {
+
+      case QRMaskPattern.PATTERN000 :
+        return function(i, j) { return (i + j) % 2 == 0; };
+      case QRMaskPattern.PATTERN001 :
+        return function(i, j) { return i % 2 == 0; };
+      case QRMaskPattern.PATTERN010 :
+        return function(i, j) { return j % 3 == 0; };
+      case QRMaskPattern.PATTERN011 :
+        return function(i, j) { return (i + j) % 3 == 0; };
+      case QRMaskPattern.PATTERN100 :
+        return function(i, j) { return (Math.floor(i / 2) + Math.floor(j / 3) ) % 2 == 0; };
+      case QRMaskPattern.PATTERN101 :
+        return function(i, j) { return (i * j) % 2 + (i * j) % 3 == 0; };
+      case QRMaskPattern.PATTERN110 :
+        return function(i, j) { return ( (i * j) % 2 + (i * j) % 3) % 2 == 0; };
+      case QRMaskPattern.PATTERN111 :
+        return function(i, j) { return ( (i * j) % 3 + (i + j) % 2) % 2 == 0; };
+
+      default :
+        throw 'bad maskPattern:' + maskPattern;
+      }
+    };
+
+    _this.getErrorCorrectPolynomial = function(errorCorrectLength) {
+      var a = qrPolynomial([1], 0);
+      for (var i = 0; i < errorCorrectLength; i += 1) {
+        a = a.multiply(qrPolynomial([1, QRMath.gexp(i)], 0) );
+      }
+      return a;
+    };
+
+    _this.getLengthInBits = function(mode, type) {
+
+      if (1 <= type && type < 10) {
+
+        // 1 - 9
+
+        switch(mode) {
+        case QRMode.MODE_NUMBER    : return 10;
+        case QRMode.MODE_ALPHA_NUM : return 9;
+        case QRMode.MODE_8BIT_BYTE : return 8;
+        case QRMode.MODE_KANJI     : return 8;
+        default :
+          throw 'mode:' + mode;
+        }
+
+      } else if (type < 27) {
+
+        // 10 - 26
+
+        switch(mode) {
+        case QRMode.MODE_NUMBER    : return 12;
+        case QRMode.MODE_ALPHA_NUM : return 11;
+        case QRMode.MODE_8BIT_BYTE : return 16;
+        case QRMode.MODE_KANJI     : return 10;
+        default :
+          throw 'mode:' + mode;
+        }
+
+      } else if (type < 41) {
+
+        // 27 - 40
+
+        switch(mode) {
+        case QRMode.MODE_NUMBER    : return 14;
+        case QRMode.MODE_ALPHA_NUM : return 13;
+        case QRMode.MODE_8BIT_BYTE : return 16;
+        case QRMode.MODE_KANJI     : return 12;
+        default :
+          throw 'mode:' + mode;
+        }
+
+      } else {
+        throw 'type:' + type;
+      }
+    };
+
+    _this.getLostPoint = function(qrcode) {
+
+      var moduleCount = qrcode.getModuleCount();
+
+      var lostPoint = 0;
+
+      // LEVEL1
+
+      for (var row = 0; row < moduleCount; row += 1) {
+        for (var col = 0; col < moduleCount; col += 1) {
+
+          var sameCount = 0;
+          var dark = qrcode.isDark(row, col);
+
+          for (var r = -1; r <= 1; r += 1) {
+
+            if (row + r < 0 || moduleCount <= row + r) {
+              continue;
+            }
+
+            for (var c = -1; c <= 1; c += 1) {
+
+              if (col + c < 0 || moduleCount <= col + c) {
+                continue;
+              }
+
+              if (r == 0 && c == 0) {
+                continue;
+              }
+
+              if (dark == qrcode.isDark(row + r, col + c) ) {
+                sameCount += 1;
+              }
+            }
+          }
+
+          if (sameCount > 5) {
+            lostPoint += (3 + sameCount - 5);
+          }
+        }
+      };
+
+      // LEVEL2
+
+      for (var row = 0; row < moduleCount - 1; row += 1) {
+        for (var col = 0; col < moduleCount - 1; col += 1) {
+          var count = 0;
+          if (qrcode.isDark(row, col) ) count += 1;
+          if (qrcode.isDark(row + 1, col) ) count += 1;
+          if (qrcode.isDark(row, col + 1) ) count += 1;
+          if (qrcode.isDark(row + 1, col + 1) ) count += 1;
+          if (count == 0 || count == 4) {
+            lostPoint += 3;
+          }
+        }
+      }
+
+      // LEVEL3
+
+      for (var row = 0; row < moduleCount; row += 1) {
+        for (var col = 0; col < moduleCount - 6; col += 1) {
+          if (qrcode.isDark(row, col)
+              && !qrcode.isDark(row, col + 1)
+              &&  qrcode.isDark(row, col + 2)
+              &&  qrcode.isDark(row, col + 3)
+              &&  qrcode.isDark(row, col + 4)
+              && !qrcode.isDark(row, col + 5)
+              &&  qrcode.isDark(row, col + 6) ) {
+            lostPoint += 40;
+          }
+        }
+      }
+
+      for (var col = 0; col < moduleCount; col += 1) {
+        for (var row = 0; row < moduleCount - 6; row += 1) {
+          if (qrcode.isDark(row, col)
+              && !qrcode.isDark(row + 1, col)
+              &&  qrcode.isDark(row + 2, col)
+              &&  qrcode.isDark(row + 3, col)
+              &&  qrcode.isDark(row + 4, col)
+              && !qrcode.isDark(row + 5, col)
+              &&  qrcode.isDark(row + 6, col) ) {
+            lostPoint += 40;
+          }
+        }
+      }
+
+      // LEVEL4
+
+      var darkCount = 0;
+
+      for (var col = 0; col < moduleCount; col += 1) {
+        for (var row = 0; row < moduleCount; row += 1) {
+          if (qrcode.isDark(row, col) ) {
+            darkCount += 1;
+          }
+        }
+      }
+
+      var ratio = Math.abs(100 * darkCount / moduleCount / moduleCount - 50) / 5;
+      lostPoint += ratio * 10;
+
+      return lostPoint;
+    };
+
+    return _this;
+  }();
+
+  //---------------------------------------------------------------------
+  // QRMath
+  //---------------------------------------------------------------------
+
+  var QRMath = function() {
+
+    var EXP_TABLE = new Array(256);
+    var LOG_TABLE = new Array(256);
+
+    // initialize tables
+    for (var i = 0; i < 8; i += 1) {
+      EXP_TABLE[i] = 1 << i;
+    }
+    for (var i = 8; i < 256; i += 1) {
+      EXP_TABLE[i] = EXP_TABLE[i - 4]
+        ^ EXP_TABLE[i - 5]
+        ^ EXP_TABLE[i - 6]
+        ^ EXP_TABLE[i - 8];
+    }
+    for (var i = 0; i < 255; i += 1) {
+      LOG_TABLE[EXP_TABLE[i] ] = i;
+    }
+
+    var _this = {};
+
+    _this.glog = function(n) {
+
+      if (n < 1) {
+        throw 'glog(' + n + ')';
+      }
+
+      return LOG_TABLE[n];
+    };
+
+    _this.gexp = function(n) {
+
+      while (n < 0) {
+        n += 255;
+      }
+
+      while (n >= 256) {
+        n -= 255;
+      }
+
+      return EXP_TABLE[n];
+    };
+
+    return _this;
+  }();
+
+  //---------------------------------------------------------------------
+  // qrPolynomial
+  //---------------------------------------------------------------------
+
+  function qrPolynomial(num, shift) {
+
+    if (typeof num.length == 'undefined') {
+      throw num.length + '/' + shift;
+    }
+
+    var _num = function() {
+      var offset = 0;
+      while (offset < num.length && num[offset] == 0) {
+        offset += 1;
+      }
+      var _num = new Array(num.length - offset + shift);
+      for (var i = 0; i < num.length - offset; i += 1) {
+        _num[i] = num[i + offset];
+      }
+      return _num;
+    }();
+
+    var _this = {};
+
+    _this.getAt = function(index) {
+      return _num[index];
+    };
+
+    _this.getLength = function() {
+      return _num.length;
+    };
+
+    _this.multiply = function(e) {
+
+      var num = new Array(_this.getLength() + e.getLength() - 1);
+
+      for (var i = 0; i < _this.getLength(); i += 1) {
+        for (var j = 0; j < e.getLength(); j += 1) {
+          num[i + j] ^= QRMath.gexp(QRMath.glog(_this.getAt(i) ) + QRMath.glog(e.getAt(j) ) );
+        }
+      }
+
+      return qrPolynomial(num, 0);
+    };
+
+    _this.mod = function(e) {
+
+      if (_this.getLength() - e.getLength() < 0) {
+        return _this;
+      }
+
+      var ratio = QRMath.glog(_this.getAt(0) ) - QRMath.glog(e.getAt(0) );
+
+      var num = new Array(_this.getLength() );
+      for (var i = 0; i < _this.getLength(); i += 1) {
+        num[i] = _this.getAt(i);
+      }
+
+      for (var i = 0; i < e.getLength(); i += 1) {
+        num[i] ^= QRMath.gexp(QRMath.glog(e.getAt(i) ) + ratio);
+      }
+
+      // recursive call
+      return qrPolynomial(num, 0).mod(e);
+    };
+
+    return _this;
+  };
+
+  //---------------------------------------------------------------------
+  // QRRSBlock
+  //---------------------------------------------------------------------
+
+  var QRRSBlock = function() {
+
+    var RS_BLOCK_TABLE = [
+
+      // L
+      // M
+      // Q
+      // H
+
+      // 1
+      [1, 26, 19],
+      [1, 26, 16],
+      [1, 26, 13],
+      [1, 26, 9],
+
+      // 2
+      [1, 44, 34],
+      [1, 44, 28],
+      [1, 44, 22],
+      [1, 44, 16],
+
+      // 3
+      [1, 70, 55],
+      [1, 70, 44],
+      [2, 35, 17],
+      [2, 35, 13],
+
+      // 4
+      [1, 100, 80],
+      [2, 50, 32],
+      [2, 50, 24],
+      [4, 25, 9],
+
+      // 5
+      [1, 134, 108],
+      [2, 67, 43],
+      [2, 33, 15, 2, 34, 16],
+      [2, 33, 11, 2, 34, 12],
+
+      // 6
+      [2, 86, 68],
+      [4, 43, 27],
+      [4, 43, 19],
+      [4, 43, 15],
+
+      // 7
+      [2, 98, 78],
+      [4, 49, 31],
+      [2, 32, 14, 4, 33, 15],
+      [4, 39, 13, 1, 40, 14],
+
+      // 8
+      [2, 121, 97],
+      [2, 60, 38, 2, 61, 39],
+      [4, 40, 18, 2, 41, 19],
+      [4, 40, 14, 2, 41, 15],
+
+      // 9
+      [2, 146, 116],
+      [3, 58, 36, 2, 59, 37],
+      [4, 36, 16, 4, 37, 17],
+      [4, 36, 12, 4, 37, 13],
+
+      // 10
+      [2, 86, 68, 2, 87, 69],
+      [4, 69, 43, 1, 70, 44],
+      [6, 43, 19, 2, 44, 20],
+      [6, 43, 15, 2, 44, 16],
+
+      // 11
+      [4, 101, 81],
+      [1, 80, 50, 4, 81, 51],
+      [4, 50, 22, 4, 51, 23],
+      [3, 36, 12, 8, 37, 13],
+
+      // 12
+      [2, 116, 92, 2, 117, 93],
+      [6, 58, 36, 2, 59, 37],
+      [4, 46, 20, 6, 47, 21],
+      [7, 42, 14, 4, 43, 15],
+
+      // 13
+      [4, 133, 107],
+      [8, 59, 37, 1, 60, 38],
+      [8, 44, 20, 4, 45, 21],
+      [12, 33, 11, 4, 34, 12],
+
+      // 14
+      [3, 145, 115, 1, 146, 116],
+      [4, 64, 40, 5, 65, 41],
+      [11, 36, 16, 5, 37, 17],
+      [11, 36, 12, 5, 37, 13],
+
+      // 15
+      [5, 109, 87, 1, 110, 88],
+      [5, 65, 41, 5, 66, 42],
+      [5, 54, 24, 7, 55, 25],
+      [11, 36, 12, 7, 37, 13],
+
+      // 16
+      [5, 122, 98, 1, 123, 99],
+      [7, 73, 45, 3, 74, 46],
+      [15, 43, 19, 2, 44, 20],
+      [3, 45, 15, 13, 46, 16],
+
+      // 17
+      [1, 135, 107, 5, 136, 108],
+      [10, 74, 46, 1, 75, 47],
+      [1, 50, 22, 15, 51, 23],
+      [2, 42, 14, 17, 43, 15],
+
+      // 18
+      [5, 150, 120, 1, 151, 121],
+      [9, 69, 43, 4, 70, 44],
+      [17, 50, 22, 1, 51, 23],
+      [2, 42, 14, 19, 43, 15],
+
+      // 19
+      [3, 141, 113, 4, 142, 114],
+      [3, 70, 44, 11, 71, 45],
+      [17, 47, 21, 4, 48, 22],
+      [9, 39, 13, 16, 40, 14],
+
+      // 20
+      [3, 135, 107, 5, 136, 108],
+      [3, 67, 41, 13, 68, 42],
+      [15, 54, 24, 5, 55, 25],
+      [15, 43, 15, 10, 44, 16],
+
+      // 21
+      [4, 144, 116, 4, 145, 117],
+      [17, 68, 42],
+      [17, 50, 22, 6, 51, 23],
+      [19, 46, 16, 6, 47, 17],
+
+      // 22
+      [2, 139, 111, 7, 140, 112],
+      [17, 74, 46],
+      [7, 54, 24, 16, 55, 25],
+      [34, 37, 13],
+
+      // 23
+      [4, 151, 121, 5, 152, 122],
+      [4, 75, 47, 14, 76, 48],
+      [11, 54, 24, 14, 55, 25],
+      [16, 45, 15, 14, 46, 16],
+
+      // 24
+      [6, 147, 117, 4, 148, 118],
+      [6, 73, 45, 14, 74, 46],
+      [11, 54, 24, 16, 55, 25],
+      [30, 46, 16, 2, 47, 17],
+
+      // 25
+      [8, 132, 106, 4, 133, 107],
+      [8, 75, 47, 13, 76, 48],
+      [7, 54, 24, 22, 55, 25],
+      [22, 45, 15, 13, 46, 16],
+
+      // 26
+      [10, 142, 114, 2, 143, 115],
+      [19, 74, 46, 4, 75, 47],
+      [28, 50, 22, 6, 51, 23],
+      [33, 46, 16, 4, 47, 17],
+
+      // 27
+      [8, 152, 122, 4, 153, 123],
+      [22, 73, 45, 3, 74, 46],
+      [8, 53, 23, 26, 54, 24],
+      [12, 45, 15, 28, 46, 16],
+
+      // 28
+      [3, 147, 117, 10, 148, 118],
+      [3, 73, 45, 23, 74, 46],
+      [4, 54, 24, 31, 55, 25],
+      [11, 45, 15, 31, 46, 16],
+
+      // 29
+      [7, 146, 116, 7, 147, 117],
+      [21, 73, 45, 7, 74, 46],
+      [1, 53, 23, 37, 54, 24],
+      [19, 45, 15, 26, 46, 16],
+
+      // 30
+      [5, 145, 115, 10, 146, 116],
+      [19, 75, 47, 10, 76, 48],
+      [15, 54, 24, 25, 55, 25],
+      [23, 45, 15, 25, 46, 16],
+
+      // 31
+      [13, 145, 115, 3, 146, 116],
+      [2, 74, 46, 29, 75, 47],
+      [42, 54, 24, 1, 55, 25],
+      [23, 45, 15, 28, 46, 16],
+
+      // 32
+      [17, 145, 115],
+      [10, 74, 46, 23, 75, 47],
+      [10, 54, 24, 35, 55, 25],
+      [19, 45, 15, 35, 46, 16],
+
+      // 33
+      [17, 145, 115, 1, 146, 116],
+      [14, 74, 46, 21, 75, 47],
+      [29, 54, 24, 19, 55, 25],
+      [11, 45, 15, 46, 46, 16],
+
+      // 34
+      [13, 145, 115, 6, 146, 116],
+      [14, 74, 46, 23, 75, 47],
+      [44, 54, 24, 7, 55, 25],
+      [59, 46, 16, 1, 47, 17],
+
+      // 35
+      [12, 151, 121, 7, 152, 122],
+      [12, 75, 47, 26, 76, 48],
+      [39, 54, 24, 14, 55, 25],
+      [22, 45, 15, 41, 46, 16],
+
+      // 36
+      [6, 151, 121, 14, 152, 122],
+      [6, 75, 47, 34, 76, 48],
+      [46, 54, 24, 10, 55, 25],
+      [2, 45, 15, 64, 46, 16],
+
+      // 37
+      [17, 152, 122, 4, 153, 123],
+      [29, 74, 46, 14, 75, 47],
+      [49, 54, 24, 10, 55, 25],
+      [24, 45, 15, 46, 46, 16],
+
+      // 38
+      [4, 152, 122, 18, 153, 123],
+      [13, 74, 46, 32, 75, 47],
+      [48, 54, 24, 14, 55, 25],
+      [42, 45, 15, 32, 46, 16],
+
+      // 39
+      [20, 147, 117, 4, 148, 118],
+      [40, 75, 47, 7, 76, 48],
+      [43, 54, 24, 22, 55, 25],
+      [10, 45, 15, 67, 46, 16],
+
+      // 40
+      [19, 148, 118, 6, 149, 119],
+      [18, 75, 47, 31, 76, 48],
+      [34, 54, 24, 34, 55, 25],
+      [20, 45, 15, 61, 46, 16]
+    ];
+
+    var qrRSBlock = function(totalCount, dataCount) {
+      var _this = {};
+      _this.totalCount = totalCount;
+      _this.dataCount = dataCount;
+      return _this;
+    };
+
+    var _this = {};
+
+    var getRsBlockTable = function(typeNumber, errorCorrectionLevel) {
+
+      switch(errorCorrectionLevel) {
+      case QRErrorCorrectionLevel.L :
+        return RS_BLOCK_TABLE[(typeNumber - 1) * 4 + 0];
+      case QRErrorCorrectionLevel.M :
+        return RS_BLOCK_TABLE[(typeNumber - 1) * 4 + 1];
+      case QRErrorCorrectionLevel.Q :
+        return RS_BLOCK_TABLE[(typeNumber - 1) * 4 + 2];
+      case QRErrorCorrectionLevel.H :
+        return RS_BLOCK_TABLE[(typeNumber - 1) * 4 + 3];
+      default :
+        return undefined;
+      }
+    };
+
+    _this.getRSBlocks = function(typeNumber, errorCorrectionLevel) {
+
+      var rsBlock = getRsBlockTable(typeNumber, errorCorrectionLevel);
+
+      if (typeof rsBlock == 'undefined') {
+        throw 'bad rs block @ typeNumber:' + typeNumber +
+            '/errorCorrectionLevel:' + errorCorrectionLevel;
+      }
+
+      var length = rsBlock.length / 3;
+
+      var list = [];
+
+      for (var i = 0; i < length; i += 1) {
+
+        var count = rsBlock[i * 3 + 0];
+        var totalCount = rsBlock[i * 3 + 1];
+        var dataCount = rsBlock[i * 3 + 2];
+
+        for (var j = 0; j < count; j += 1) {
+          list.push(qrRSBlock(totalCount, dataCount) );
+        }
+      }
+
+      return list;
+    };
+
+    return _this;
+  }();
+
+  //---------------------------------------------------------------------
+  // qrBitBuffer
+  //---------------------------------------------------------------------
+
+  var qrBitBuffer = function() {
+
+    var _buffer = [];
+    var _length = 0;
+
+    var _this = {};
+
+    _this.getBuffer = function() {
+      return _buffer;
+    };
+
+    _this.getAt = function(index) {
+      var bufIndex = Math.floor(index / 8);
+      return ( (_buffer[bufIndex] >>> (7 - index % 8) ) & 1) == 1;
+    };
+
+    _this.put = function(num, length) {
+      for (var i = 0; i < length; i += 1) {
+        _this.putBit( ( (num >>> (length - i - 1) ) & 1) == 1);
+      }
+    };
+
+    _this.getLengthInBits = function() {
+      return _length;
+    };
+
+    _this.putBit = function(bit) {
+
+      var bufIndex = Math.floor(_length / 8);
+      if (_buffer.length <= bufIndex) {
+        _buffer.push(0);
+      }
+
+      if (bit) {
+        _buffer[bufIndex] |= (0x80 >>> (_length % 8) );
+      }
+
+      _length += 1;
+    };
+
+    return _this;
+  };
+
+  //---------------------------------------------------------------------
+  // qrNumber
+  //---------------------------------------------------------------------
+
+  var qrNumber = function(data) {
+
+    var _mode = QRMode.MODE_NUMBER;
+    var _data = data;
+
+    var _this = {};
+
+    _this.getMode = function() {
+      return _mode;
+    };
+
+    _this.getLength = function(buffer) {
+      return _data.length;
+    };
+
+    _this.write = function(buffer) {
+
+      var data = _data;
+
+      var i = 0;
+
+      while (i + 2 < data.length) {
+        buffer.put(strToNum(data.substring(i, i + 3) ), 10);
+        i += 3;
+      }
+
+      if (i < data.length) {
+        if (data.length - i == 1) {
+          buffer.put(strToNum(data.substring(i, i + 1) ), 4);
+        } else if (data.length - i == 2) {
+          buffer.put(strToNum(data.substring(i, i + 2) ), 7);
+        }
+      }
+    };
+
+    var strToNum = function(s) {
+      var num = 0;
+      for (var i = 0; i < s.length; i += 1) {
+        num = num * 10 + chatToNum(s.charAt(i) );
+      }
+      return num;
+    };
+
+    var chatToNum = function(c) {
+      if ('0' <= c && c <= '9') {
+        return c.charCodeAt(0) - '0'.charCodeAt(0);
+      }
+      throw 'illegal char :' + c;
+    };
+
+    return _this;
+  };
+
+  //---------------------------------------------------------------------
+  // qrAlphaNum
+  //---------------------------------------------------------------------
+
+  var qrAlphaNum = function(data) {
+
+    var _mode = QRMode.MODE_ALPHA_NUM;
+    var _data = data;
+
+    var _this = {};
+
+    _this.getMode = function() {
+      return _mode;
+    };
+
+    _this.getLength = function(buffer) {
+      return _data.length;
+    };
+
+    _this.write = function(buffer) {
+
+      var s = _data;
+
+      var i = 0;
+
+      while (i + 1 < s.length) {
+        buffer.put(
+          getCode(s.charAt(i) ) * 45 +
+          getCode(s.charAt(i + 1) ), 11);
+        i += 2;
+      }
+
+      if (i < s.length) {
+        buffer.put(getCode(s.charAt(i) ), 6);
+      }
+    };
+
+    var getCode = function(c) {
+
+      if ('0' <= c && c <= '9') {
+        return c.charCodeAt(0) - '0'.charCodeAt(0);
+      } else if ('A' <= c && c <= 'Z') {
+        return c.charCodeAt(0) - 'A'.charCodeAt(0) + 10;
+      } else {
+        switch (c) {
+        case ' ' : return 36;
+        case '$' : return 37;
+        case '%' : return 38;
+        case '*' : return 39;
+        case '+' : return 40;
+        case '-' : return 41;
+        case '.' : return 42;
+        case '/' : return 43;
+        case ':' : return 44;
+        default :
+          throw 'illegal char :' + c;
+        }
+      }
+    };
+
+    return _this;
+  };
+
+  //---------------------------------------------------------------------
+  // qr8BitByte
+  //---------------------------------------------------------------------
+
+  var qr8BitByte = function(data) {
+
+    var _mode = QRMode.MODE_8BIT_BYTE;
+    var _data = data;
+    var _bytes = qrcode.stringToBytes(data);
+
+    var _this = {};
+
+    _this.getMode = function() {
+      return _mode;
+    };
+
+    _this.getLength = function(buffer) {
+      return _bytes.length;
+    };
+
+    _this.write = function(buffer) {
+      for (var i = 0; i < _bytes.length; i += 1) {
+        buffer.put(_bytes[i], 8);
+      }
+    };
+
+    return _this;
+  };
+
+  //---------------------------------------------------------------------
+  // qrKanji
+  //---------------------------------------------------------------------
+
+  var qrKanji = function(data) {
+
+    var _mode = QRMode.MODE_KANJI;
+    var _data = data;
+
+    var stringToBytes = qrcode.stringToBytesFuncs['SJIS'];
+    if (!stringToBytes) {
+      throw 'sjis not supported.';
+    }
+    !function(c, code) {
+      // self test for sjis support.
+      var test = stringToBytes(c);
+      if (test.length != 2 || ( (test[0] << 8) | test[1]) != code) {
+        throw 'sjis not supported.';
+      }
+    }('\u53cb', 0x9746);
+
+    var _bytes = stringToBytes(data);
+
+    var _this = {};
+
+    _this.getMode = function() {
+      return _mode;
+    };
+
+    _this.getLength = function(buffer) {
+      return ~~(_bytes.length / 2);
+    };
+
+    _this.write = function(buffer) {
+
+      var data = _bytes;
+
+      var i = 0;
+
+      while (i + 1 < data.length) {
+
+        var c = ( (0xff & data[i]) << 8) | (0xff & data[i + 1]);
+
+        if (0x8140 <= c && c <= 0x9FFC) {
+          c -= 0x8140;
+        } else if (0xE040 <= c && c <= 0xEBBF) {
+          c -= 0xC140;
+        } else {
+          throw 'illegal char at ' + (i + 1) + '/' + c;
+        }
+
+        c = ( (c >>> 8) & 0xff) * 0xC0 + (c & 0xff);
+
+        buffer.put(c, 13);
+
+        i += 2;
+      }
+
+      if (i < data.length) {
+        throw 'illegal char at ' + (i + 1);
+      }
+    };
+
+    return _this;
+  };
+
+  //=====================================================================
+  // GIF Support etc.
+  //
+
+  //---------------------------------------------------------------------
+  // byteArrayOutputStream
+  //---------------------------------------------------------------------
+
+  var byteArrayOutputStream = function() {
+
+    var _bytes = [];
+
+    var _this = {};
+
+    _this.writeByte = function(b) {
+      _bytes.push(b & 0xff);
+    };
+
+    _this.writeShort = function(i) {
+      _this.writeByte(i);
+      _this.writeByte(i >>> 8);
+    };
+
+    _this.writeBytes = function(b, off, len) {
+      off = off || 0;
+      len = len || b.length;
+      for (var i = 0; i < len; i += 1) {
+        _this.writeByte(b[i + off]);
+      }
+    };
+
+    _this.writeString = function(s) {
+      for (var i = 0; i < s.length; i += 1) {
+        _this.writeByte(s.charCodeAt(i) );
+      }
+    };
+
+    _this.toByteArray = function() {
+      return _bytes;
+    };
+
+    _this.toString = function() {
+      var s = '';
+      s += '[';
+      for (var i = 0; i < _bytes.length; i += 1) {
+        if (i > 0) {
+          s += ',';
+        }
+        s += _bytes[i];
+      }
+      s += ']';
+      return s;
+    };
+
+    return _this;
+  };
+
+  //---------------------------------------------------------------------
+  // base64EncodeOutputStream
+  //---------------------------------------------------------------------
+
+  var base64EncodeOutputStream = function() {
+
+    var _buffer = 0;
+    var _buflen = 0;
+    var _length = 0;
+    var _base64 = '';
+
+    var _this = {};
+
+    var writeEncoded = function(b) {
+      _base64 += String.fromCharCode(encode(b & 0x3f) );
+    };
+
+    var encode = function(n) {
+      if (n < 0) {
+        // error.
+      } else if (n < 26) {
+        return 0x41 + n;
+      } else if (n < 52) {
+        return 0x61 + (n - 26);
+      } else if (n < 62) {
+        return 0x30 + (n - 52);
+      } else if (n == 62) {
+        return 0x2b;
+      } else if (n == 63) {
+        return 0x2f;
+      }
+      throw 'n:' + n;
+    };
+
+    _this.writeByte = function(n) {
+
+      _buffer = (_buffer << 8) | (n & 0xff);
+      _buflen += 8;
+      _length += 1;
+
+      while (_buflen >= 6) {
+        writeEncoded(_buffer >>> (_buflen - 6) );
+        _buflen -= 6;
+      }
+    };
+
+    _this.flush = function() {
+
+      if (_buflen > 0) {
+        writeEncoded(_buffer << (6 - _buflen) );
+        _buffer = 0;
+        _buflen = 0;
+      }
+
+      if (_length % 3 != 0) {
+        // padding
+        var padlen = 3 - _length % 3;
+        for (var i = 0; i < padlen; i += 1) {
+          _base64 += '=';
+        }
+      }
+    };
+
+    _this.toString = function() {
+      return _base64;
+    };
+
+    return _this;
+  };
+
+  //---------------------------------------------------------------------
+  // base64DecodeInputStream
+  //---------------------------------------------------------------------
+
+  var base64DecodeInputStream = function(str) {
+
+    var _str = str;
+    var _pos = 0;
+    var _buffer = 0;
+    var _buflen = 0;
+
+    var _this = {};
+
+    _this.read = function() {
+
+      while (_buflen < 8) {
+
+        if (_pos >= _str.length) {
+          if (_buflen == 0) {
+            return -1;
+          }
+          throw 'unexpected end of file./' + _buflen;
+        }
+
+        var c = _str.charAt(_pos);
+        _pos += 1;
+
+        if (c == '=') {
+          _buflen = 0;
+          return -1;
+        } else if (c.match(/^\s$/) ) {
+          // ignore if whitespace.
+          continue;
+        }
+
+        _buffer = (_buffer << 6) | decode(c.charCodeAt(0) );
+        _buflen += 6;
+      }
+
+      var n = (_buffer >>> (_buflen - 8) ) & 0xff;
+      _buflen -= 8;
+      return n;
+    };
+
+    var decode = function(c) {
+      if (0x41 <= c && c <= 0x5a) {
+        return c - 0x41;
+      } else if (0x61 <= c && c <= 0x7a) {
+        return c - 0x61 + 26;
+      } else if (0x30 <= c && c <= 0x39) {
+        return c - 0x30 + 52;
+      } else if (c == 0x2b) {
+        return 62;
+      } else if (c == 0x2f) {
+        return 63;
+      } else {
+        throw 'c:' + c;
+      }
+    };
+
+    return _this;
+  };
+
+  //---------------------------------------------------------------------
+  // gifImage (B/W)
+  //---------------------------------------------------------------------
+
+  var gifImage = function(width, height) {
+
+    var _width = width;
+    var _height = height;
+    var _data = new Array(width * height);
+
+    var _this = {};
+
+    _this.setPixel = function(x, y, pixel) {
+      _data[y * _width + x] = pixel;
+    };
+
+    _this.write = function(out) {
+
+      //---------------------------------
+      // GIF Signature
+
+      out.writeString('GIF87a');
+
+      //---------------------------------
+      // Screen Descriptor
+
+      out.writeShort(_width);
+      out.writeShort(_height);
+
+      out.writeByte(0x80); // 2bit
+      out.writeByte(0);
+      out.writeByte(0);
+
+      //---------------------------------
+      // Global Color Map
+
+      // black
+      out.writeByte(0x00);
+      out.writeByte(0x00);
+      out.writeByte(0x00);
+
+      // white
+      out.writeByte(0xff);
+      out.writeByte(0xff);
+      out.writeByte(0xff);
+
+      //---------------------------------
+      // Image Descriptor
+
+      out.writeString(',');
+      out.writeShort(0);
+      out.writeShort(0);
+      out.writeShort(_width);
+      out.writeShort(_height);
+      out.writeByte(0);
+
+      //---------------------------------
+      // Local Color Map
+
+      //---------------------------------
+      // Raster Data
+
+      var lzwMinCodeSize = 2;
+      var raster = getLZWRaster(lzwMinCodeSize);
+
+      out.writeByte(lzwMinCodeSize);
+
+      var offset = 0;
+
+      while (raster.length - offset > 255) {
+        out.writeByte(255);
+        out.writeBytes(raster, offset, 255);
+        offset += 255;
+      }
+
+      out.writeByte(raster.length - offset);
+      out.writeBytes(raster, offset, raster.length - offset);
+      out.writeByte(0x00);
+
+      //---------------------------------
+      // GIF Terminator
+      out.writeString(';');
+    };
+
+    var bitOutputStream = function(out) {
+
+      var _out = out;
+      var _bitLength = 0;
+      var _bitBuffer = 0;
+
+      var _this = {};
+
+      _this.write = function(data, length) {
+
+        if ( (data >>> length) != 0) {
+          throw 'length over';
+        }
+
+        while (_bitLength + length >= 8) {
+          _out.writeByte(0xff & ( (data << _bitLength) | _bitBuffer) );
+          length -= (8 - _bitLength);
+          data >>>= (8 - _bitLength);
+          _bitBuffer = 0;
+          _bitLength = 0;
+        }
+
+        _bitBuffer = (data << _bitLength) | _bitBuffer;
+        _bitLength = _bitLength + length;
+      };
+
+      _this.flush = function() {
+        if (_bitLength > 0) {
+          _out.writeByte(_bitBuffer);
+        }
+      };
+
+      return _this;
+    };
+
+    var getLZWRaster = function(lzwMinCodeSize) {
+
+      var clearCode = 1 << lzwMinCodeSize;
+      var endCode = (1 << lzwMinCodeSize) + 1;
+      var bitLength = lzwMinCodeSize + 1;
+
+      // Setup LZWTable
+      var table = lzwTable();
+
+      for (var i = 0; i < clearCode; i += 1) {
+        table.add(String.fromCharCode(i) );
+      }
+      table.add(String.fromCharCode(clearCode) );
+      table.add(String.fromCharCode(endCode) );
+
+      var byteOut = byteArrayOutputStream();
+      var bitOut = bitOutputStream(byteOut);
+
+      // clear code
+      bitOut.write(clearCode, bitLength);
+
+      var dataIndex = 0;
+
+      var s = String.fromCharCode(_data[dataIndex]);
+      dataIndex += 1;
+
+      while (dataIndex < _data.length) {
+
+        var c = String.fromCharCode(_data[dataIndex]);
+        dataIndex += 1;
+
+        if (table.contains(s + c) ) {
+
+          s = s + c;
+
+        } else {
+
+          bitOut.write(table.indexOf(s), bitLength);
+
+          if (table.size() < 0xfff) {
+
+            if (table.size() == (1 << bitLength) ) {
+              bitLength += 1;
+            }
+
+            table.add(s + c);
+          }
+
+          s = c;
+        }
+      }
+
+      bitOut.write(table.indexOf(s), bitLength);
+
+      // end code
+      bitOut.write(endCode, bitLength);
+
+      bitOut.flush();
+
+      return byteOut.toByteArray();
+    };
+
+    var lzwTable = function() {
+
+      var _map = {};
+      var _size = 0;
+
+      var _this = {};
+
+      _this.add = function(key) {
+        if (_this.contains(key) ) {
+          throw 'dup key:' + key;
+        }
+        _map[key] = _size;
+        _size += 1;
+      };
+
+      _this.size = function() {
+        return _size;
+      };
+
+      _this.indexOf = function(key) {
+        return _map[key];
+      };
+
+      _this.contains = function(key) {
+        return typeof _map[key] != 'undefined';
+      };
+
+      return _this;
+    };
+
+    return _this;
+  };
+
+  var createDataURL = function(width, height, getPixel) {
+    var gif = gifImage(width, height);
+    for (var y = 0; y < height; y += 1) {
+      for (var x = 0; x < width; x += 1) {
+        gif.setPixel(x, y, getPixel(x, y) );
+      }
+    }
+
+    var b = byteArrayOutputStream();
+    gif.write(b);
+
+    var base64 = base64EncodeOutputStream();
+    var bytes = b.toByteArray();
+    for (var i = 0; i < bytes.length; i += 1) {
+      base64.writeByte(bytes[i]);
+    }
+    base64.flush();
+
+    return 'data:image/gif;base64,' + base64;
+  };
+
+  //---------------------------------------------------------------------
+  // returns qrcode function.
+
+  return qrcode;
+}();
+
+// multibyte support
+!function() {
+
+  qrcode.stringToBytesFuncs['UTF-8'] = function(s) {
+    // http://stackoverflow.com/questions/18729405/how-to-convert-utf8-string-to-byte-array
+    function toUTF8Array(str) {
+      var utf8 = [];
+      for (var i=0; i < str.length; i++) {
+        var charcode = str.charCodeAt(i);
+        if (charcode < 0x80) utf8.push(charcode);
+        else if (charcode < 0x800) {
+          utf8.push(0xc0 | (charcode >> 6),
+              0x80 | (charcode & 0x3f));
+        }
+        else if (charcode < 0xd800 || charcode >= 0xe000) {
+          utf8.push(0xe0 | (charcode >> 12),
+              0x80 | ((charcode>>6) & 0x3f),
+              0x80 | (charcode & 0x3f));
+        }
+        // surrogate pair
+        else {
+          i++;
+          // UTF-16 encodes 0x10000-0x10FFFF by
+          // subtracting 0x10000 and splitting the
+          // 20 bits of 0x0-0xFFFFF into two halves
+          charcode = 0x10000 + (((charcode & 0x3ff)<<10)
+            | (str.charCodeAt(i) & 0x3ff));
+          utf8.push(0xf0 | (charcode >>18),
+              0x80 | ((charcode>>12) & 0x3f),
+              0x80 | ((charcode>>6) & 0x3f),
+              0x80 | (charcode & 0x3f));
+        }
+      }
+      return utf8;
+    }
+    return toUTF8Array(s);
+  };
+
+}();
+
+(function (factory) {
+  if (typeof define === 'function' && define.amd) {
+      define([], factory);
+  } else if (typeof exports === 'object') {
+      module.exports = factory();
+  }
+}(function () {
+    return qrcode;
+}));
+
+</script>
+<script>
+(function(){
+  "use strict";
+  var FULL=511, ROLLS=[];
+  for(var a=1;a<=6;a++)for(var b=1;b<=6;b++)ROLLS.push([a,b]);
+  function pop(s){var c=0;while(s){c+=s&1;s>>=1;}return c;}
+  function tilesum(s){var t=0;for(var i=1;i<=9;i++)if(s>>(i-1)&1)t+=i;return t;}
+  function moves(s,a,b){
+    var out=[], seen={};
+    [[a,"steen 1"],[b,"steen 2"],[a+b,"som"]].forEach(function(m){
+      var v=m[0]; if(v<1||v>9||!(s>>(v-1)&1)) return;
+      if(seen[v]){seen[v].labels.push(m[1]);return;}
+      seen[v]={v:v,next:s&~(1<<(v-1)),labels:[m[1]]}; out.push(seen[v]);
+    });
+    return out;
+  }
+  function solve(penalty,J){
+    var order=[]; for(var s=1;s<=FULL;s++)order.push(s);
+    order.sort(function(x,y){return pop(x)-pop(y);});
+    var PJ=[], ES=[], NET=[], k;
+    for(k=0;k<3;k++){ PJ.push(new Float64Array(512)); ES.push(new Float64Array(512)); NET.push(new Float64Array(512)); PJ[k][0]=1; NET[k][0]=-J; }
+    function better(k,t,b){
+      if(b===null) return true;
+      if(k===0) return PJ[k][t]>PJ[k][b]||(PJ[k][t]===PJ[k][b]&&NET[k][t]<NET[k][b]);
+      if(k===1) return ES[k][t]<ES[k][b]||(ES[k][t]===ES[k][b]&&NET[k][t]<NET[k][b]);
+      return NET[k][t]<NET[k][b]||(NET[k][t]===NET[k][b]&&PJ[k][t]>PJ[k][b]);
+    }
+    order.forEach(function(s){
+      var j=[0,0,0], e=[0,0,0], pen=penalty(s);
+      ROLLS.forEach(function(r){
+        var ms=moves(s,r[0],r[1]);
+        if(!ms.length){ for(k=0;k<3;k++)e[k]+=pen; return; }
+        for(k=0;k<3;k++){
+          var b=null; ms.forEach(function(m){ if(better(k,m.next,b))b=m.next; });
+          j[k]+=PJ[k][b]; e[k]+=ES[k][b];
+        }
+      });
+      for(k=0;k<3;k++){ PJ[k][s]=j[k]/36; ES[k][s]=e[k]/36; NET[k][s]=ES[k][s]-J*PJ[k][s]; }
+    });
+    return {PJ:PJ,ES:ES,NET:NET};
+  }
+  var tableCache={};
+  function cur(){
+    var J=10*Math.max(1,S.players.length-1), key=(S.extreme?"x":"n")+J;
+    if(!tableCache[key]) tableCache[key]=solve(S.extreme?tilesum:pop,J);
+    return tableCache[key];
+  }
+
+  /* ---- state ---- */
+  var S={ players:[{name:"Stijn",slokken:0,jackpots:0,atjes:0,kruk:0},{name:"Daan",slokken:0,jackpots:0,atjes:0,kruk:0}],
+          active:0, board:FULL, d1:null, d2:null, extreme:false, strat:2, kans:false, sound:true, view:"play", alltime:{"stijn":6.5,"daan":15.5}, decisions:[], turns:[], ended:null, streak:[], kruk:0 };
+  function save(){ try{ localStorage.setItem("jackpot-state", JSON.stringify(S)); }catch(e){} }
+  function load(){
+    try{ var raw=localStorage.getItem("jackpot-state"); if(raw){ var o=JSON.parse(raw); if(o&&o.players&&o.players.length) S=o; } }catch(e){}
+    if(typeof S.board!=="number") S.board=FULL;
+    S.decisions=S.decisions||[]; S.turns=S.turns||[]; if(S.ended===undefined)S.ended=null; if(S.kans===undefined)S.kans=false; if(S.sound===undefined)S.sound=true; if(!S.view)S.view="play"; if(!S.alltime)S.alltime={"stijn":6.5,"daan":15.5}; if(S.alltime.stijn===15.5&&S.alltime.daan===6.5){S.alltime={"stijn":6.5,"daan":15.5};} S.streak=S.streak||[]; S.kruk=S.kruk||0; S.players.forEach(function(p){p.kruk=p.kruk||0;});
+  }
+  var pick=null, animClass="", fresh=false, rolling=false;
+  load();
+
+  var el=function(id){return document.getElementById(id);};
+  function pct(x,d){return (x*100).toFixed(d||1).replace(".",",")+"%";}
+  function decimalsFor(list){ var seen={}; for(var i=0;i<list.length;i++){ var k=(list[i]*100).toFixed(1); if(seen[k])return 2; seen[k]=1; } return 1; }
+  function num(x){return x.toFixed(1).replace(".",",");}
+  function snum(x){return (x>0?"+":"")+x.toFixed(1).replace(".",",");}
+  var STRAT=["hoogste jackpotkans","minste slokken","beste saldo (bak = 10 slokken)"];
+  function esc(s){return String(s).replace(/[&<>"]/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c];});}
+  function penalty(){return S.extreme?tilesum(S.board):pop(S.board);}
+  function others(){ return S.players.filter(function(p,i){return i!==S.active;}).map(function(p){return p.name;}); }
+  function joinNames(a){ return a.length<=1?a.join(""):a.slice(0,-1).join(", ")+" en "+a[a.length-1]; }
+
+  /* ---- sound ---- */
+  var AC=null;
+  function ctx(){ try{ if(!AC)AC=new (window.AudioContext||window.webkitAudioContext)(); if(AC.state==="suspended")AC.resume(); return AC; }catch(e){ return null; } }
+  function tone(f,t0,dur,type,vol){ var c=ctx(); if(!c)return; var o=c.createOscillator(), g=c.createGain(); o.type=type||"sine"; o.frequency.setValueAtTime(f,c.currentTime+t0);
+    g.gain.setValueAtTime(0.0001,c.currentTime+t0); g.gain.exponentialRampToValueAtTime(vol||0.25,c.currentTime+t0+0.01); g.gain.exponentialRampToValueAtTime(0.0001,c.currentTime+t0+dur);
+    o.connect(g); g.connect(c.destination); o.start(c.currentTime+t0); o.stop(c.currentTime+t0+dur+0.05); }
+  function noise(t0,dur,vol,freq,q){ var c=ctx(); if(!c)return; var n=Math.floor(c.sampleRate*dur), b=c.createBuffer(1,n,c.sampleRate), d=b.getChannelData(0);
+    for(var i=0;i<n;i++)d[i]=(Math.random()*2-1)*Math.pow(1-i/n,2); var src=c.createBufferSource(); src.buffer=b;
+    var f=c.createBiquadFilter(); f.type="bandpass"; f.frequency.value=freq||(1800+Math.random()*1500); f.Q.value=q||1.2;
+    var g=c.createGain(); g.gain.value=vol||0.5; src.connect(f); f.connect(g); g.connect(c.destination); src.start(c.currentTime+t0); }
+  var sfx={
+    rattle:function(){ for(var i=0;i<9;i++){ noise(i*0.08+Math.random()*0.03,0.06,0.35+Math.random()*0.3); } noise(0.78,0.12,0.6); },
+    flip:function(){ noise(0,0.04,0.3); tone(220,0,0.06,"square",0.08); },
+    clack:function(x){ x=typeof x==="number"?x:0.5;
+      noise(0,0.025+0.03*(1-x),0.25+0.75*x,1400+2200*x,2.2);
+      noise(0.004,0.05+0.04*(1-x),0.08+0.3*x,600+500*x,1.5);
+      tone(130+70*x,0,0.045+0.03*x,"sine",0.12+0.35*x); },
+    dood:function(){ tone(196,0,0.35,"sawtooth",0.2); tone(146.8,0.3,0.4,"sawtooth",0.2); tone(98,0.65,0.8,"sawtooth",0.25); },
+    jackpot:function(){ [523.25,659.25,783.99,1046.5,1318.5].forEach(function(f,i){ tone(f,i*0.11,0.3,"triangle",0.25); }); tone(1046.5,0.6,0.9,"triangle",0.3); tone(1318.5,0.6,0.9,"triangle",0.2); },
+    special:function(){ [392,523.25,659.25,783.99,1046.5,1318.5,1567.98].forEach(function(f,i){ tone(f,i*0.1,0.35,"triangle",0.25); });
+      [523.25,659.25,783.99,1046.5].forEach(function(f){ tone(f,0.85,1.6,"triangle",0.18); tone(f*1.005,0.85,1.6,"sine",0.1); });
+      [0,0.22,0.44].forEach(function(t,i){ tone(2093+i*300,1.1+t,0.25,"sine",0.12); }); }
+  };
+  function play_(name,arg){ if(S.sound&&sfx[name])try{sfx[name](arg);}catch(e){} }
+  var AANHEF=["pik","maat","broer","lul","gozer","gozermaat","broertje","makker","kerel","vriend","kanjer","mattie","baas","chef","kampioen","ouwe","jongen","sukkel","tijger","brada","grote vriend","legende","vlerk"];
+  var MEDAL_COL={2:["#b87333","#8a5422"],3:["#cfd3d8","#8e949c"],4:["#f2c744","#b8890f"]};
+  function medalSvg(atjes,cls){
+    var c=MEDAL_COL[atjes]||MEDAL_COL[4];
+    return '<svg class="'+(cls||"medal")+'" viewBox="0 0 60 80" xmlns="http://www.w3.org/2000/svg">'+
+      '<path d="M20 0 L30 26 L40 0 Z" fill="#c84b3a"/><path d="M14 0 L30 30 L46 0 Z" fill="#1e5239" opacity=".9"/>'+
+      '<circle cx="30" cy="52" r="24" fill="'+c[1]+'"/><circle cx="30" cy="52" r="19" fill="'+c[0]+'"/>'+
+      '<circle cx="30" cy="52" r="14" fill="none" stroke="'+c[1]+'" stroke-width="1.5"/>'+
+      '<text x="30" y="58" text-anchor="middle" font-family="Georgia,serif" font-weight="900" font-size="17" fill="#fff8e6">'+atjes+'x</text></svg>';
+  }
+  var WAARDERING=["Petje af, {n}.","Dit gaat de boeken in, {n}.","Hier doen we het voor, {n}.","Geen woorden, {n}. Alleen bewondering.","{n} vertelt dit nog aan zijn kleinkinderen.","Even stil zijn voor {n}.","De bar mag even applaudisseren voor {n}."];
+  function overlayMedal(sp,name,othersTxt){
+    var o=el("overlay"); clearTimeout(overlayTimer); o.className="overlay jackpot big";
+    var title={2:"Dikke jackpot!",3:"Monsterjackpot!",4:"Historisch!"}[sp.atjes]||"Jackpot!";
+    el("overlayText").innerHTML=medalSvg(sp.atjes,"bigmedal")+'<span class="title">'+esc(title)+'</span><small>'+esc(sp.label)+'. '+esc(othersTxt)+': '+sp.atjes+'x bak!</small><small>'+esc(WAARDERING[Math.floor(Math.random()*WAARDERING.length)].replace("{n}",name))+'</small>';
+    void o.offsetWidth; o.className="overlay jackpot big show";
+    overlayTimer=setTimeout(function(){ o.className="overlay"; },8200);
+  }
+  var OWN_TXT={Stijn:["Op eigen tegel. Daan: bak.","De 1 is thuisgekomen bij Stijn."],Daan:["Op eigen tegel. Stijn: bak.","De 9 is thuisgekomen bij Daan."]};
+  function overlayOwn(name,atjes){
+    var o=el("overlay"); clearTimeout(overlayTimer); o.className="overlay jackpot big";
+    var lines=OWN_TXT[name]||[]; if(atjes>1) lines=[lines[0].replace("bak.",atjes+"x bak."),lines[1]];
+    el("overlayText").innerHTML='<div class="ownface">'+(name==="Stijn"?FACE_STIJN:FACE_DAAN)+'</div><span class="title">'+esc(name)+' special!</span><small>'+esc(lines[0])+'</small><small>'+esc(lines[1])+'</small>';
+    void o.offsetWidth; o.className="overlay jackpot big show";
+    overlayTimer=setTimeout(function(){ o.className="overlay"; },7000);
+  }
+  function stickOverlay(){
+    var o=el("overlay"); clearTimeout(overlayTimer);
+    if(o.className.indexOf("sticky")<0) o.className=o.className.replace(" show"," sticky show");
+    if(!el("overlayText").querySelector(".tap")) el("overlayText").insertAdjacentHTML("beforeend",'<span class="tap">Tik om verder te gaan</span>');
+  }
+  function jackpotStats(decs){
+    var sub=0, minP=1, pre=cur().PJ[2][FULL];
+    decs.forEach(function(d){ if(d.chosen!==d.best)sub++; d.options.forEach(function(o){ if(o.v===d.chosen&&o.p<minP)minP=o.p; }); });
+    var l1="Kans vooraf "+pct(pre)+", laagste punt onderweg "+pct(minP)+".";
+    var l2=sub===0?"Alle "+decs.length+" keuzes optimaal.":sub===1?"Met één suboptimale keuze. Vet.":"Met "+sub+" suboptimale keuzes. Nog vetter.";
+    return '<small class="jstat">'+esc(l1)+'</small><small class="jstat">'+esc(l2)+'</small>';
+  }
+  var KRUK_SVG='<svg viewBox="0 0 200 260" xmlns="http://www.w3.org/2000/svg" aria-label="Kruk">'+
+    '<g stroke="#2a1708" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">'+
+    '<path d="M40 70 L22 250" fill="none" stroke="#8a5a2b" stroke-width="12"/>'+
+    '<path d="M160 70 L178 250" fill="none" stroke="#8a5a2b" stroke-width="12"/>'+
+    '<path d="M62 72 L52 248" fill="none" stroke="#a8713a" stroke-width="12"/>'+
+    '<path d="M138 72 L148 248" fill="none" stroke="#a8713a" stroke-width="12"/>'+
+    '<path d="M30 160 L170 160" stroke="#8a5a2b" stroke-width="9"/>'+
+    '<path d="M56 205 L144 205" stroke="#a8713a" stroke-width="9"/>'+
+    '<ellipse cx="100" cy="62" rx="82" ry="26" fill="#c98b4b"/>'+
+    '<ellipse cx="100" cy="52" rx="82" ry="26" fill="#e0a860"/>'+
+    '<ellipse cx="100" cy="52" rx="58" ry="16" fill="none" stroke="#b7823f" stroke-width="2"/>'+
+    '</g></svg>';
+  function overlayKruk(){
+    var o=el("overlay"); o.className="overlay kruk big";
+    el("overlayText").innerHTML=KRUK_SVG+"<small>ADTJE KRUK</small>";
+    void o.offsetWidth; o.className="overlay kruk big show";
+    setTimeout(function(){ o.className="overlay"; },4800);
+  }
+  var overlayTimer=null;
+  function overlay(kind,text,sub,ms){
+    var o=el("overlay"), sticky=ms===0; clearTimeout(overlayTimer); o.className="overlay "+kind+(sticky?" sticky":""); o.style.background="";
+    if(sub&&!Array.isArray(sub))sub=[sub];
+    el("overlayText").innerHTML=esc(text)+(sub?sub.map(function(l){return "<small>"+esc(l)+"</small>";}).join(""):"")+(sticky?'<span class="tap">Tik om verder te gaan</span>':"");
+    void o.offsetWidth; o.className="overlay "+kind+(sticky?" sticky":"")+" show";
+    if(!sticky) overlayTimer=setTimeout(function(){ o.className="overlay"; },ms||1700);
+  }
+  el("overlay").addEventListener("click",function(){ if(el("overlay").className.indexOf("sticky")>=0) el("overlay").className="overlay"; });
+
+  /* ---- render ---- */
+  function atKey(i){ return S.players[i]?S.players[i].name.toLowerCase():null; }
+  function fmtAt(x){ return (Math.round(x*2)/2).toString().replace(".",","); }
+  function sdIdx(){ var si=-1, di=-1; S.players.forEach(function(p,i){ var k=p.name.toLowerCase(); if(k==="stijn"&&si<0)si=i; if(k==="daan"&&di<0)di=i; }); return (si>=0&&di>=0)?{s:si,d:di}:null; }
+  function isStijnDaan(){ return !!sdIdx(); }
+  function renderAlltime(){
+    var e=el("alltime"), sd=sdIdx();
+    if(!sd){ e.innerHTML=""; e.style.display="none"; el("sessionbar").style.display="none"; el("alltimeform").className="alltimeform"; return; }
+    el("sessionbar").style.display=""; e.style.display=""; e.innerHTML='Stand bewerken';
+  }
+  function buildForm(){
+    var sd=sdIdx(); if(!sd)return;
+    var h='<span class="formlabel">Totaalstand (alle sessies)</span>'+
+      '<button data-bump="s">+1 Stijn</button><label>Stijn<input id="atS" type="number" step="0.5" inputmode="decimal" value="'+(S.alltime.stijn||0)+'"></label>'+
+      '<button data-bump="x">Gelijk</button>'+
+      '<label>Daan<input id="atD" type="number" step="0.5" inputmode="decimal" value="'+(S.alltime.daan||0)+'"></label><button data-bump="d">+1 Daan</button>'+
+      '<span class="formlabel">Jackpots deze sessie</span>';
+    S.players.forEach(function(p,i){ h+='<label>'+esc(p.name)+'<input class="sj" data-i="'+i+'" type="number" step="1" inputmode="numeric" value="'+p.jackpots+'"></label>'; });
+    h+='<button class="primary" id="atOk">Opslaan</button><button id="atCancel">Sluiten</button><button id="atScan">Stand overnemen (QR)</button>';
+    el("alltimeform").innerHTML=h;
+  }
+  function renderPlayers(){
+    el("players").innerHTML=S.players.map(function(p,i){
+      var k=p.name.toLowerCase(), sdx=sdIdx(), sd=!!sdx&&(i===sdx.s||i===sdx.d), va=sd?(S.alltime[k]||0):0, vo=sd?(S.alltime[k==="stijn"?"daan":"stijn"]||0):0;
+      return '<button class="player'+(i===S.active?' active':'')+'" data-i="'+i+'" title="Tik om naam te wijzigen">'+
+        (sd?'<span class="at'+(va>vo?' lead':'')+'">'+fmtAt(va)+'</span>':'')+'<span class="name">'+esc(p.name)+'</span>'+(sd?'<span class="sess">'+p.jackpots+'<small>jackpots deze sessie</small></span>':'')+
+        '<span class="stats"><b>'+p.slokken+'</b> slokken'+(sd?'':' · <b>'+p.jackpots+'</b> jackpot')+' · <b>'+p.atjes+'</b> atjes'+(p.kruk?' · <b>'+p.kruk+'</b> kruk':'')+'</span>'+((p.medals||[]).slice().sort(function(a,b){return b-a;}).map(function(a){return medalSvg(a);}).join(''))+'</button>';
+    }).join("");
+  }
+  var FACE_STIJN="<svg viewBox=\"0 0 40 60\" xmlns=\"http://www.w3.org/2000/svg\"><g fill=\"none\" stroke=\"#e9dcbd\" stroke-width=\"1.6\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M4 58 Q7 48 15 46 L16 38 M24 38 L25 46 Q33 48 36 58\"/><path d=\"M10 21 Q9 9 20 8 Q31 9 30 21 Q30 31 26 37 Q20 42 14 37 Q10 31 10 21 Z\" fill=\"#3a2211\"/><path d=\"M9 18 Q9 6 21 5 Q31 5 32 13 Q30 10 24 10 Q15 10 11 15 Q10 16 9 18 Z\" fill=\"#e9dcbd\"/><path d=\"M15 10 Q23 6 31 9\" stroke=\"#3a2211\" stroke-width=\"1\"/><path d=\"M10 22 Q7 22 8 26 Q9 28 10 27\"/><path d=\"M30 22 Q33 22 32 26 Q31 28 30 27\"/><path d=\"M13 20 L17 19 M23 19 L27 20\"/><path d=\"M14 23 L17 23 M23 23 L26 23\"/><path d=\"M20 22 L19 28 L21 28\"/><path d=\"M10 27 Q11 36 15 39 Q20 42 25 39 Q29 36 30 27\" stroke-width=\"3.2\" stroke-opacity=\".9\"/><path d=\"M12 31 Q13 35 16 37 M28 31 Q27 35 24 37\" stroke-width=\"1.2\"/><path d=\"M16 30 Q20 28.5 24 30\" stroke-width=\"2\"/><path d=\"M17 33 Q20 34 23 33\"/></g></svg>";
+  var FACE_DAAN="<svg viewBox=\"0 0 40 60\" xmlns=\"http://www.w3.org/2000/svg\"><g fill=\"none\" stroke=\"#e9dcbd\" stroke-width=\"1.6\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M8 42 Q7 36 9.5 32 L9.5 20 Q10 8 20 7.5 Q30 8 30.5 20 L30.5 32 Q33 36 32 42 Q30 39 28 36 Q27 32 28 26 L28 21 Q26 15 20 15 Q14 15 12 21 L12 26 Q13 32 12 36 Q10 39 8 42 Z\" fill=\"#e9dcbd\" fill-opacity=\".92\"/><path d=\"M4 58 Q7 48 15 46 L16 38 M24 38 L25 46 Q33 48 36 58\"/><path d=\"M9.5 23 Q9.5 12 20 11 Q30.5 12 30.5 23 Q30.5 32 27 37 Q20 41.5 13 37 Q9.5 32 9.5 23 Z\" fill=\"#3a2211\"/><path d=\"M9.5 22 Q10 10 20 9.5 Q30 10 30.5 22 Q29 16 25 14 Q20 13.5 15 14 Q11 16 9.5 22 Z\" fill=\"#e9dcbd\"/><path d=\"M15 12 Q20 10 26 11 M12.5 15 Q18 12.5 26 13\" stroke=\"#3a2211\" stroke-width=\"1\"/><path d=\"M10 24 L10.5 32 Q11 34 12.5 35 M30 24 L29.5 32 Q29 34 27.5 35\" stroke-width=\"2.4\" stroke-opacity=\".9\"/><path d=\"M9.5 23 Q6.5 23 7.5 27 Q8.5 29 9.5 28\"/><path d=\"M30.5 23 Q33.5 23 32.5 27 Q31.5 29 30.5 28\"/><path d=\"M13.5 21 L17 20 M23 20 L26.5 21\"/><path d=\"M14 24 L17 24 M23 24 L26 24\"/><path d=\"M20 23 L19 29 L21 29\"/><path d=\"M15 31 Q17.5 29.5 20 30.5 Q22.5 29.5 25 31\" stroke-width=\"2.2\"/><path d=\"M17 33.5 Q20 35 23 33.5\"/><path d=\"M16.5 36 Q20 41 23.5 36 Q20 38.5 16.5 36 Z\" fill=\"#e9dcbd\" fill-opacity=\".85\"/></g></svg>";
+  function renderTiles(){
+    var names=S.players.map(function(p){return p.name.toLowerCase();}).join("|");
+    var html="", backs=[names.indexOf("stijn")>=0?FACE_STIJN:"•","J","A","C","K","P","O","T",names.indexOf("daan")>=0?FACE_DAAN:"•"];
+    var can={}; if(S.d1&&S.d2&&!S.ended) moves(S.board,S.d1,S.d2).forEach(function(m){can[m.v]=1;});
+    for(var i=1;i<=9;i++){
+      var open=S.board>>(i-1)&1;
+      html+='<button class="tile'+(open?(can[i]?' can':''):' down')+'" data-i="'+i+'" aria-pressed="'+(open?'false':'true')+'" aria-label="Tegel '+i+(open?'':' (dicht)')+'">'+(open?i:backs[i-1])+'</button>';
+    }
+    el("tiles").innerHTML=html;
+    var T=cur(); el("pj").textContent=pct(T.PJ[S.strat][S.board]); el("es").textContent=num(T.ES[S.strat][S.board]); el("net").textContent=snum(T.NET[S.strat][S.board]);
+  }
+  function pips(v){
+    var on={1:[4],2:[0,8],3:[0,4,8],4:[0,2,6,8],5:[0,2,4,6,8],6:[0,2,3,5,6,8]}[v];
+    var html=""; for(var i=0;i<9;i++)html+='<span class="pip'+(on.indexOf(i)>=0?' on':'')+'"></span>'; return html;
+  }
+  function renderDie(id,v,n){
+    var d=el(id); d.className="die"+(v?"":" blank")+(pick===n?" picking":"");
+    d.innerHTML=v?pips(v):"?"; d.setAttribute("aria-label","Dobbelsteen "+n+(v?": "+v:": nog niet ingevoerd"));
+  }
+  function renderDice(){
+    renderDie("d1",S.d1,1);renderDie("d2",S.d2,2);
+    el("sum").textContent=(S.d1&&S.d2)?S.d1+S.d2:"";
+    var pk=el("picker"); pk.className="picker"+(pick?" open":"");
+    var h=""; for(var v=1;v<=6;v++)h+='<button data-v="'+v+'" aria-label="'+v+'">'+pips(v)+'</button>'; pk.innerHTML=h;
+    var box=el("tiles").parentNode; box.className="box"+(animClass?" "+animClass:"");
+    if(rolling){ el("d1").className="die rolling"; el("d2").className="die rolling"; }
+  }
+
+  function keeps(m,al){
+    var k=al.filter(function(a){ return PATS[a.k].ok(a.last,m.v)&&patV(a.k,m.next,m.v)>0; });
+    if(!k.length) return "";
+    return '<br><span class="pat">'+k.map(function(a){ return a.name.toLowerCase()+" ("+a.atjes+"x)"+(S.kans?", 1 op "+oneIn(patV(a.k,m.next,m.v)):""); }).join(" · ")+'</span>';
+  }
+  function bestOf(ms){
+    var T=cur(), k=S.strat, best=ms[0];
+    ms.forEach(function(m){
+      var t=m.next,b=best.next;
+      if(k===0){ if(T.PJ[k][t]>T.PJ[k][b]||(T.PJ[k][t]===T.PJ[k][b]&&T.NET[k][t]<T.NET[k][b]))best=m; }
+      else if(k===1){ if(T.ES[k][t]<T.ES[k][b]||(T.ES[k][t]===T.ES[k][b]&&T.NET[k][t]<T.NET[k][b]))best=m; }
+      else { if(T.NET[k][t]<T.NET[k][b]||(T.NET[k][t]===T.NET[k][b]&&T.PJ[k][t]>T.PJ[k][b]))best=m; }
+    });
+    return best;
+  }
+  function renderMoves(){
+    var box=el("moves"), T=cur(), me=S.players[S.active].name;
+    el("undo").disabled=!S.decisions.length||!!S.ended;
+    if(S.ended){
+      if(S.ended.result==="jackpot"){
+        var a=S.ended.atjes||1;
+        box.innerHTML='<div class="verdict jackpot pop"><h2 class="bak">'+esc(joinNames(S.ended.others))+': '+(a>1?a+'x ':'')+'Bak!</h2>'+(S.ended.special?'<p class="sub">'+esc(S.ended.special)+'</p>':'')+'<p>'+esc(S.ended.name)+' gooit jackpot.</p><button id="next">Volgende speler</button></div>';
+      } else {
+        var n=S.ended.slokken;
+        var dc=S.ended.deathc||0;
+        box.innerHTML='<div class="verdict fout pop"><h2>Dood</h2><p class="sub">'+esc(flavor(S.ended.open||0))+'</p><p>Gegooid: <span class="mini">'+pips(S.ended.d1||1)+'</span><span class="mini">'+pips(S.ended.d2||1)+'</span></p><p>'+esc(S.ended.name)+' drinkt <b>'+n+'</b> '+(n===1?'slok':'slokken')+'.<br>Kans op dood vanaf dit bord: '+pct(dc/36,0)+' ('+dc+' van de 36 worpen).</p><button id="next">Volgende speler</button><button class="alt" id="oops">Verkeerde worp ingevoerd</button></div>';
+        el("oops").onclick=uncommit;
+      }
+      el("next").onclick=nextPlayer; return;
+    }
+    if(S.board===0){ commit("jackpot",0); return; }
+    if(!S.d1||!S.d2){ box.innerHTML='<p class="hint">'+esc(me)+' is aan de beurt. Gooi en voer de worp in.</p>'; return; }
+    var ms=moves(S.board,S.d1,S.d2);
+    if(ms.length&&pop(S.board)===1&&fresh&&!flipping){
+      fresh=false; var lastV=ms[0].v;
+      box.innerHTML='<p class="hint">Jackpot!</p>';
+      setTimeout(function(){ var t=el("tiles").querySelector('.tile[data-i="'+lastV+'"]'); flipTile(t,lastV,0.9); },250);
+      return;
+    }
+    if(!ms.length){
+      if(fresh){ commit("fout",penalty()); return; }
+      box.innerHTML='<p class="hint">Met '+S.d1+' en '+S.d2+' kan hier niets meer. Voer de nieuwe worp in.</p>'; return;
+    }
+    var al=alivePats();
+    var best=bestOf(ms), html=S.kruk?'<div class="notice">Atje kruk voor '+esc(me)+(S.kruk>1?' ('+S.kruk+'x)':'')+'. Spel gaat door.</div>':"", dec=decimalsFor(ms.map(function(x){return T.PJ[S.strat][x.next];}));
+    ms.forEach(function(m){
+      var t=m.next;
+      html+='<button class="move'+(m===best?' best':'')+'" data-v="'+m.v+'">'+
+        '<span class="num">'+m.v+'</span>'+
+        '<span class="lbl">Draai '+m.v+' om<small>'+m.labels.join(" of ")+(m===best?'<span class="adv"> · advies</span>':'')+keeps(m,al)+'</small></span>'+
+        '<span class="odds"><b>'+pct(T.PJ[S.strat][t],dec)+'</b>'+num(T.ES[S.strat][t])+' slokken<br>saldo '+snum(T.NET[S.strat][t])+'</span></button>';
+    });
+    box.innerHTML=html;
+    Array.prototype.forEach.call(box.querySelectorAll(".move"),function(b){
+      b.onclick=function(){ var v=parseInt(b.getAttribute("data-v"),10), t=el("tiles").querySelector('.tile[data-i="'+v+'"]'); flipTile(t,v,0.5); };
+    });
+  }
+
+  function renderHist(){
+    var h=el("hist"), T=cur(), html='<h3>Geschiedenis</h3>';
+    if(!S.turns.length && !S.decisions.length){ h.innerHTML=html+'<p class="empty">Nog geen beurten gespeeld.</p>'; return; }
+    // summary per player
+    var stats=S.players.map(function(p){return {name:p.name,turns:0,jp:0,slokken:0,dec:0,opt:0};});
+    S.turns.forEach(function(t){
+      var s=stats[t.player]; if(!s)return;
+      s.turns++; if(t.result==="jackpot")s.jp++; s.slokken+=t.slokken;
+      t.decisions.forEach(function(d){ s.dec++; if(d.chosen===d.best)s.opt++; });
+    });
+    html+='<div class="summary"><span class="h"></span><span class="h">beurten</span><span class="h">jackpot</span><span class="h">slokken/beurt</span><span class="h">optimaal</span>';
+    stats.forEach(function(s){
+      html+='<b>'+esc(s.name)+'</b><span>'+s.turns+'</span><span>'+(s.turns?pct(s.jp/s.turns):'–')+'</span><span>'+(s.turns?num(s.slokken/s.turns):'–')+'</span><span>'+(s.dec?pct(s.opt/s.dec):'–')+'</span>';
+    });
+    html+='</div>';
+    function decHtml(d){
+      var s='<div class="dec"><span class="roll-lbl">'+d.d1+' + '+d.d2+'</span><span>', dec=decimalsFor(d.options.map(function(o){return o.p;}));
+      d.options.forEach(function(o){
+        var cls="opt"+(o.v===d.chosen?" chosen":"")+(o.v===d.chosen&&d.chosen!==d.best?" miss":"");
+        s+='<span class="'+cls+'">'+o.v+' <span class="p">'+pct(o.p,dec)+(typeof o.n==="number"?' / '+snum(o.n):'')+'</span></span>';
+      });
+      return s+'</span></div>';
+    }
+    if(S.decisions.length){
+      html+='<details class="turn" open><summary><span>Nu · '+esc(S.players[S.active].name)+'</span><span class="res">bezig</span></summary>'+S.decisions.map(decHtml).join("")+'</details>';
+    }
+    S.turns.slice().reverse().forEach(function(t,k){
+      var n=S.turns.length-k, pname=S.players[t.player]?S.players[t.player].name:"?";
+      var res=t.result==="jackpot"?'<span class="res jp">'+(t.special?esc(t.special)+', ':'Jackpot, ')+(t.daanSp?((t.stolen?'gestolen ':'')+(t.lastSp||"Daan")+(t.special?' super special, ':' special, ')):'')+esc(joinNames(t.others||[]))+' '+(t.atjes>1?t.atjes+'x ':'')+'bak</span>':'<span class="res">dood, '+t.slokken+' '+(t.slokken===1?'slok':'slokken')+(typeof t.deathc==="number"?' ('+pct(t.deathc/36,0)+')':'')+(t.kruk?', atje kruk':'')+'</span>';
+      html+='<details class="turn"><summary><span>'+n+' · '+esc(pname)+(t.extreme?' · extreme':'')+'</span>'+res+'</summary>'+
+        (t.decisions.length?t.decisions.map(decHtml).join(""):'<div class="dec"><span></span><span class="empty">meteen fout</span></div>')+'</details>';
+    });
+    h.innerHTML=html;
+  }
+  function renderAll(){renderPlayers();renderAlltime();renderTiles();renderDice();renderMoves();renderSpecial();renderHist();save();}
+
+  /* ---- actions ---- */
+  function play(v, ms, best){
+    var T=cur(), m=ms.filter(function(x){return x.v===v;})[0]; if(!m)return;
+    S.decisions.push({ d1:S.d1, d2:S.d2, prev:S.board, chosen:v, best:best.v,
+      options:ms.map(function(x){return {v:x.v,p:T.PJ[S.strat][x.next],e:T.ES[S.strat][x.next],n:T.NET[S.strat][x.next]};}) });
+    S.board=m.next; S.d1=null; S.d2=null; pick=null; fresh=false; renderAll();
+    var open=pop(S.board), al=open<=3?alivePats():[];
+    if(al.length){
+      var names=al.map(function(a){return a.name.toLowerCase()+" ("+a.atjes+"x)";}).join(", ");
+      if(open===1) overlay("jackpot",S.board===256?"Daan super special?":S.board===1?"Stijn super special?":"Joooow!",["Nog één voor "+names+"!"],2600);
+      else overlay("jackpot","Joooow!",[names+" nog open"],1500);
+    } else if(S.board===256){ overlay("jackpot","Daan special?",null,1800); }
+    else if(S.board===1){ overlay("jackpot","Stijn special?",null,1800); }
+  }
+  var PATS=[
+    {name:"Hoog naar laag", atjes:4, ok:function(l,v){return l===null?v===9:v===l-1;}},
+    {name:"Laag naar hoog", atjes:4, ok:function(l,v){return l===null?v===1:v===l+1;}},
+    {name:"Buiten naar binnen", atjes:3, ok:function(l,v){return l===null||Math.abs(v-5)<=Math.abs(l-5);}},
+    {name:"Binnen naar buiten", atjes:2, ok:function(l,v){return l===null||Math.abs(v-5)>=Math.abs(l-5);}}
+  ];
+  var patMemo=[{},{},{},{}];
+  function patV(k,s,last){
+    if(s===0) return 1;
+    var key=s*10+(last||0), m=patMemo[k];
+    if(key in m) return m[key];
+    var ok=PATS[k].ok, tot=0;
+    for(var r=0;r<36;r++){
+      var o=moves(s,ROLLS[r][0],ROLLS[r][1]), best=0;
+      for(var i=0;i<o.length;i++) if(ok(last,o[i].v)){ var val=patV(k,o[i].next,o[i].v); if(val>best)best=val; }
+      tot+=best;
+    }
+    return (m[key]=tot/36);
+  }
+  function alivePats(){
+    var seq=S.decisions.map(function(d){return d.chosen;}), out=[];
+    PATS.forEach(function(pt,k){
+      var l=null, ok=true;
+      for(var i=0;i<seq.length;i++){ if(!pt.ok(l,seq[i])){ok=false;break;} l=seq[i]; }
+      if(!ok) return;
+      var pr=patV(k,S.board,l);
+      if(pr>0) out.push({k:k,name:pt.name,atjes:pt.atjes,p:pr,last:l});
+    });
+    return out;
+  }
+  function oneIn(pr){ var n=Math.round(1/pr); return n>=1e6?Math.round(n/1e6*10)/10+" mln":n.toLocaleString("nl-NL"); }
+  function renderSpecial(){
+    var e=el("special"); if(S.ended||S.board===0){e.innerHTML="";return;}
+    var al=alivePats();
+    if(!al.length){ e.innerHTML="Geen speciale jackpot meer mogelijk."; return; }
+    e.innerHTML="Nog mogelijk: "+al.map(function(a){ return "<b>"+a.name+"</b> ("+a.atjes+"x)"+'<span class="odd">, 1 op '+oneIn(a.p)+'</span>'; }).join(" · ");
+  }
+  function special(decs){
+    if(decs.length!==9) return null;
+    var seq=decs.map(function(d){return d.chosen;}), i, ok;
+    for(ok=true,i=1;i<9;i++) if(seq[i]!==seq[i-1]-1) ok=false;
+    if(ok) return {label:"Van hoog naar laag", atjes:4};
+    for(ok=true,i=1;i<9;i++) if(seq[i]!==seq[i-1]+1) ok=false;
+    if(ok) return {label:"Van laag naar hoog", atjes:4};
+    var dist=seq.map(function(v){return Math.abs(v-5);});
+    for(ok=true,i=1;i<9;i++) if(dist[i]<dist[i-1]) ok=false;
+    if(ok) return {label:"Van binnen naar buiten", atjes:2};
+    for(ok=true,i=1;i<9;i++) if(dist[i]>dist[i-1]) ok=false;
+    if(ok) return {label:"Van buiten naar binnen", atjes:3};
+    return null;
+  }
+  function registerRoll(){
+    var key=Math.min(S.d1,S.d2)+"-"+Math.max(S.d1,S.d2);
+    S.streak.push(key); if(S.streak.length>3)S.streak.shift();
+    if(S.streak.length===3&&S.streak[0]===key&&S.streak[1]===key){
+      S.streak=[]; var p=S.players[S.active]; p.atjes++; p.kruk++; S.kruk++;
+      overlayKruk(); play_("dood");
+    } else if(S.streak.length>=2&&S.streak[S.streak.length-2]===key){
+      overlay("kruk","Kruk?",null,1500);
+    }
+  }
+  function deathOdds(s){ var c=0; for(var r=0;r<36;r++) if(!moves(s,ROLLS[r][0],ROLLS[r][1]).length)c++; return c; }
+  function flavor(open){
+    return {1:"Bijna!!",2:"Bijna!",3:"Zo dichtbij.",4:"Had erger gekund.",5:"Matige beurt.",6:"Lol.",7:"Lol.",8:"Wat was dit?",9:"Geen tegel geraakt. Legendarisch."}[open]||"";
+  }
+  function commit(result,n){
+    var p=S.players[S.active];
+    var sp=result==="jackpot"?special(S.decisions):null, atjes=sp?sp.atjes:1;
+    var ld0=S.decisions[S.decisions.length-1], lastSp0=(result==="jackpot"&&ld0)?(ld0.chosen===9&&ld0.prev===256?"Daan":ld0.chosen===1&&ld0.prev===1?"Stijn":null):null;
+    var roller=S.players[S.active].name.toLowerCase(), stolen=lastSp0&&((lastSp0==="Stijn"&&roller==="daan")||(lastSp0==="Daan"&&roller==="stijn"));
+    if(stolen&&!sp) atjes=2;
+    var dc=result==="fout"?deathOdds(S.board):0, open=pop(S.board);
+    var ld=S.decisions[S.decisions.length-1], lastSp=(result==="jackpot"&&ld)?(ld.chosen===9&&ld.prev===256?"Daan":ld.chosen===1&&ld.prev===1?"Stijn":null):null, daanSp=!!lastSp;
+    var turn={player:S.active, result:result, slokken:n, extreme:S.extreme, decisions:S.decisions, others:others(), d1:S.d1, d2:S.d2, special:sp?sp.label:null, atjes:atjes, kruk:S.kruk, deathc:dc, open:open, daanSp:daanSp, lastSp:lastSp, stolen:!!stolen};
+    if(result==="jackpot"){ p.jackpots++; S.players.forEach(function(q,i){ if(i!==S.active)q.atjes+=atjes; }); if(sp){ p.medals=p.medals||[]; p.medals.push(sp.atjes); } }
+    else p.slokken+=n;
+    S.turns.push(turn); S.decisions=[]; S.kruk=0;
+    S.ended={result:result, slokken:n, name:p.name, others:turn.others, special:turn.special, atjes:atjes, deathc:dc, open:open, d1:S.d1, d2:S.d2};
+    animClass="anim-"+result; fresh=false; renderAll();
+    if(result==="jackpot"){ if(sp){ overlayMedal(sp,p.name,joinNames(turn.others)); if(daanSp)el("overlayText").insertAdjacentHTML("beforeend",'<span class="title supersp">'+lastSp+' super special!</span>'); play_("special"); } else if(stolen){
+      var victim=lastSp, thief=p.name, lines={Stijn:["Daan pakt de Stijn special.","Stijn, dat is jouw tegel. 2x bak."],Daan:["Stijn pakt de Daan special.","Op Daans eigen tegel. 2x bak, Daan."]}[victim];
+      overlay("jackpot","Gestolen!",lines,6000); el("overlayText").insertAdjacentHTML("beforeend",'<span class="title supersp">'+esc(thief)+' gaat huilen van blijdschap</span>'); play_("special");
+    } else if(daanSp){ overlayOwn(lastSp,atjes); play_("special"); }
+    else { overlay("jackpot","Jackpot!",null,4000); play_("jackpot"); }
+      el("overlayText").insertAdjacentHTML("beforeend",jackpotStats(turn.decisions)); stickOverlay(); }
+    else {
+      overlay("dood",Math.random()<0.25?"OOF!":"Dood!",[flavor(open)+" Drink "+n+" "+(n===1?"slok":"slokken")+", "+AANHEF[Math.floor(Math.random()*AANHEF.length)]+".","Kans op dood hier: "+pct(dc/36,0)+"."],0);
+      var sour=0.6*(1-dc/36)+0.4*(1-(open-1)/8); sour=Math.max(0,Math.min(1,sour));
+      el("overlay").style.background="hsla("+Math.round(32-32*sour)+",85%,"+Math.round(52-32*sour)+"%,.92)";
+      el("overlayText").insertAdjacentHTML("beforeend",'<span class="dicerow"><span class="mini">'+pips(S.d1)+'</span><span class="mini">'+pips(S.d2)+'</span></span>');
+      play_("dood");
+    }
+    setTimeout(function(){animClass="";var b=el("tiles").parentNode;b.className="box";},1700);
+  }
+  function uncommit(){
+    var t=S.turns.pop(); if(!t)return;
+    var p=S.players[t.player];
+    if(t.result==="jackpot"){ p.jackpots--; S.players.forEach(function(q,i){ if(i!==t.player)q.atjes-=(t.atjes||1); }); if(t.special&&p.medals&&p.medals.length)p.medals.pop(); } else p.slokken-=t.slokken;
+    S.decisions=t.decisions; S.kruk=t.kruk||0; S.ended=null; S.d1=null; S.d2=null; renderAll();
+  }
+  function nextPlayer(){
+    S.ended=null; S.board=FULL; S.d1=null; S.d2=null; pick=null; S.active=(S.active+1)%S.players.length;
+    renderAll(); window.scrollTo({top:0});
+  }
+
+  function restoreTile(i){
+    if(S.ended)return;
+    var last=S.decisions[S.decisions.length-1];
+    if(last&&last.chosen===i&&last.prev===(S.board|(1<<(i-1)))){
+      S.decisions.pop(); S.board=last.prev; S.d1=last.d1; S.d2=last.d2; fresh=false;
+    } else { S.board|=1<<(i-1); fresh=false; }
+    pick=null; renderAll();
+  }
+  function doTile(i){
+    if(S.ended)return;
+    if(!(S.board>>(i-1)&1)){ restoreTile(i); return; }
+    if(S.d1&&S.d2&&(S.board>>(i-1)&1)){
+      var ms=moves(S.board,S.d1,S.d2), opt=ms.filter(function(m){return m.v===i;})[0];
+      if(opt){ play(i,ms,bestOf(ms)); return; }
+    }
+    S.board^=1<<(i-1); S.d1=null; S.d2=null; pick=null; fresh=false; renderAll();
+  }
+  var flipping=false;
+  function flipTile(btn,i,x){
+    if(flipping||S.ended)return; flipping=true;
+    var dur=Math.round(380-300*x), down=!(S.board>>(i-1)&1);
+    if(btn){ var base=btn.className.indexOf("can")>=0?"translateY(-6px) scale(1.18) ":""; btn.style.transition="transform "+dur+"ms cubic-bezier(.4,0,.8,.6)"; btn.style.transform=down?"translateY(3px) rotateX(95deg)":base+"rotateX(-95deg)"; }
+    setTimeout(function(){ play_("clack",x); doTile(i); flipping=false; },dur);
+  }
+  var pd=null;
+  el("tiles").addEventListener("pointerdown",function(e){
+    var b=e.target.closest(".tile"); if(!b||flipping)return;
+    pd={b:b,i:parseInt(b.getAttribute("data-i"),10),x:e.clientX,y:e.clientY,lastY:e.clientY,lastT:performance.now(),vy:0};
+    b.style.transition="none";
+    try{ b.setPointerCapture(e.pointerId); }catch(err){}
+    ctx();
+  });
+  el("tiles").addEventListener("pointermove",function(e){
+    if(!pd)return;
+    var now=performance.now(), dt=now-pd.lastT;
+    if(dt>0){ var v=(pd.lastY-e.clientY)/dt; pd.vy=0.6*pd.vy+0.4*v; }
+    pd.lastY=e.clientY; pd.lastT=now;
+    var up=pd.y-e.clientY, isDown=!(S.board>>(pd.i-1)&1), base=pd.b.className.indexOf("can")>=0?"translateY(-6px) scale(1.18) ":"";
+    if(isDown) pd.b.style.transform="translateY(3px)"+(up<-4?" rotateX("+Math.min(70,-up*0.8)+"deg)":"");
+    else pd.b.style.transform=up>4?base+"rotateX("+(-Math.min(70,up*0.8))+"deg)":"";
+  });
+  function pointerEnd(e){
+    if(!pd)return;
+    var up=pd.y-e.clientY, dist=Math.hypot(e.clientX-pd.x,e.clientY-pd.y), b=pd.b, i=pd.i, isDown=!(S.board>>(i-1)&1);
+    var v=isDown?Math.max(-pd.vy,0):Math.max(pd.vy,0); pd=null;
+    if((isDown?-up:up)>=18&&v>0.15){ flipTile(b,i,Math.max(0,Math.min(1,(v-0.15)/2.2))); return; }
+    if(dist<10){ flipTile(b,i,0.5); return; }
+    b.style.transition="transform .18s"; b.style.transform="";
+  }
+  el("tiles").addEventListener("pointerup",pointerEnd);
+  el("tiles").addEventListener("pointercancel",function(){ if(pd){pd.b.style.transition="";pd.b.style.transform="";} pd=null; });
+  el("tiles").addEventListener("contextmenu",function(e){ e.preventDefault(); });
+  el("players").addEventListener("click",function(e){
+    var b=e.target.closest(".player"); if(!b)return;
+    var i=parseInt(b.getAttribute("data-i"),10);
+    if(i===S.active){ openName(i); }
+    else { S.active=i; renderAll(); }
+  });
+  var nameTarget=null;
+  function openName(i){
+    nameTarget=i; var f=el("nameform"), inp=el("nameInput");
+    inp.value=i===null?"":S.players[i].name; inp.placeholder=i===null?"Naam nieuwe speler":"Naam";
+    f.className="nameform open"; inp.focus();
+  }
+  function closeName(){ el("nameform").className="nameform"; nameTarget=null; }
+  el("addPlayer").onclick=function(){ openName(null); };
+  el("notUs").onclick=function(){ el("twoA").value=S.players[0]?S.players[0].name:""; el("twoB").value=S.players[1]?S.players[1].name:""; el("twoform").className="nameform open"; el("twoA").focus(); };
+  el("twoCancel").onclick=function(){ el("twoform").className="nameform"; };
+  el("twoOk").onclick=function(){
+    var a=el("twoA").value.trim(), b=el("twoB").value.trim();
+    if(a) S.players[0]={name:a,slokken:0,jackpots:0,atjes:0,kruk:0};
+    if(b){ if(S.players[1]) S.players[1]={name:b,slokken:0,jackpots:0,atjes:0,kruk:0}; else S.players.push({name:b,slokken:0,jackpots:0,atjes:0,kruk:0}); }
+    S.turns=[]; S.decisions=[]; S.ended=null; S.board=FULL; S.d1=null; S.d2=null; S.active=0; S.streak=[]; S.kruk=0;
+    el("twoform").className="nameform"; renderAll();
+  };
+  el("alltime").onclick=function(){ var f=el("alltimeform"); if(f.className.indexOf("open")>=0){f.className="alltimeform";return;} buildForm(); f.className="alltimeform open"; };
+  el("alltimeform").addEventListener("click",function(e){
+    var b=e.target.closest("button"); if(!b)return;
+    if(b.id==="atCancel"){ el("alltimeform").className="alltimeform"; return; }
+    if(b.id==="atScan"){ el("alltimeform").className="alltimeform"; openScanner(); return; }
+    if(b.id==="atOk"){
+      var a=parseFloat(el("atS").value), d=parseFloat(el("atD").value); if(!isNaN(a))S.alltime.stijn=a; if(!isNaN(d))S.alltime.daan=d;
+      Array.prototype.forEach.call(el("alltimeform").querySelectorAll(".sj"),function(inp){ var v=parseInt(inp.value,10), i=parseInt(inp.getAttribute("data-i"),10); if(!isNaN(v)&&S.players[i])S.players[i].jackpots=v; });
+      el("alltimeform").className="alltimeform"; renderAll(); return;
+    }
+    var bump=b.getAttribute("data-bump"); if(!bump)return;
+    if(bump==="s")S.alltime.stijn=(S.alltime.stijn||0)+1; else if(bump==="d")S.alltime.daan=(S.alltime.daan||0)+1; else { S.alltime.stijn=(S.alltime.stijn||0)+0.5; S.alltime.daan=(S.alltime.daan||0)+0.5; }
+    buildForm(); renderAll();
+  });
+  function sessionStats(){
+    return S.players.map(function(p,i){
+      var st={name:p.name,turns:0,dood:0,slokken:p.slokken,jackpots:p.jackpots,atjes:p.atjes,kruk:p.kruk||0,medals:(p.medals||[]).length,dec:0,opt:0};
+      S.turns.forEach(function(t){ if(t.player!==i)return; st.turns++; if(t.result==="fout")st.dood++; t.decisions.forEach(function(d){st.dec++; if(d.chosen===d.best)st.opt++;}); });
+      return st;
+    });
+  }
+  function endPreview(){
+    var sd=sdIdx(); if(!sd)return;
+    var p0=S.players[sd.s], p1=S.players[sd.d], line, ns=S.alltime.stijn||0, nd=S.alltime.daan||0;
+    if(p0.jackpots>p1.jackpots){ ns+=1; line="Punt voor Stijn."; } else if(p1.jackpots>p0.jackpots){ nd+=1; line="Punt voor Daan."; } else { ns+=0.5; nd+=0.5; line="Gelijkspel, allebei een half punt."; }
+    var T=cur(), pj=T.PJ[2][FULL], es=T.ES[2][FULL];
+    function luckLabel(z){ return z<-1.5?"Slecht":z<-0.5?"Matig":z<0.5?"Normaal":z<1.5?"Goed":z<2.5?"Heel goed":"Legendarisch"; }
+    function luck(x){ var e=x.turns*pj, sd=Math.sqrt(Math.max(e*(1-pj),0.25)); var z=(x.jackpots-e)/sd; var ds=(x.turns*es-x.slokken)/Math.max(1,Math.sqrt(x.turns)*1.8); return {e:e,z:0.65*z+0.35*ds,es:x.turns*es}; }
+    var tot={turns:0,jackpots:0,slokken:0}; sessionStats().forEach(function(x){tot.turns+=x.turns;tot.jackpots+=x.jackpots;tot.slokken+=x.slokken;});
+    var L=luck(tot), zTot=L.z;
+    var cat=luckLabel(zTot), stat="Verwacht "+num(L.e)+" jackpots in "+tot.turns+" beurten, gegooid "+tot.jackpots+".";
+    var verdict={
+      "Slecht":"Slecht. "+stat+" Dit was objectief vreselijk en is hierbij officieel erkend.",
+      "Matig":"Matig. "+stat+" De dobbelstenen waren niet jullie vriend.",
+      "Normaal":"Normaal. "+stat+" Keurig gemiddeld, niets te melden.",
+      "Goed":"Goed. "+stat+" Boven verwachting.",
+      "Heel goed":"Heel goed. "+stat+" Dit soort avonden zijn schaars.",
+      "Legendarisch":"Legendarisch. "+stat+" Geniet ervan, dit komt niet terug."
+    }[cat];
+    var st=sessionStats(), rows=st.map(function(x){
+      var l=luck(x);
+      return '<tr><td>'+esc(x.name)+'</td><td>'+x.jackpots+'<small>/'+num(l.e)+'</small></td><td>'+x.turns+'</td><td>'+x.slokken+'<small>/'+Math.round(l.es)+'</small></td><td>'+x.atjes+'</td><td>'+x.kruk+'</td><td>'+(x.dec?pct(x.opt/x.dec,0):"–")+'</td><td>'+(x.turns?luckLabel(l.z):"–")+'</td></tr>';
+    }).join("");
+    var box=el("moves");
+    box.innerHTML='<div class="verdict jackpot pop"><h2>Sessie</h2>'+
+      '<table class="sum"><tr><th></th><th>jackpot</th><th>beurten</th><th>slokken</th><th>atjes</th><th>kruk</th><th>optimaal</th><th>geluk</th></tr>'+rows+'</table><p class="sub">Sessie: '+esc(cat)+'</p><p class="verdicttxt">'+esc(verdict)+'</p>'+
+      '<p class="sub">'+esc(line)+'</p><p>Totaalstand wordt Stijn <b>'+fmtAt(ns)+'</b> tegen <b>'+fmtAt(nd)+'</b> Daan.</p>'+
+      '<button id="endOk">Verrekenen en afsluiten</button><button class="alt" id="endCancel">Annuleren</button></div>';
+    el("endCancel").onclick=function(){ renderAll(); };
+    el("endOk").onclick=function(){
+      S.alltime.stijn=ns; S.alltime.daan=nd; S.alltimeStamp=Date.now();
+      play_("jackpot");
+      S.players.forEach(function(p){p.slokken=0;p.jackpots=0;p.atjes=0;p.kruk=0;p.medals=[];}); S.turns=[]; S.decisions=[]; S.ended=null; S.board=FULL; S.d1=null; S.d2=null; S.active=0; S.streak=[]; S.kruk=0;
+      renderAll(); showQrPanel(line);
+    };
+    if(S.view==="play") box.scrollTop=0;
+  }
+  el("endSession").onclick=endPreview;
+  function standCode(){ return "JP1|"+(S.alltime.stijn||0)+"|"+(S.alltime.daan||0)+"|"+(S.alltimeStamp||0); }
+  function parseCode(t){ var m=/JP1\|([\d.,]+)\|([\d.,]+)\|(\d+)/.exec(String(t||"").trim()); if(!m)return null; return {stijn:parseFloat(m[1].replace(",",".")),daan:parseFloat(m[2].replace(",",".")),stamp:parseInt(m[3],10)}; }
+  function qrSvg(text){ try{ var q=qrcode(0,"M"); q.addData(text); q.make(); return q.createSvgTag({cellSize:4,margin:0,scalable:true}); }catch(e){ return ""; } }
+  function showQrPanel(line){
+    var box=el("moves");
+    box.innerHTML='<div class="verdict jackpot pop"><h2>Sessie gesloten</h2><p class="sub">'+esc(line||"")+'</p><p>Stijn <b>'+fmtAt(S.alltime.stijn)+'</b> tegen <b>'+fmtAt(S.alltime.daan)+'</b> Daan</p>'+
+      '<p style="margin:0 0 4px">Scan met de andere telefoon: Stand bewerken, Stand overnemen (QR)</p><div class="qrbox">'+qrSvg(standCode())+'</div><p class="qrcode">of typ: '+esc(standCode())+'</p>'+
+      '<button id="qrDone">Verder</button></div>';
+    el("qrDone").onclick=function(){ renderAll(); };
+  }
+  function applyCode(c){
+    var d=parseCode(c); if(!d){ el("scanmsg").textContent="Geen geldige code."; return false; }
+    S.alltime.stijn=d.stijn; S.alltime.daan=d.daan; S.alltimeStamp=d.stamp; save(); closeScanner(); renderAll();
+    overlay("jackpot","Stand overgenomen",["Stijn "+fmtAt(d.stijn)+" tegen "+fmtAt(d.daan)+" Daan"],3000); return true;
+  }
+  var scanStream=null, scanTimer=null;
+  function closeScanner(){ el("scanbox").className="scanbox"; clearInterval(scanTimer); if(scanStream){ scanStream.getTracks().forEach(function(t){t.stop();}); scanStream=null; } }
+  function openScanner(){
+    var sb=el("scanbox"); sb.className="scanbox open"; el("scancode").value=""; el("scanmsg").textContent="Richt de camera op de QR van de ander";
+    if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia||!window.BarcodeDetector){ el("scanmsg").textContent="Camera scannen kan hier niet. Typ de code van de ander."; return; }
+    navigator.mediaDevices.getUserMedia({video:{facingMode:"environment"}}).then(function(st){
+      scanStream=st; var v=el("scanvideo"); v.srcObject=st; v.play();
+      var det=new BarcodeDetector({formats:["qr_code"]});
+      scanTimer=setInterval(function(){ det.detect(v).then(function(codes){ if(codes.length&&parseCode(codes[0].rawValue)) applyCode(codes[0].rawValue); }).catch(function(){}); },400);
+    }).catch(function(){ el("scanmsg").textContent="Geen camera. Typ de code van de ander."; });
+  }
+  el("scanClose").onclick=closeScanner;
+  el("scanOk").onclick=function(){ applyCode(el("scancode").value); };
+  el("shareStand").onclick=function(){ showQrPanel(""); };
+  function standText(){ return "Jackpot totaalstand: Stijn "+fmtAt(S.alltime.stijn||0)+" tegen "+fmtAt(S.alltime.daan||0)+" Daan"; }
+  el("mView").onclick=function(){ S.view=S.view==="play"?"meer":"play"; setMode(); };
+  el("nameCancel").onclick=closeName;
+  el("nameOk").onclick=function(){
+    var nm=el("nameInput").value.trim(); if(!nm){closeName();return;}
+    if(nameTarget===null) S.players.push({name:nm,slokken:0,jackpots:0,atjes:0,kruk:0}); else S.players[nameTarget].name=nm;
+    closeName(); renderAll();
+  };
+  el("nameInput").addEventListener("keydown",function(e){ if(e.key==="Enter")el("nameOk").onclick(); if(e.key==="Escape")closeName(); });
+  el("undo").onclick=function(){
+    var d=S.decisions[S.decisions.length-1]; if(!d||S.ended||flipping)return;
+    var t=el("tiles").querySelector('.tile[data-i="'+d.chosen+'"]');
+    flipTile(t,d.chosen,0.5);
+  };
+  el("d1").onclick=function(){ if(S.ended)return; pick=(pick===1?null:1); renderAll(); };
+  el("d2").onclick=function(){ if(S.ended)return; pick=(pick===2?null:2); renderAll(); };
+  el("picker").addEventListener("click",function(e){
+    var b=e.target.closest("button"); if(!b||!pick)return;
+    var v=parseInt(b.getAttribute("data-v"),10);
+    if(pick===1){S.d1=v; pick=S.d2?null:2;} else {S.d2=v; pick=S.d1?null:1;}
+    fresh=!!(S.d1&&S.d2); if(fresh){play_("flip");registerRoll();}
+    renderAll();
+  });
+  el("roll").onclick=function(){
+    if(S.ended||rolling)return;
+    rolling=true; pick=null; play_("rattle");
+    var n=0, iv=setInterval(function(){
+      S.d1=1+Math.floor(Math.random()*6); S.d2=1+Math.floor(Math.random()*6); n++;
+      renderDice(); el("sum").textContent="";
+      if(n>=12){ clearInterval(iv); rolling=false; fresh=true; registerRoll(); renderAll(); }
+    },70);
+  };
+  el("mSound").onclick=function(){ S.sound=!S.sound; el("mSound").textContent=S.sound?"🔊":"🔇"; el("mSound").setAttribute("aria-pressed",String(S.sound)); ctx(); save(); };
+  el("reset").onclick=function(){S.board=FULL;S.decisions=[];S.ended=null;S.d1=null;S.d2=null;pick=null;fresh=false;S.kruk=0;renderAll();};
+  el("mKans").onclick=function(){ S.kans=!S.kans; setMode(); };
+  var confirmTimer=null;
+  el("resetScores").onclick=function(){
+    var b=el("resetScores");
+    if(!b.classList.contains("confirm")){
+      b.classList.add("confirm"); b.textContent="Zeker? Tik nogmaals om te wissen";
+      clearTimeout(confirmTimer); confirmTimer=setTimeout(function(){ b.classList.remove("confirm"); b.textContent="Score en geschiedenis wissen"; },4000);
+      return;
+    }
+    clearTimeout(confirmTimer); b.classList.remove("confirm"); b.textContent="Score en geschiedenis wissen";
+    S.players.forEach(function(p){p.slokken=0;p.jackpots=0;p.atjes=0;p.kruk=0;p.medals=[];}); S.turns=[]; S.streak=[]; S.kruk=0; S.decisions=[]; S.ended=null; S.board=FULL; S.d1=null; S.d2=null; S.active=0; renderAll();
+  };
+  el("mNormal").onclick=function(){S.extreme=false;setMode();};
+  el("mExtreme").onclick=function(){S.extreme=true;setMode();};
+  function setMode(){
+    el("mNormal").setAttribute("aria-pressed",String(!S.extreme));
+    el("mExtreme").setAttribute("aria-pressed",String(S.extreme));
+    el("mKans").setAttribute("aria-pressed",String(S.kans));
+    document.body.className=(S.kans?"":"nokans")+(S.view==="play"?" play":"");
+    el("mView").textContent=S.view==="play"?"Meer":"Spel"; el("mView").setAttribute("aria-pressed",String(S.view!=="play"));
+    el("mSound").textContent=S.sound?"🔊":"🔇"; el("mSound").setAttribute("aria-pressed",String(S.sound));
+    renderAll();
+  }
+  function setStratLabels(){
+    if(S.strat!==0&&S.strat!==1&&S.strat!==2)S.strat=2;
+    el("strat").textContent="Advies: "+STRAT[S.strat];
+    el("toggleStrat").textContent="Wissel naar "+STRAT[(S.strat+1)%3].split(" (")[0];
+  }
+  el("toggleStrat").onclick=function(){S.strat=(S.strat+1)%3;setStratLabels();renderAll();};
+  setStratLabels(); setMode();
+})();
+</script>
+<script>
+if("serviceWorker" in navigator && location.protocol.startsWith("http")){
+  window.addEventListener("load",function(){ navigator.serviceWorker.register("sw.js").catch(function(){}); });
+}
+</script>
+</body>
+</html>
