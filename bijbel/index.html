@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Bierspelbijbel</title>
+<meta name="theme-color" content="#1e5239">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Bierspelbijbel">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,700;9..144,900&display=swap">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="overlay" id="overlay" aria-hidden="true"><span id="overlayText"></span></div>
+<div class="sheet" id="sheet"><div class="panel" id="sheetPanel"></div></div>
+<div id="app">
+  <div class="bar" id="bar-home"><h1>Bierspelbijbel</h1><button class="ico" id="btnSoundHome" aria-label="Geluid" style="display:none">🔊</button></div>
+  <div class="bar" id="bar-game" style="display:none">
+    <button class="ico" id="btnBack" aria-label="Terug">←</button>
+    <h1 id="gameTitle"></h1>
+    <button class="ico txt" id="btnRules">Regels</button>
+    <button class="ico txt" id="btnKans" aria-pressed="false">Kansen</button>
+    <button class="ico" id="btnSound" aria-label="Geluid">🔊</button>
+  </div>
+  <div id="playersWrap" style="display:none">
+    <div class="players" id="players"></div>
+    <div class="nameform" id="nameform"><input class="txt" id="nameInput" type="text" maxlength="20" placeholder="Naam" autocomplete="off"><button class="btn primary" id="nameOk">Opslaan</button><button class="btn" id="nameCancel">Annuleren</button><button class="btn danger" id="nameDel">Verwijder</button></div>
+  </div>
+  <div class="ucbanner" id="ucBanner" style="display:none">🚧 In aanbouw. Klopt een regel of een kans niet, zeg het tegen Stijn.</div>
+  <div class="view active" id="view-home"></div>
+  <div class="view" id="view-game"></div>
+  <div class="view frame" id="view-frame"><iframe id="jpframe" title="Jackpot"></iframe></div>
+</div>
+<script src="rules.js"></script>
+<script src="core.js"></script>
+<script>App.register({ id:"jackpot", title:"Jackpot", level:"app", frame:true, sub:"Negen tegels, kansen, specials, totaalstand" });</script>
+<!-- GAMES -->
+<script src="games/adtzee.js"></script>
+<script src="games/blackout.js"></script>
+<script src="games/blindmexxen.js"></script>
+<script src="games/chineesroulette.js"></script>
+<script src="games/driemannen.js"></script>
+<script src="games/drommels.js"></script>
+<script src="games/eentjegooien.js"></script>
+<script src="games/eigenrisico.js"></script>
+<script src="games/fuckthedealer.js"></script>
+<script src="games/jessen.js"></script>
+<script src="games/kaartjedobbelen.js"></script>
+<script src="games/kingsen.js"></script>
+<script src="games/liarsdice.js"></script>
+<script src="games/magicbussen.js"></script>
+<script src="games/mexx.js"></script>
+<script src="games/mexxpot.js"></script>
+<script src="games/negenennegentig.js"></script>
+<script src="games/nixxen.js"></script>
+<script src="games/nostradamus.js"></script>
+<script src="games/ottomaans.js"></script>
+<script src="games/oudebami.js"></script>
+<script src="games/paardenrace.js"></script>
+<script src="games/piramide.js"></script>
+<script src="games/poefen.js"></script>
+<script src="games/sixteen.js"></script>
+<script src="games/snelmexx.js"></script>
+<script src="games/straatje.js"></script>
+<script src="games/streepjesspel.js"></script>
+<script src="games/tegendraads.js"></script>
+<script src="games/vieren.js"></script>
+<script src="games/vierkanten.js"></script>
+<script src="games/zevenachtnegen.js"></script>
+<script src="extras.js"></script>
+<!-- /GAMES -->
+<script>App.init(RULES_DATA,VOORWOORD_DATA); bijbelInstallHint();
+if("serviceWorker" in navigator && location.protocol.startsWith("http")){ window.addEventListener("load",function(){ navigator.serviceWorker.register("sw.js").catch(function(){}); }); }</script>
+</body>
+</html>

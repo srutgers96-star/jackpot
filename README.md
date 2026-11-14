@@ -20,7 +20,7 @@ Instructies voor Claude op de laptop (gekoppeld aan GitHub). Alles staat klaar i
 - De QR-scanner (Stand bewerken, Stand overnemen) werkt op dit https-adres wel, in tegenstelling tot een los HTML-bestand.
 
 ## Updaten
-- Nieuwe versie van de app: overschrijf `index.html` en push. Verhoog in `sw.js` de regel `const CACHE = "jackpot-v2";` naar `v3`, `v4`, enzovoort, zodat telefoons de nieuwe versie zeker ophalen.
+- Nieuwe versie van de app: overschrijf `index.html` en push. Verhoog in `sw.js` de regel `const CACHE = "jackpot-v3";` naar `v4`, `v5`, enzovoort, zodat telefoons de nieuwe versie zeker ophalen.
 - Scores en de totaalstand staan in de browseropslag per telefoon en blijven bij een update behouden.
 
 ## Taal
@@ -39,3 +39,10 @@ Instructies voor Claude op de laptop (gekoppeld aan GitHub). Alles staat klaar i
 ## Later: apk
 Dezelfde `index.html` kan ongewijzigd in de `www`-map van een Capacitor-project:
 `npm init @capacitor/app`, `npx cap add android`, `npx cap open android`, Build APK in Android Studio.
+
+## Bierspelbijbel (`bijbel/`)
+- Tweede app in dezelfde repo: `https://srutgers96-star.github.io/jackpot/bijbel/`. Jeroen en Kevins Bierspelbijbel (SV KoKo) met alle 45 regelteksten en zoveel mogelijk speelbare spellen. Jackpot is er een onderdeel van: de tegel Jackpot toont de echte Jackpot-app (`../index.html`) in een kader.
+- Opbouw: `index.html` (schil), `style.css`, `core.js` (het `App`-object: spelers, dobbelstenen, kaarten, overlay, regels), `rules.js` (alle regelteksten uit de pdf, de bron van waarheid), `games/<id>.js` (één bestand per spel, registreert zich met `App.register`), `extras.js` (PowerMexx/Inverse Mexx als tegels, installatie-uitleg).
+- Nieuw spel of bestand erbij: zet het in `bijbel/games/` en draai `node tools/bijbel-index.js`. Dat script schrijft de `<script>`-lijst in `bijbel/index.html` en de bestandenlijst plus een nieuwe cache-versie in `bijbel/sw.js`. Draai het ook na elke wijziging aan de bijbel, anders halen telefoons de update niet op.
+- Huisregel: **adtje kruk** (drie keer op rij dezelfde worp, door beurten en spelers heen, ook met een steen die bleef liggen) geldt in elk spel met precies twee dobbelstenen. Het spel roept daarvoor `App.kruk(id, [a,b], speler)` aan bij elke worp.
+- Spellen met 🚧 zijn nog niet door mensen getest.

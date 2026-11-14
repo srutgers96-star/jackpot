@@ -61,6 +61,10 @@ h1{ font-size:28px; font-weight:900; margin:0; }
 .nameform input{ flex:1; font:inherit; font-size:16px; padding:8px 10px; border-radius:8px; border:1.5px solid var(--ivory-dim); background:rgba(0,0,0,.25); color:var(--ivory); min-width:0; }
 .nameform button{ font-size:14px; font-weight:700; padding:8px 14px; border-radius:999px; border:0; background:var(--ivory); color:var(--ink); }
 .nameform button.cancel{ background:transparent; color:var(--ivory-dim); text-decoration:underline; }
+.nameform button.del{ background:var(--red); color:#fff; }
+.nameform button[hidden]{ display:none; }
+#nameform{ flex-wrap:wrap; }
+#nameform input{ flex:1 1 130px; }
 footer button.confirm{ color:var(--red); font-weight:700; }
 .playerlinks{ display:flex; justify-content:space-between; }
 .alltime{ display:block; margin:-4px 0 6px; font-size:13px; color:var(--ivory-dim); background:none; border:0; width:100%; text-decoration:underline; }
@@ -191,6 +195,9 @@ body.play .install{ margin-bottom:8px; padding:8px 10px; font-size:12px; }
 .helpcard .x{ position:absolute; top:8px; right:8px; width:44px; height:44px; border-radius:50%; border:1.5px solid var(--ivory-dim); background:transparent; color:var(--ivory); font-size:22px; line-height:1; padding:0; }
 .helpcard .done{ display:block; margin:18px auto 0; font-size:16px; font-weight:700; padding:10px 24px; border-radius:999px; border:0; background:var(--ivory); color:var(--ink); }
 .mode button.help-btn{ width:34px; padding:6px 0; text-align:center; }
+/* narrow phones: five header buttons must fit next to the title */
+header h1{ min-width:0; }
+@media (max-width:420px){ header{ gap:6px; } .mode{ gap:4px; } .mode button{ padding:6px 8px; font-size:12px; } .mode button.help-btn{ width:30px; padding:6px 0; } h1, body.play h1{ font-size:21px; } }
 .die.blank{ background:linear-gradient(#e6dcc4,#cfc3a6); box-shadow:0 5px 0 #a89c7b, 0 8px 14px rgba(0,0,0,.35); display:flex; align-items:center; justify-content:center; font-size:38px; font-weight:900; color:rgba(27,26,23,.45); }
 .die.picking{ outline:3px solid var(--gold); outline-offset:3px; }
 .picker{ display:none; justify-content:center; gap:8px; margin:0 0 12px; }
@@ -311,7 +318,7 @@ body.play .picker.open{ margin:-6px 0 14px; }
 <div class="install" id="install" hidden></div>
 
 <div class="players" id="players"></div>
-<div class="nameform" id="nameform"><input id="nameInput" type="text" maxlength="20" data-i18n-placeholder="name" autocomplete="off"><button id="nameOk" data-i18n="save"></button><button class="cancel" id="nameCancel" data-i18n="cancel"></button></div>
+<div class="nameform" id="nameform"><input id="nameInput" type="text" maxlength="20" data-i18n-placeholder="name" autocomplete="off"><button id="nameOk" data-i18n="save"></button><button class="cancel" id="nameCancel" data-i18n="cancel"></button><button class="del" id="nameDel" data-i18n="remove" hidden></button></div>
 <button class="alltime" id="alltime" data-i18n-title="alltimeTitle"></button>
 <div class="alltimeform" id="alltimeform"></div>
 <div class="sessionbar" id="sessionbar" style="display:none"><button id="endSession" data-i18n="endSession"></button><button id="shareStand" data-i18n="shareStand"></button></div>
@@ -364,6 +371,7 @@ body.play .picker.open{ margin:-6px 0 14px; }
   <summary data-i18n="rules"></summary>
   <span data-i18n="rulesText"></span>
 </details>
+<p class="rules" id="bijbelLink"><a href="bijbel/" style="color:var(--gold)" data-i18n="bijbelLink"></a></p>
 <details class="rules" id="installHelp">
   <summary data-i18n="installHelp"></summary>
   <div><b data-i18n="installAndroidLbl"></b> <span data-i18n="installAndroid"></span></div>
@@ -2684,7 +2692,7 @@ var qrcode = function() {
       langAria:"Switch to English",
       view:"Weergave", odds:"Kansen", sound:"Geluid", more:"Meer", game:"Spel",
       scanAim:"Richt de camera op de QR van de ander", scanType:"of typ de code", scanTake:"Overnemen",
-      close:"Sluiten", save:"Opslaan", cancel:"Annuleren", cont:"Verder",
+      close:"Sluiten", save:"Opslaan", cancel:"Annuleren", remove:"Verwijder", cont:"Verder",
       name:"Naam", newName:"Naam nieuwe speler", player1:"Speler 1", player2:"Speler 2",
       alltimeTitle:"Tik om bij te werken", editStand:"Stand bewerken", allTime:"Totaalstand (alle sessies)", drawBtn:"Gelijk",
       jpSession:"Jackpots deze sessie", jpSessionLc:"jackpots deze sessie", takeQr:"Stand overnemen (QR)",
@@ -2739,7 +2747,7 @@ var qrcode = function() {
       rules:"Regels",
       rulesText:"Negen tegels, altijd twee dobbelstenen. Per worp klap je één tegel om: de som, of het getal van één van de twee stenen. Alles dicht is jackpot: de rest trekt een atje. Kun je niets omklappen, dan drink je zelf zoveel slokken als er tegels open staan. Bij Extreme drink je de som van de open getallen. Jackpot van binnen naar buiten: 2 atjes. Van buiten naar binnen: 3 atjes. Van hoog naar laag of laag naar hoog: 4 atjes. Drie keer op rij dezelfde ogen, ook door beurten heen: atje kruk, spel gaat door. De kansen gaan uit van optimaal doorspelen vanaf dat bord. Saldo = verwachte eigen slokken min 10 slokken per tegenstander maal de jackpotkans; lager is beter.",
       and:"en",
-      help:"Hulp", helpTitle:"Jackpot", helpSub:"Spelregels, handleiding en oorsprong",
+      bijbelLink:"Meer bierspellen: de Bierspelbijbel →", help:"Hulp", helpTitle:"Jackpot", helpSub:"Spelregels, handleiding en oorsprong",
       helpRulesH:"Spelregels",
       helpRules:[
         "**Negen tegels** (1 t/m 9) en altijd **twee dobbelstenen**. Per worp klap je **één tegel** om: de som van de stenen, of het getal van één van de twee stenen.",
@@ -2763,9 +2771,10 @@ var qrcode = function() {
       ],
       helpOriginH:"Oorsprong",
       helpOrigin:[
-        "Jackpot stamt af van **Shut the Box**, een kroegspel dat volgens de overlevering al eeuwen door Normandische vissers en in Engelse pubs wordt gespeeld: een houten bakje met negen klepjes, twee dobbelstenen, en de kunst om ze allemaal dicht te krijgen.",
-        "Deze versie is het drankspel dat **Stijn en Daan** ervan maakten: een jackpot kost de rest een atje, dood zijn kost jezelf slokken, en daar kwamen de specials, atje kruk en de eigen tegels (de 1 van Stijn, de 9 van Daan) bovenop. De totaalstand tussen die twee loopt over alle sessies door.",
-        "De app is gebouwd in 2026 zodat het spel overal mee kan, ook zonder bakje. De kansen zijn geen schatting: voor alle 511 mogelijke borden is het optimale spel doorgerekend."
+        "Jackpot komt uit **Jeroen en Kevins Bierspelbijbel**, het regelboek met de bierspellen van SV KoKo (eerste editie 2016 door Jeroen Velzing, tweede editie 2024 door Kevin Bruggeman). Daar is het een spel voor twee dobbelstenen en een Jackpot-bakje, of negen viltjes genummerd 1 tot en met 9.",
+        "De regels in de bijbel zijn kort: gooi, draai één cijfer om (één van de stenen of de som), en ga door tot je niets meer kunt. Dan drink je zoveel slokken als er cijfers open liggen. Alles om is Jackpot en dan trekt de rest een adtje.",
+        "Deze app is de versie van **Stijn en Daan**. Daar kwamen de speciale jackpots, de eigen tegels (de 1 van Stijn, de 9 van Daan), de variant Extreme en de totaalstand over alle sessies bij. Het atje kruk is geleend van Mexx, waar de bijbel het 'adtje op de kruk' noemt.",
+        "De kansen zijn geen schatting: voor alle 511 mogelijke borden is het optimale spel doorgerekend. De rest van de bijbel staat in de Bierspelbijbel-app."
       ],
       installTitle:"Zet Jackpot op je beginscherm",
       installIos:"Safari: tik op Delen (het vierkant met de pijl omhoog), scrol naar beneden en tik op 'Zet op beginscherm'.",
@@ -2776,7 +2785,7 @@ var qrcode = function() {
       langAria:"Wissel naar Nederlands",
       view:"View", odds:"Odds", sound:"Sound", more:"More", game:"Game",
       scanAim:"Point the camera at the other phone's QR", scanType:"or type the code", scanTake:"Import",
-      close:"Close", save:"Save", cancel:"Cancel", cont:"Continue",
+      close:"Close", save:"Save", cancel:"Cancel", remove:"Remove", cont:"Continue",
       name:"Name", newName:"New player's name", player1:"Player 1", player2:"Player 2",
       alltimeTitle:"Tap to update", editStand:"Edit score", allTime:"All-time score (all sessions)", drawBtn:"Draw",
       jpSession:"Jackpots this session", jpSessionLc:"jackpots this session", takeQr:"Import score (QR)",
@@ -2831,7 +2840,7 @@ var qrcode = function() {
       rules:"Rules",
       rulesText:"Nine tiles, always two dice. Each roll you flip one tile: the sum, or the number on either die. All tiles down is a jackpot: everyone else does a chug. If you can't flip anything, you drink as many sips as there are tiles still open. In Extreme you drink the sum of the open numbers. Jackpot from inside out: 2 chugs. Outside in: 3 chugs. High to low or low to high: 4 chugs. The same pips three times in a row, also across turns: stool chug, the game goes on. The odds assume optimal play from that board onwards. Net = your expected own sips minus 10 sips per opponent times the jackpot chance; lower is better.",
       and:"and",
-      help:"Help", helpTitle:"Jackpot", helpSub:"Rules, manual and origin",
+      bijbelLink:"More drinking games: the Bierspelbijbel (Dutch) →", help:"Help", helpTitle:"Jackpot", helpSub:"Rules, manual and origin",
       helpRulesH:"Rules",
       helpRules:[
         "**Nine tiles** (1 to 9) and always **two dice**. Each roll you flip **one tile**: the sum of the dice, or the number on either die.",
@@ -2855,9 +2864,10 @@ var qrcode = function() {
       ],
       helpOriginH:"Origin",
       helpOrigin:[
-        "Jackpot descends from **Shut the Box**, a pub game said to have been played for centuries by Norman fishermen and in English pubs: a wooden box with nine flaps, two dice, and the art of getting them all down.",
-        "This version is the drinking game **Stijn and Daan** made of it: a jackpot costs everyone else a chug, dying costs you sips, and the specials, the stool chug and the personal tiles (Stijn's 1, Daan's 9) grew on top. The all-time score between the two runs across every session.",
-        "The app was built in 2026 so the game can come along anywhere, box or no box. The odds are not an estimate: optimal play has been worked out for all 511 possible boards."
+        "Jackpot comes from **Jeroen and Kevin's Bierspelbijbel** (the 'beer game bible'), the rule book of the drinking games of the Dutch student society SV KoKo (first edition 2016 by Jeroen Velzing, second edition 2024 by Kevin Bruggeman). There it is a game for two dice and a Jackpot box, or nine beer mats numbered 1 to 9.",
+        "The rules in the bible are short: roll, flip one number (one of the dice or the sum), and carry on until you can't. Then you drink as many sips as there are numbers still open. Everything flipped is a Jackpot, and everyone else does a chug.",
+        "This app is the version played by **Stijn and Daan**. They added the special jackpots, the personal tiles (Stijn's 1, Daan's 9), the Extreme variant and the all-time score across sessions. The stool chug is borrowed from Mexx, where the bible calls it the 'adtje op de kruk'.",
+        "The odds are not an estimate: optimal play has been worked out for all 511 possible boards. The rest of the bible lives in the Bierspelbijbel app (in Dutch)."
       ],
       installTitle:"Put Jackpot on your home screen",
       installIos:"Safari: tap Share (the square with the arrow), scroll down and tap 'Add to Home Screen'.",
@@ -2953,9 +2963,11 @@ var qrcode = function() {
     el("resetScores").classList.remove("confirm");
     renderInstall();
     if(!el("help").hidden) renderHelp();
+    if(EMBEDDED) el("bijbelLink").style.display="none";
   }
 
   /* ---- install help ---- */
+  var EMBEDDED=false; try{ EMBEDDED=window.self!==window.top; }catch(e){ EMBEDDED=true; } /* shown inside the Bierspelbijbel app */
   var installEvt=null;
   function isStandalone(){ try{ return (window.matchMedia&&window.matchMedia("(display-mode: standalone)").matches)||navigator.standalone===true; }catch(e){ return false; } }
   function isIOS(){ var ua=navigator.userAgent||""; return /iPhone|iPad|iPod/.test(ua)||(/Macintosh/.test(ua)&&navigator.maxTouchPoints>1); }
@@ -2964,7 +2976,7 @@ var qrcode = function() {
   function dismissInstall(){ try{ localStorage.setItem("jackpot-install-dismissed","1"); }catch(e){} var b=el("install"); if(b)b.hidden=true; }
   function renderInstall(){
     var b=el("install"); if(!b)return;
-    if(isStandalone()||installDismissed()||(!isMobile()&&!installEvt)){ b.hidden=true; return; }
+    if(EMBEDDED||isStandalone()||installDismissed()||(!isMobile()&&!installEvt)){ b.hidden=true; return; }
     var ios=isIOS();
     b.innerHTML='<b>'+esc(t("installTitle"))+'</b><div>'+esc(t(ios?"installIos":"installAndroid"))+'</div><div class="other">'+esc(t(ios?"installAndroid":"installIos"))+'</div>'+
       '<div class="row">'+(installEvt?'<button class="primary" id="installGo">'+esc(t("installBtn"))+'</button>':'')+'<button id="installLater">'+esc(t("later"))+'</button></div>';
@@ -3420,6 +3432,7 @@ var qrcode = function() {
   function openName(i){
     nameTarget=i; var f=el("nameform"), inp=el("nameInput");
     inp.value=i===null?"":S.players[i].name; inp.placeholder=i===null?t("newName"):t("name");
+    el("nameDel").hidden=!(i!==null&&S.players.length>2);
     f.className="nameform open"; inp.focus();
   }
   function closeName(){ el("nameform").className="nameform"; nameTarget=null; }
@@ -3517,6 +3530,19 @@ var qrcode = function() {
   el("mView").onclick=function(){ S.view=S.view==="play"?"meer":"play"; setMode(); };
   el("mLang").onclick=function(){ S.lang=S.lang==="nl"?"en":"nl"; applyLang(); setStratLabels(); setMode(); };
   el("nameCancel").onclick=closeName;
+  el("nameDel").onclick=function(){
+    var i=nameTarget; if(i===null||!S.players[i]||S.players.length<=2){ closeName(); return; }
+    var wasActive=i===S.active;
+    S.players.splice(i,1);
+    /* history: drop the removed player's turns and shift the indices behind them */
+    S.turns=S.turns.filter(function(tn){ return tn.player!==i; });
+    S.turns.forEach(function(tn){ if(tn.player>i) tn.player--; });
+    if(wasActive){ /* their unfinished turn goes with them; the next player starts on a fresh board */
+      S.decisions=[]; S.ended=null; S.board=FULL; S.d1=null; S.d2=null; S.kruk=0; pick=null; fresh=false;
+      if(S.active>=S.players.length) S.active=0;
+    } else if(i<S.active) S.active--;
+    closeName(); renderAll();
+  };
   el("nameOk").onclick=function(){
     var nm=el("nameInput").value.trim(); if(!nm){closeName();return;}
     if(nameTarget===null) S.players.push({name:nm,slokken:0,jackpots:0,atjes:0,kruk:0}); else S.players[nameTarget].name=nm;
