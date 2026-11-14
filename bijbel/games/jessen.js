@@ -16,7 +16,8 @@
      (de 3) voor de straat 3-4-5; volgens de regel zelf is dat de middelste, de 4, en zo telt de app.
    - Half adtje = 0,5 adtje (glas van 8 slokken, dus 4 slokken), geboekt zoals bij de andere spellen.
    - Er zijn geen beurten: iedereen gooit tegelijk, dus de actieve speler in de balk verandert niet.
-   - Geen adtje kruk: dat is voor spellen met precies twee stenen, hier is het één steen per speler. */
+   - Geen adtje kruk: dat is voor spellen met precies twee stenen, hier is het één steen per speler.
+   - Wie de laatste was tik je zelf aan; "Verkeerd getikt" draait die boeking terug (negatieve boeking via A.drink / A.atje). */
 (function(){
   "use strict";
   var A=App, esc=A.esc;
@@ -69,8 +70,9 @@
       function signature(){ return A.S.players.map(function(p){return p.name;}).join("\n"); }
       /* de lopende worp; begint schoon als het aantal spelers niet meer klopt of de bewaarde stand onleesbaar is */
       function round(){
-        var n=A.S.players.length, r=G.r, ok=r&&r.vals&&r.vals.length===n&&r.ev&&typeof r.ev.length==="number";
-        if(ok&&r.done) ok=r.vals.every(okVal)&&r.ev.every(function(e){ return e&&(e.last===null||(e.last>=0&&e.last<n)); });
+        var n=A.S.players.length, r=G.r, ok=!!r&&Array.isArray(r.vals)&&r.vals.length===n&&Array.isArray(r.ev);
+        if(typeof G.n!=="number"||!isFinite(G.n)||G.n<0) G.n=0;
+        if(ok&&r.done) ok=r.vals.every(okVal)&&r.ev.every(function(e){ return e&&(e.t==="jes"||e.t==="suk"||e.t==="muur")&&(e.last===null||(typeof e.last==="number"&&e.last>=0&&e.last<n)); });
         if(ok&&!r.done) ok=r.vals.every(function(v){ return v===null||okVal(v); });
         if(!ok){ r=G.r={vals:blank(n),done:false,ev:[]}; pick=null; }
         return r;
@@ -100,7 +102,10 @@
         r=round();
         if(!r.done){
           var full=!rolling&&r.vals.every(function(x){return x;});
-          h+='<p class="hint">Worp '+((G.n||0)+1)+'. Iedereen gooit tegelijk: tik op <b>Gooi allemaal</b>, of tik een steen aan en vul de echte worp in.</p>';
+          h+='<p class="hint">Worp '+((G.n||0)+1)+'. '+(rolling?'De stenen rollen…'
+            :full?'Alle stenen liggen er. Klopt het? Tik op <b>Tel deze worp</b>; een steen aantikken verbetert hem.'
+            :pick!==null&&P[pick]?'Kies hieronder de ogen van '+esc(P[pick].name)+'; daarna komt vanzelf de volgende steen.'
+            :'Iedereen gooit tegelijk: tik op <b>Gooi allemaal</b>, of tik een steen aan en vul de echte worp in.')+'</p>';
           h+='<div class="board">'+grid(rolling?tmp:r.vals,null)+'</div>';
           h+='<div class="jessen-act">';
           if(pick!==null&&P[pick]){
@@ -113,12 +118,13 @@
           h+='</div>';
         } else {
           var j=judge(r.vals,A.name), open=0;
-          h+='<p class="hint">Worp '+(G.n||1)+'</p><div class="board">'+grid(r.vals,j)+'<div class="log jessen-log">';
+          var todo=r.ev.filter(function(e){ return e.last===null; }).length;
+          h+='<p class="hint">Worp '+(G.n||1)+': de vaste slokken zijn geteld. '+(todo?'Tik hieronder aan wie de laatste was.':'Tik op <b>Volgende worp</b> om weer te gooien.')+'</p><div class="board">'+grid(r.vals,j)+'<div class="log jessen-log">';
           P.forEach(function(p,i){ if(j.sips[i]) h+='<div><b>'+esc(p.name)+'</b> drinkt '+slok(j.sips[i])+': '+esc(j.why[i].join(", "))+'</div>'; });
           h+='</div></div>';
           r.ev.forEach(function(e,k){
             var T=evInfo(e);
-            if(e.last!==null) h+='<div class="verdict fout"><h2>'+esc(T.title)+'</h2><p><b>'+esc(A.name(e.last))+'</b>'+esc(T.done)+'</p></div>';
+            if(e.last!==null) h+='<div class="verdict fout"><h2>'+esc(T.title)+'</h2><p><b>'+esc(A.name(e.last))+'</b>'+esc(T.done)+'</p><div class="btnrow"><button class="btn jessen-btn" data-undo="'+k+'">Verkeerd getikt</button></div></div>';
             else { open++; h+='<div class="verdict win"><h2>'+esc(T.title)+'</h2><p>'+esc(T.ask)+'</p><div class="btnrow">'+whoButtons("data-last",k+":")+'</div></div>'; }
           });
           if(open) h+='<p class="hint">Tik aan wie de laatste was, dan kan de volgende worp.</p>';
@@ -160,7 +166,18 @@
         if(!e||e.last!==null||!A.S.players[i]) return;
         e.last=i; T=evInfo(e);
         if(e.t==="jes") A.drink(i,1); else if(e.t==="suk") A.atje(i,0.5); else A.atje(i,1);
-        A.save(); A.play("dood"); A.overlay("dood",T.big,[A.name(i)+T.done],2600); render();
+        A.save(); A.play("dood"); render();
+        /* blijft staan tot er getikt wordt: een overlay op tijd laat tikken door naar de knoppen eronder */
+        A.overlay("dood",T.big,[A.name(i)+T.done],0); A.onOverlayClose(null);
+      }
+      /* verkeerde speler aangetikt: de boeking terugdraaien en opnieuw laten aanwijzen */
+      function undo(k){
+        var r=round(), e=r.done?r.ev[k]:null, i;
+        if(!e||e.last===null) return;
+        i=e.last; e.last=null;
+        if(A.S.players[i]){ if(e.t==="jes") A.drink(i,-1); else if(e.t==="suk") A.atje(i,-0.5); else A.atje(i,-1); }
+        A.save(); A.toast("Teruggedraaid",A.name(i)+" krijgt "+(e.t==="jes"?"de slok":e.t==="suk"?"het halve adtje":"het adtje")+" terug van de teller. Tik opnieuw aan wie de laatste was.");
+        render();
       }
       function sideHit(i){
         if(!side||!A.S.players[i]) return;
@@ -171,7 +188,7 @@
 
       box.addEventListener("click",function(e){
         var b=e.target.closest("button"); if(!b||b.disabled) return;
-        var act=b.getAttribute("data-act"), d=b.getAttribute("data-d"), v=b.getAttribute("data-v"), l=b.getAttribute("data-last"), s=b.getAttribute("data-side"), r, i, n, c;
+        var act=b.getAttribute("data-act"), d=b.getAttribute("data-d"), v=b.getAttribute("data-v"), l=b.getAttribute("data-last"), s=b.getAttribute("data-side"), u=b.getAttribute("data-undo"), r, i, n, c;
         if(d!==null){ if(rolling) return; r=round(); if(r.done) return; i=+d; pick=(pick===i?null:i); render(); return; }
         if(v!==null){
           r=round(); n=r.vals.length; if(r.done||rolling||pick===null||pick>=n) return;
@@ -180,6 +197,7 @@
           pick=c; A.save(); render(); return;
         }
         if(l!==null){ l=l.split(":"); resolve(+l[0],+l[1]); return; }
+        if(u!==null){ undo(+u); return; }
         if(s!==null){ sideHit(+s); return; }
         if(act==="roll"){ rollAll(); }
         else if(act==="count"){ if(!rolling) settle(); }

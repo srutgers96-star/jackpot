@@ -71,7 +71,7 @@
       var timer=null, count=0, peek=null, peekPick=false, sure=false, alive=true, lockUntil=0, lastKey=null;
       /* Tikken die een nieuw scherm openen: daarna telt een tik heel even niet, zodat een dubbele tik niet per ongeluk
          een kaart overslaat, voor de volgende speler antwoordt of het spel wist. */
-      var SLOW={start:1,ans:1,give1:1,next:1,memo:1,flip:1,claim:1,deal:1,believe:1,doubt:1,show:1,done:1,check:1,rnext:1,peek:1,peekoff:1,"new":1,reset:1};
+      var SLOW={start:1,ans:1,give1:1,next:1,memo:1,flip:1,claim:1,deal:1,believe:1,doubt:1,show:1,done:1,check:1,rnext:1,peek:1,peekself:1,peekoff:1,"new":1,reset:1};
 
       function stopTimer(){ if(timer){ clearInterval(timer); timer=null; } }
       function log(g,t){ g.log.unshift(t); if(g.log.length>8)g.log.pop(); }
@@ -165,7 +165,9 @@
         timer=setInterval(function(){
           var g=G.g; count--;
           if(!g||g.phase!=="memo"){ stopTimer(); return; }
-          if(count<=0){ stopTimer(); g.pyr=g.stock.splice(0,NPYR); g.phase="pyr"; g.open=0; g.claimed=[]; g.claim=null; log(g,"De kaarten liggen dicht, de piramide ligt op tafel."); A.play("clack"); A.save(); }
+          if(count<=0){ stopTimer(); g.pyr=g.stock.splice(0,NPYR); g.phase="pyr"; g.open=0; g.claimed=[]; g.claim=null;
+            g.log=[]; /* het logboek noemt de gedeelde kaarten bij naam: weg ermee zodra ze dicht liggen */
+            log(g,"De kaarten liggen dicht, de piramide ligt op tafel."); A.play("clack"); A.save(); }
           else A.play("tick");
           render();
         },1000);
@@ -226,7 +228,8 @@
           var twijfel=cl.order.filter(function(x){return cl.ans[x]==="n";});
           h+='<div class="piramide-panel"><h2>'+esc(A.name(by))+': laat zien</h2><p>'+esc(A.joinNames(twijfel))+(twijfel.length>1?' geloven':' gelooft')+' het niet. Tik '+(cl.times===2?'de twee kaarten':'de kaart')+' aan waar '+esc(een(c))+' ligt (1 is je eerste kaart) en draai om. Je hebt één kans.</p><div class="cards">'+
             [0,1,2,3].map(function(k){ return '<span class="piramide-pos"><button class="card back'+(cl.picks.indexOf(k)>=0?' sel':'')+'" data-a="pick" data-v="'+k+'" aria-label="Kaart '+(k+1)+'"></button>'+(k+1)+'</span>'; }).join("")+
-            '</div><div class="btnrow"><button class="btn gold" data-a="show"'+(cl.picks.length===cl.times?'':' disabled')+'>Draai om</button></div></div>';
+            '</div><div class="btnrow"><button class="btn gold" data-a="show"'+(cl.picks.length===cl.times?'':' disabled')+'>Draai om</button></div>'+
+            (G.spiek!=="uit"?'<div class="btnrow"><button class="btn" data-a="peekself">Eerst spieken (kost '+spiekPrijs()+')</button></div>':'')+'</div>';
           return h;
         }
         /* uitslag */
@@ -235,6 +238,18 @@
           cl.msg.map(function(t,x){ return '<p>'+(x?'<b>'+esc(t)+'</b>':esc(t))+'</p>'; }).join("")+
           '<p>'+(cl.picks.length>1?"De kaarten gaan":"De kaart gaat")+' weer dicht.</p><div class="btnrow"><button class="btn primary" data-a="done">Verder</button></div></div>';
         return h;
+      }
+      /* Variërende regel: spieken kost een slok of een adtje, naar afspraak. De kaarten komen pas na het doorgeven in beeld.
+         Kan als er niets loopt, en voor de uitdeler die zijn kaart moet laten zien (dat is het moment waarop je "moet spieken"). */
+      function startPeek(g,i){
+        if(!A.S.players[i]||!g.hands[i])return;
+        A.handover(i,"Alleen jij kijkt. Spieken kost "+spiekPrijs()+".",function(){
+          var cl=g.claim;
+          if(!alive||G.g!==g||g.phase!=="pyr"||g.n!==A.S.players.length||!A.S.players[i]||G.spiek==="uit")return;
+          if(cl&&!(cl.step==="bewijs"&&cl.by===i))return;
+          if(G.spiek==="adtje"){ A.atje(i,1); log(g,A.name(i)+" spiekt en trekt een adtje."); } else { A.drink(i,1); log(g,A.name(i)+" spiekt en drinkt 1 slok."); }
+          peek=i; A.save(); render();
+        });
       }
       function resolve(g){
         var cl=g.claim, target=g.pyr[g.open-1], hand=g.hands[cl.by], sum=0, msg=[],
@@ -288,15 +303,26 @@
         var h='<div class="board"><p class="piramide-txt">Iedereen krijgt vier kaarten en raadt er per kaart iets over: rood of zwart, hoger of lager, binnen of buiten, de soort. Fout is zelf een slok, goed is een slok uitdelen. Daarna gaan de kaarten dicht en komt de piramide: wie de omgedraaide kaart heeft, of bluft, deelt slokken uit. Aan het eind noemt iedereen zijn vier kaarten op.</p></div>';
         if(np<2) h+='<p class="hint">Dit spel heeft minstens twee spelers nodig: je moet slokken kunnen uitdelen. Voeg hierboven een speler toe.</p>';
         else if(np>MAXP) h+='<p class="hint">Met één spel kaarten kunnen er hoogstens '+MAXP+' spelers meedoen (vier kaarten per speler en tien voor de piramide). Nu zijn er '+np+'.</p>';
-        else h+='<p class="hint">'+esc(A.name(A.S.active))+' krijgt de eerste kaart, daarna met de klok mee. Tik hierboven een andere speler aan om te wisselen.</p><div class="btnrow"><button class="btn gold" data-a="start">Deel de kaarten</button></div>';
+        else h+='<p class="hint">'+esc(A.name(A.S.active<np?A.S.active:0))+' krijgt de eerste kaart, daarna met de klok mee. Tik hierboven een andere speler aan om te wisselen.</p><div class="btnrow"><button class="btn gold" data-a="start">Deel de kaarten</button></div>';
         return h+spiekSeg();
       }
+      /* Een opgeslagen stand die niet meer te tekenen is (oude versie, kapotte opslag) mag het spel niet op slot zetten:
+         dan terug naar het beginscherm. */
       function render(){
+        try{ draw(); }
+        catch(e){
+          stopTimer(); peek=null; peekPick=false; sure=false; G.g=null; A.save();
+          try{ draw(); A.toast("Opnieuw begonnen","De opgeslagen stand van dit spel was niet meer te lezen."); }
+          catch(e2){ box.innerHTML='<p class="hint">Dit spel kon niet getekend worden. Ga terug en open het opnieuw.</p>'; }
+        }
+      }
+      function draw(){
         var g=G.g, np=A.S.players.length, h, key;
+        if(g&&(typeof g!=="object"||!g.hands||!g.stock||!g.log||!g.pyr)){ G.g=g=null; }
         if(g&&g.v!==V){ G.g=g=null; }
         key=g?g.phase:"setup"; if(key!==lastKey){ lastKey=key; root.scrollTop=0; }
         if(!g){ box.innerHTML=setupHtml(np); return; }
-        if(g.n!==np){ box.innerHTML='<p class="hint">Het aantal spelers is veranderd terwijl er een spel liep ('+g.n+' bij het delen, nu '+np+'). De kaarten kloppen niet meer bij de spelers.</p><div class="btnrow"><button class="btn gold" data-a="reset">Nieuw spel</button></div>'; return; }
+        if(g.n!==np){ box.innerHTML='<p class="hint">Het aantal spelers is veranderd terwijl er een spel liep ('+g.n+' bij het delen, nu '+np+'). De kaarten kloppen niet meer bij de spelers. '+(np>g.n?'Haal de nieuwe speler weer weg (tik hem twee keer aan, dan Verwijder) om verder te spelen, of begin een nieuw spel.':'Begin een nieuw spel.')+'</p><div class="btnrow"><button class="btn gold" data-a="reset">Nieuw spel</button></div>'; return; }
         sync();
         h=g.phase==="deal"?dealHtml(g):g.phase==="memo"?memoHtml(g):g.phase==="pyr"?pyrPhase(g):g.phase==="recite"?reciteHtml(g):eindeHtml(g);
         if(g.phase==="pyr"&&!g.claim&&peek===null) h+=spiekSeg();
@@ -310,7 +336,7 @@
         if(a!=="new")sure=false;
         if(a==="spiek"){ G.spiek=v; if(v==="uit")peekPick=false; }
         else if(a==="start"){ if(!g&&np>=2&&np<=MAXP)newGame(); }
-        else if(a==="reset"){ stopTimer(); peek=null; G.g=null; }
+        else if(a==="reset"){ if(!g||g.n!==np){ stopTimer(); peek=null; peekPick=false; G.g=null; } } /* speler alweer weggehaald: het spel gaat gewoon verder */
         else if(a==="new"){ if(!g||g.phase==="einde"||sure){ stopTimer(); peek=null; peekPick=false; sure=false; G.g=null; } else sure=true; }
         else if(!g||g.n!==np){ /* geen geldig spel: niets doen */ }
         else if(g.phase==="deal"){
@@ -329,13 +355,7 @@
               else { g.phase="recite"; g.rc=g.start; g.errs=[]; resetSay(g); } }
             else if(a==="claim"&&c){ i=+v; if(g.claimed.indexOf(i)<0&&A.S.players[i]){ peekPick=false; g.claim={by:i,times:1,give:{},step:"verdeel"}; } }
             else if(a==="peekpick"&&G.spiek!=="uit"){ peekPick=!peekPick; }
-            else if(a==="peek"&&G.spiek!=="uit"){ i=+v; peekPick=false;
-              /* Variërende regel: spieken kost een slok of een adtje, naar afspraak. De kaarten komen pas na het doorgeven in beeld. */
-              if(A.S.players[i]) A.handover(i,"Alleen jij kijkt. Spieken kost "+spiekPrijs()+".",function(){
-                if(!alive||G.g!==g||g.phase!=="pyr"||g.claim||g.n!==A.S.players.length||!A.S.players[i])return;
-                if(G.spiek==="adtje"){ A.atje(i,1); log(g,A.name(i)+" spiekt en trekt een adtje."); } else { A.drink(i,1); log(g,A.name(i)+" spiekt en drinkt 1 slok."); }
-                peek=i; A.save(); render();
-              }); }
+            else if(a==="peek"&&G.spiek!=="uit"){ i=+v; peekPick=false; startPeek(g,i); }
           }
           else if(cl.step==="verdeel"){
             if(a==="times"){ cl.times=+v===2?2:1; if(given(cl)>n*cl.times)cl.give={}; }
@@ -363,6 +383,7 @@
             /* Lezing: wie "twee keer" claimde moet bij twijfel in zijn ene kans beide kaarten laten zien; de tekst beschrijft alleen één kaart. */
             if(a==="pick"){ d=+v; i=cl.picks.indexOf(d); if(i>=0)cl.picks.splice(i,1); else if(d>=0&&d<4){ cl.picks.push(d); if(cl.picks.length>cl.times)cl.picks.shift(); } A.play("tick"); }
             else if(a==="show"&&cl.picks.length===cl.times) resolve(g);
+            else if(a==="peekself"&&G.spiek!=="uit") startPeek(g,cl.by);
           }
           else if(cl.step==="uitslag"){ if(a==="done") g.claim=null; }
         }

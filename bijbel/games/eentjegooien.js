@@ -48,16 +48,23 @@
 
   A.register({ id:ID, beta:true, title:"1’tje Gooien", level:"app", kans:true, sub:"Twee stenen gooien, de derde steen telt af, wie hem terug op 6 draait drinkt",
     init:function(root){
-      var G=A.gs(ID);
+      var G=A.gs(ID), alive=true, gen=0, seen="", obs=null, lockT=null;
       if(G.straf!=="half") G.straf="slok";                       /* regel 4: een slok of een half adtje, zelf kiezen */
       if(G.extra!=="dubbel"&&G.extra!=="draai") G.extra="uit";    /* variërende regel */
       function reset(){ G.die=6; G.count=0; G.last=null; G.over=null; G.log=[]; A.save(); }
-      if(!(G.die>=1&&G.die<=6)||typeof G.count!=="number"||!Array.isArray(G.log)) reset();
+      /* oude of kapotte opslag: liever een schoon spel dan een half scherm */
+      function isObj(x){ return !!x&&typeof x==="object"; }
+      if([1,2,3,4,5,6].indexOf(G.die)<0||typeof G.count!=="number"||!Array.isArray(G.log)||(G.last&&!isObj(G.last))||(G.over&&(!isObj(G.over)||G.die!==6))) reset();
+      G.log=G.log.filter(isObj);
+      /* spelers kunnen onderweg weg zijn gegaan: de beurt blijft altijd bij een bestaande speler */
+      function fixActive(){ var n=A.S.players.length, i=A.S.active; if(!(i>=0&&i<n)||i!==Math.floor(i)){ A.S.active=0; A.save(); A.renderPlayers(); } }
+      function sig(){ return A.S.active+"|"+A.S.players.map(function(q){return q.name;}).join("|"); }
 
       function strafTxt(s){ return s==="half"?"een half adtje":"1 slok"; }
 
       function onRoll(v){
-        if(G.over) return;
+        if(!alive||G.over) return;
+        fixActive();
         var i=A.S.active, nm=A.name(i), a=v[0], b=v[1], w=worp(a,b), from=G.die, made=0, hit=false;
         A.kruk(ID,[a,b],i); /* adtje kruk: elke worp van de twee stenen telt */
         /* Draaien stopt zodra de steen op de 6 ligt: het spel is dan afgelopen (regel 4), de rest van de draaien vervalt. */
@@ -80,10 +87,12 @@
         if(hit){
           A.play("dood");
           A.overlay("dood","Zes!",[nm+" draait de derde steen terug op de 6 en verliest.",
-            "Drink "+strafTxt(G.straf)+(sips?" en "+slok(sips)+" voor "+(G.extra==="dubbel"?"de dubbel":"het draaien"):"")+"."],0,A.dicerow([a,b]));
+            nm+" drinkt "+strafTxt(G.straf)+(sips?" en "+slok(sips)+" voor "+(G.extra==="dubbel"?"de dubbel":"het draaien"):"")+"."],0,A.dicerow([a,b]));
         } else if(made){
           A.play("ding");
-          A.overlay("info","Draai "+made+"×",[nm+" gooit "+w.why+".","Derde steen van "+from+" naar "+G.die+"."+(sips?" Drink "+slok(sips)+".":"")],1900,A.dicerow([a,b]));
+          A.overlay("info","Draai "+made+"×",[nm+" gooit "+w.why+".","Derde steen van "+from+" naar "+G.die+"."+(sips?" "+nm+" drinkt "+slok(sips)+".":"")],1900,A.dicerow([a,b]));
+          /* de melding laat tikken door: de Dobbel-knop van de volgende speler staat even vast, zodat niemand onder de melding door gooit */
+          if(dice){ var d=dice; d.lock(true); clearTimeout(lockT); lockT=setTimeout(function(){ d.lock(false); },1600); }
         }
       }
 
@@ -99,6 +108,8 @@
 
       var dice=null;
       function render(){
+        if(!alive) return;
+        fixActive(); seen=sig();
         var p=A.S.players, i=A.S.active, over=G.over, idx=over?6:6-G.die, rem=over?0:G.die, L=G.last, h="", k;
         if(p.length<2) h+='<p class="hint">Met één speler verlies je altijd zelf. Voeg iemand toe met + speler.</p>';
 
@@ -113,12 +124,12 @@
         h+='<div class="eentjegooien-last">'+lastHtml(L)+'</div></div>';
 
         if(over){
-          h+='<div class="verdict fout"><h2>'+esc(over.p)+' verliest</h2><p><b>'+esc(over.p)+'</b> heeft de derde steen terug op de 6 gedraaid. Drink <b>'+strafTxt(over.straf)+'</b>'+
+          h+='<div class="verdict fout"><h2>'+esc(over.p)+' verliest</h2><p><b>'+esc(over.p)+'</b> heeft de derde steen terug op de 6 gedraaid en drinkt <b>'+strafTxt(over.straf)+'</b>'+
             (over.sips?' en '+slok(over.sips)+' voor '+(over.extra==="dubbel"?"de dubbel":"het draaien"):'')+'.</p>'+
             '<div class="btnrow"><button class="btn gold eentjegooien-btn" id="eentjegooien-again">Nieuw spel</button></div></div>'+
-            '<p class="hint">'+esc(A.name(i))+' begint het nieuwe spel. Begint iemand anders? Tik op die naam.</p>';
+            '<p class="hint">Tik op Nieuw spel. '+esc(A.name(i))+' begint; begint iemand anders, tik dan op die naam.</p>';
         } else {
-          h+='<p class="hint">'+esc(A.name(i))+' is aan de beurt: één worp met twee stenen.</p><div id="eentjegooien-dice"></div>';
+          h+='<p class="hint">'+esc(A.name(i))+' is aan de beurt: tik op Dobbel, of tik een steen aan en vul je echte worp in.</p><div id="eentjegooien-dice"></div>';
         }
 
         /* spiekbriefje: wanneer draait de derde steen */
@@ -140,8 +151,9 @@
         }
         root.innerHTML=h;
 
-        dice=null;
-        if(!over) dice=A.Dice(el("eentjegooien-dice"),{n:2,onRoll:onRoll,label:"Dobbel"});
+        /* elke render maakt nieuwe stenen; een worp die nog uitrolt op de oude stenen (of na het verlaten van het spel) telt niet */
+        dice=null; clearTimeout(lockT); var my=++gen;
+        if(!over) dice=A.Dice(el("eentjegooien-dice"),{n:2,onRoll:function(v){ if(alive&&my===gen) onRoll(v); },label:"Dobbel"});
         root.querySelectorAll("[data-straf]").forEach(function(b){ b.onclick=function(){ G.straf=b.getAttribute("data-straf"); A.save(); render(); }; });
         root.querySelectorAll("[data-extra]").forEach(function(b){ b.onclick=function(){ G.extra=b.getAttribute("data-extra"); A.save(); render(); }; });
         el("eentjegooien-new").onclick=function(){ reset(); render(); };
@@ -151,6 +163,10 @@
       render();
       this.refresh=render;
       this.onPlayer=function(){ render(); };
+      /* speler toegevoegd, hernoemd of verwijderd via de spelersbalk: scherm bijwerken (core meldt dat niet zelf) */
+      var bar=el("players");
+      if(bar&&window.MutationObserver){ obs=new MutationObserver(function(){ if(alive&&sig()!==seen) render(); }); obs.observe(bar,{childList:true}); }
+      this.destroy=function(){ alive=false; gen++; clearTimeout(lockT); if(obs){ obs.disconnect(); obs=null; } };
     }
   });
 })();

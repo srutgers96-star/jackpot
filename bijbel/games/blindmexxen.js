@@ -34,7 +34,7 @@
   A.register({ id:ID, beta:true, title:"Blind Mexxen", level:"app", sub:"Stenen onder de beker, bluffen, beker trekken, wie drinkt",
     init:function(root){
       var G=A.gs(ID), R=null, busy=false, timer=null, dead=false;
-      G.mode=G.mode==="echt"?"echt":"digi"; G.inzet=G.inzet||1; G.v31=!!G.v31; G.dubbel=!!G.dubbel;
+      G.mode=G.mode==="echt"?"echt":"digi"; G.inzet=(G.inzet===2||G.inzet===3)?G.inzet:1; G.v31=!!G.v31; G.dubbel=!!G.dubbel;
       function n(){ return A.S.players.length; }
       function digi(){ return G.mode==="digi"; }
       function nm(i){ return A.name(i); }
@@ -47,15 +47,26 @@
         if(timer){ clearTimeout(timer); timer=null; } busy=false;
         if(!(start>=0&&start<n())) start=0;
         /* q = verborgen worpen die nog niet bij de adtje-kruk-telling zijn gemeld (zie flushKruk) */
-        R=G.R={start:start, cur:start, prev:null, claim:null, dice:null, last:start, q:[], log:[], phase:"turn", t:newT(), deal:null, lift:null, tries:[], res:null, note:null};
+        R=G.R={k:n(), start:start, cur:start, prev:null, claim:null, dice:null, last:start, q:[], log:[], phase:"turn", t:newT(), deal:null, lift:null, tries:[], res:null, note:null};
         setActive(start); render();
       }
+      function idx(i,k){ return typeof i==="number"&&i>=0&&i<k&&i===Math.floor(i); }
+      function okDice(d){ return Array.isArray(d)&&d.length===2&&d[0]>=1&&d[0]<=6&&d[1]>=1&&d[1]<=6; }
+      /* Bewaarde ronde nog bruikbaar? Zo niet (oude versie, speler verwijderd, kapotte opslag) dan begint er gewoon een nieuwe ronde. */
       function valid(r){
-        var k=n(); if(!r||!r.t||!Array.isArray(r.q)||!Array.isArray(r.log)||!Array.isArray(r.tries)) return false;
-        if(!(r.cur<k&&r.start<k&&(r.prev===null||r.prev<k))) return false;
-        if(r.phase==="deal"&&(!r.deal||(r.deal.to!==null&&r.deal.to>=k))) return false;
-        if(r.phase==="end"&&(!r.res||r.res.starter>=k)) return false;
-        if(r.phase==="lift"&&!r.lift) return false;
+        var k=n(); if(!r||typeof r!=="object"||!r.t||typeof r.t!=="object"||!Array.isArray(r.q)||!Array.isArray(r.log)||!Array.isArray(r.tries)) return false;
+        if(["turn","deal","mexx","lift","tries","end"].indexOf(r.phase)<0) return false;
+        if(typeof r.k==="number"&&k<r.k) return false; /* speler verwijderd: de nummers zijn verschoven, de beurt klopt niet meer */
+        if(!(idx(r.cur,k)&&idx(r.start,k)&&(r.prev===null||idx(r.prev,k)))) return false;
+        if(r.prev===null?r.claim!==null:COMBOS.indexOf(r.claim)<0) return false;
+        if(r.phase==="mexx"&&r.claim!==1000) return false;
+        if(r.phase==="turn"&&r.claim===1000) return false;
+        if(r.dice!==null&&!okDice(r.dice)) return false;
+        if(typeof r.t.rolls!=="number"||(r.t.pick!==null&&COMBOS.indexOf(r.t.pick)<0)) return false;
+        if((r.phase==="deal"||(r.phase==="lift"&&r.lift==="deal"))&&(!r.deal||(r.deal.to!==null&&!idx(r.deal.to,k))||(r.phase==="lift"&&r.deal.to===null))) return false;
+        if(r.phase==="end"&&(!r.res||!idx(r.res.starter,k))) return false;
+        if(r.phase==="lift"&&["doubt","deal","mexxja","mexxnee"].indexOf(r.lift)<0) return false;
+        if(r.phase==="lift"&&r.lift!=="deal"&&r.prev===null) return false;
         if(r.phase!=="turn"&&r.prev===null&&r.phase!=="deal"&&r.phase!=="lift"&&r.phase!=="end") return false;
         if(digi()&&!r.dice&&(r.prev!==null||r.t.rolls>0)&&r.phase!=="end") return false;
         return true;
@@ -79,9 +90,11 @@
          naar de telling. Met echte stenen kent de app alleen de worp die bij het trekken wordt ingevoerd. */
       function flushKruk(d){
         if(digi()){ for(var i=0;i<R.q.length;i++) A.kruk(ID,R.q[i].v,R.q[i].p); }
-        else A.kruk(ID,d,R.last);
+        else if(d) A.kruk(ID,d,R.last);
         R.q=[];
       }
+      /* Nieuw spel midden in een ronde: de worpen onder de beker zijn niet geheim meer en tellen nog mee voor de kruk. */
+      function abandon(){ if(valid(R)&&R.q.length) flushKruk(null); }
       function look(){
         var t=R.t; if(t.rolls===0) t.looked=true; /* keuze III: nu moet er minstens één steen opnieuw */
         t.say=false; t.pick=null; A.save();
@@ -152,12 +165,14 @@
         }
         if(R.tries.length>=3){ finish(c,G.inzet,"Geen Mexx",C+" gooit in drie pogingen geen Mexx en drinkt "+slok(G.inzet)+"."); return; }
         A.save(); render();
-        A.overlay("info","Mis",[C+" gooit "+label(score(v))+". Nog "+(3-R.tries.length)+(3-R.tries.length===1?" poging.":" pogingen.")],1500,A.dicerow(v));
+        show("info","Mis",[C+" gooit "+label(score(v))+". Nog "+(3-R.tries.length)+(3-R.tries.length===1?" poging.":" pogingen.")],A.dicerow(v));
       }
 
       /* ---- knoppen ---- */
       function act(a,v){
-        if(busy) return; var t=R.t, to;
+        if(busy) return;
+        if(n()<2||!valid(R)){ render(); return; } /* spelers gewijzigd of opslag onbruikbaar: render begint een nieuwe ronde */
+        var t=R.t, to;
         switch(a){
           case "roll": startRoll(null); break;
           case "one": startRoll(1-(+v)); break; /* alleen steen v opnieuw, de andere blijft liggen */
@@ -169,7 +184,8 @@
           case "go": if(t.pick) announce(t.pick); break;
           case "doubt": lift("doubt"); break;
           case "deal": t.peek=false; R.phase="deal"; R.deal={to:null}; A.save(); render(); break;
-          case "dealto": R.deal.to=+v; A.save(); render(); break;
+          case "dealto": if(R.phase==="deal"&&idx(+v,n())&&+v!==R.cur){ R.deal.to=+v; A.save(); render(); } break;
+          case "dealwho": if(R.phase==="deal"){ R.deal.to=null; A.save(); render(); } break;
           case "dealback": R.phase="turn"; R.deal=null; A.save(); render(); break;
           case "dealja": to=R.deal.to; A.drink(to,1); A.play("ding");
             restart(nm(to)+" gelooft de 1 en 3 van "+nm(R.cur)+" en drinkt 1 slok.");
@@ -178,11 +194,11 @@
           case "mexxja": lift("mexxja"); break;
           case "mexxnee": lift("mexxnee"); break;
           case "next": newRound(R.res.starter); break;
-          case "new": newRound(A.S.active); break;
-          case "mode": if(G.mode!==v){ G.mode=v==="echt"?"echt":"digi"; A.save(); newRound(A.S.active); } break;
+          case "new": abandon(); newRound(A.S.active); break;
+          case "mode": if(G.mode!==v){ abandon(); G.mode=v==="echt"?"echt":"digi"; A.save(); newRound(A.S.active); } break;
           case "v31": G.v31=!G.v31; t.pick=null; A.save(); render(); break;
           case "dub": G.dubbel=!G.dubbel; A.save(); render(); break;
-          case "inzet": G.inzet=+v; A.save(); render(); break;
+          case "inzet": G.inzet=(+v===2||+v===3)?+v:1; A.save(); render(); break;
         }
       }
       function opt(a,num,lbl,small,v){ return '<button class="opt" data-act="'+a+'"'+(v===undefined?'':' data-v="'+v+'"')+'><span class="num">'+num+'</span><span class="lbl">'+lbl+(small?'<small>'+small+'</small>':'')+'</span><span></span></button>'; }
@@ -195,11 +211,15 @@
       function render(){
         if(dead) return; /* spel verlaten: een late tik of timer tekent niets meer */
         if(n()<2){
-          root.innerHTML='<div class="blindmexxen-root"><p class="hint">Blind Mexxen speel je met minstens twee spelers: de beker gaat door naar de volgende. Voeg hierboven een speler toe.</p><div class="btnrow"><button class="btn gold" id="bmGo">Start</button></div></div>';
+          root.innerHTML='<div class="blindmexxen-root"><p class="hint">Blind Mexxen speel je met minstens twee spelers: de beker gaat door naar de volgende. Voeg hierboven een speler toe en tik op Start.</p><div class="btnrow"><button class="btn gold" id="bmGo">Start</button></div></div>';
           el("bmGo").onclick=function(){ if(n()>=2) newRound(A.S.active); else A.toast("Nog te weinig spelers","Voeg eerst een tweede speler toe.",2500); };
           return;
         }
-        if(!valid(R)){ newRound(A.S.active); return; }
+        if(!valid(R)){
+          if(R&&typeof R.k==="number"&&n()<R.k) A.toast("Nieuwe ronde","Er is een speler weggehaald, dus de ronde begint opnieuw.",3500);
+          newRound(A.S.active); return;
+        }
+        R.k=n(); if(R.t.rolls>=2) R.t.say=true; /* na de tweede worp is er maar één ding over: blind doorgeven */
         var t=R.t, ph=R.phase, cur=R.cur, cn=esc(nm(cur)), pn=R.prev===null?"":esc(nm(R.prev)), h, list, i, others;
         h='<div class="blindmexxen-root"><div class="board"><div class="stat"><span>Opzet: <b>'+esc(nm(R.start))+'</b></span><span>Aan de beurt: <b>'+cn+'</b></span></div>';
         h+=R.claim===null?'<div class="blindmexxen-claim">Nog niets doorgegeven</div>':'<div class="blindmexxen-claim">'+pn+' zegt<b>'+label(R.claim)+'</b></div>';
@@ -255,7 +275,7 @@
           } else {
             h+='<p class="hint">'+esc(nm(R.deal.to))+': '+cn+' zegt dat er 1 en 3 ligt en geeft jou een slok. Geloof je het?</p><div class="opts">'+
               opt("dealja","✓","Ik geloof het","jij drinkt 1 slok")+
-              opt("dealnee","✕","Ik geloof het niet: beker trekken","ligt er 1 en 3, dan drink jij 2 slokken; anders drinkt "+cn+" 1 slok")+'</div>';
+              opt("dealnee","✕","Ik geloof het niet: beker trekken","ligt er 1 en 3, dan drink jij 2 slokken; anders drinkt "+cn+" 1 slok")+'</div><div class="btnrow"><button class="btn" data-act="dealwho">Andere speler kiezen</button></div>';
           }
         }
         else if(ph==="mexx"){
@@ -300,7 +320,9 @@
 
       R=G.R||null;
       if(R&&R.t){ R.t.peek=false; } /* na herladen ligt de beker altijd dicht */
-      if(valid(R)) render(); else newRound(A.S.active);
+      if(n()>=2&&valid(R)){ setActive(R.phase==="end"?R.res.starter:R.cur); render(); }
+      else if(n()>=2) newRound(A.S.active);
+      else render();
     }
   });
 })();

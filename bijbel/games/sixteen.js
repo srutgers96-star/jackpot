@@ -3,6 +3,7 @@
   "use strict";
   var A=App, el=A.el, esc=A.esc;
   var MAXP=16; /* drie kaarten per speler plus twee open kaarten uit één spel van 52 */
+  var GUARD=600;
 
   if(!document.getElementById("sixteen-style")){
     var css=document.createElement("style"); css.id="sixteen-style";
@@ -38,6 +39,13 @@
       function next(i){ return (i+1)%G.game.n; }
       function prev(i){ return (i-1+G.game.n)%G.game.n; }
       function top(p){ var s=G.game.piles[p]; return s[s.length-1]; }
+      function names(){ return A.S.players.map(function(p){ return p.name; }); }
+      /* Een plakkend scherm (uitslag, telefoon doorgeven) dat binnen GUARD ms weer wordt weggetikt was een dubbele tik
+         op de stapel eronder: het komt terug, zodat niemand de slokken mist of de hand van de volgende ziet. */
+      function sticky(show,done){
+        var t0=Date.now(); show();
+        A.onOverlayClose(function(){ if(Date.now()-t0<GUARD){ sticky(show,done); return; } done(); });
+      }
 
       /* De regels noemen "twee open stapels": bij het delen draait de app voor elke stapel één kaart om.
          Zijn die twee toevallig samen zestien, dan drinkt niemand: niemand heeft die zestien gelegd. */
@@ -46,7 +54,7 @@
         for(i=0;i<n;i++) hands.push([]);
         for(k=0;k<3;k++) for(i=0;i<n;i++) hands[i].push(d.pop());
         var cur=A.S.active<n?A.S.active:0;
-        G.game={n:n, deck:d, piles:[[d.pop()],[d.pop()]], hands:hands, cur:cur, phase:"wait", turn:newTurn(), last:""};
+        G.game={n:n, names:names(), deck:d, piles:[[d.pop()],[d.pop()]], hands:hands, cur:cur, phase:"wait", turn:newTurn(), last:""};
         sel=null; A.S.active=cur; A.save(); A.renderPlayers();
       }
       /* De regels zeggen niet wat er gebeurt als de gesloten stapel op is. Gewone kaartpraktijk:
@@ -66,31 +74,47 @@
         var a=16-val(top(0)), b=16-val(top(1));
         return G.game.hands[i].some(function(c){ var v=val(c); return v===a||v===b; });
       }
-      /* houdt het spel in de pas met de spelerslijst bovenin (die buiten dit bestand verandert) */
+      /* Houdt het spel in de pas met de spelerslijst bovenin (die buiten dit bestand verandert). Wie er nog zit
+         (zelfde naam, zelfde volgorde) houdt zijn hand; de kaarten van wie weg is gaan onder de gesloten stapel;
+         wie erbij komt pakt drie kaarten. Eén gewijzigde naam op dezelfde plek is een hernoemde speler. */
       function sync(){
-        var n=A.S.players.length, g=G.game;
+        var P=A.S.players, n=P.length, g=G.game, k, j, diff=0, changed=false;
         if(n<2) return "few";
         if(n>MAXP) return "many";
         if(!g) return "none";
-        if(g.n>n) return "gone";
-        if(g.n<n){ while(g.n<n){ g.hands[g.n]=[]; g.n++; refill(g.n-1); } A.save(); } /* nieuwe speler schuift aan: drie kaarten van de stapel */
-        if(g.cur>=g.n) g.cur=0;
-        if(A.S.active!==g.cur){ A.S.active=g.cur; A.save(); A.renderPlayers(); }
+        for(k=0;k<g.n&&k<n;k++) if(g.names[k]!==P[k].name) diff++;
+        if(n<g.n||diff>1){
+          var keep=[]; j=0;
+          for(k=0;k<g.n;k++){ if(j<n&&g.names[k]===P[j].name){ keep.push(k); j++; } else Array.prototype.unshift.apply(g.deck,g.hands[k]); }
+          var pos=keep.indexOf(g.cur);
+          if(pos<0){ /* de speler die aan de beurt was is weg: de volgende begint een nieuwe beurt */
+            pos=keep.filter(function(x){ return x<g.cur; }).length; g.phase="wait"; g.turn=newTurn(); sel=null;
+          }
+          g.hands=keep.map(function(x){ return g.hands[x]; }); g.n=keep.length; g.cur=pos; changed=true;
+        }
+        while(g.n<n){ g.hands[g.n]=[]; g.n++; refill(g.n-1); changed=true; }
+        if(g.cur>=g.n){ g.cur=0; changed=true; }
+        if(diff||changed) g.names=names();
+        if(A.S.active!==g.cur){ A.S.active=g.cur; A.renderPlayers(); changed=true; }
+        if(diff||changed) A.save();
         return "ok";
       }
 
       function reveal(sub){
         if(sync()!=="ok"){ render(); return; }
         var g=G.game, i=g.cur;
-        A.handover(i,sub,function(){
-          if(G.game!==g||g.cur!==i||sync()!=="ok"){ render(); return; }
+        var hand=g.hands[i];
+        sticky(function(){ A.handover(i,sub,null); },function(){
+          if(G.game!==g||sync()!=="ok"||g.hands[g.cur]!==hand){ render(); return; }
           g.phase="play"; sel=null; A.save(); render();
         });
       }
 
       function lay(hi,pi){
-        if(sync()!=="ok"){ render(); return; }
-        var g=G.game, i=g.cur, T=g.turn, hand=g.hands[i], card=hand[hi]; if(!card||g.phase!=="play") return;
+        var was=G.game&&G.game.hands[G.game.cur];
+        /* spelerslijst veranderd sinds dit scherm getekend is: eerst opnieuw tekenen, niets leggen */
+        if(sync()!=="ok"||G.game.hands[G.game.cur]!==was||G.game.phase!=="play"){ render(); return; }
+        var g=G.game, i=g.cur, T=g.turn, hand=g.hands[i], card=hand[hi]; if(!card){ render(); return; }
         var under=top(pi), other=top(1-pi);
         var six=val(card)+val(other)===16, dbl=six&&card.r===8, same=under.r===card.r;
         /* Variant 1: een extra kaart in dezelfde beurt mag alleen als de stapels daarmee weer zestien vormen. */
@@ -129,8 +153,8 @@
         if(!drinks.length){ reveal(g.last+" Laat niemand meekijken."); return; }
         var kind=T.atjes?"dood":T.six?"win":"info", title=T.atjes?"8 + 8!":T.six>1?T.six+"× 16!":T.six?"16!":"Dubbel";
         A.play(T.atjes?"dood":T.six>1?"special":T.six?"win":"ding");
-        A.overlay(kind,title,drinks.concat([what]),0,'<div class="cards">'+A.cardHtml(t0,"big")+A.cardHtml(t1,"big")+'</div>');
-        A.onOverlayClose(function(){ if(G.game===g&&g.cur===nx) reveal("Laat niemand meekijken."); else render(); });
+        sticky(function(){ A.overlay(kind,title,drinks.concat([what]),0,'<div class="cards">'+A.cardHtml(t0,"big")+A.cardHtml(t1,"big")+'</div>'); },
+          function(){ if(G.game===g&&g.cur===nx) reveal("Laat niemand meekijken."); else render(); });
       }
 
       function segHtml(){
@@ -147,10 +171,12 @@
       function render(){
         var st=sync(), g=G.game, h='<div class="sixteen-wrap">';
         if(st!=="ok"){
-          h+='<p class="hint">'+(st==="few"?"Sixteen speel je met minstens twee spelers: de volgende speler drinkt. Voeg bovenin een speler toe en tik dan op Kaarten delen."
-            :st==="many"?"Met drie kaarten per speler kunnen er hooguit "+MAXP+" spelers meedoen met één spel kaarten."
-            :st==="gone"?"Er is een speler weggegaan, dus de handen kloppen niet meer. Deel opnieuw."
-            :"Er zijn nog geen kaarten gedeeld.")+'</p><div class="btnrow"><button class="btn gold" id="sixteen-new">Kaarten delen</button></div>'+segHtml()+'</div>';
+          /* de spelerslijst bovenin tekent dit scherm niet opnieuw, dus de knop blijft staan en kijkt bij een tik opnieuw */
+          var go=g?"Verder spelen":"Kaarten delen";
+          h+='<p class="hint">'+(st==="few"?"Sixteen speel je met minstens twee spelers: de volgende speler drinkt. Voeg bovenin een speler toe en tik dan op "+go+"."
+            :st==="many"?"Met drie kaarten per speler kunnen er hooguit "+MAXP+" spelers meedoen met één spel kaarten. Haal bovenin spelers weg en tik dan op "+go+"."
+            :"Er zijn nog geen kaarten gedeeld. Tik op Kaarten delen.")+'</p><div class="btnrow">'+
+            (g?'<button class="btn gold" id="sixteen-go">Verder spelen</button>':'<button class="btn gold" id="sixteen-new">Kaarten delen</button>')+'</div>'+segHtml()+'</div>';
           root.innerHTML=h; bind(); return;
         }
         var i=g.cur, T=g.turn, play=g.phase==="play", hand=g.hands[i], t=[top(0),top(1)], sum=val(t[0])+val(t[1]);
@@ -172,9 +198,10 @@
         } else {
           h+='<div class="sixteen-hand">'+hand.map(handBtn).join("")+'</div>';
           h+='<p class="hint">'+(sel!==null?'Tik de stapel waar <b>'+esc(A.cardName(hand[sel]))+'</b> op moet.'
-            :T.laid>0?'Zestien! Leg nog een kaart die weer zestien maakt, of stop.'
+            :!hand.length?'Er zijn geen kaarten meer om te pakken. Tik op Beurt klaar.'
+            :T.laid>0?'Zestien! Leg nog een kaart die weer zestien maakt, of tik op Beurt klaar.'
             :'<b>'+esc(A.name(i))+'</b>, tik een kaart en daarna de stapel waar hij op moet.')+'</p>';
-          if(T.laid>0) h+='<div class="btnrow"><button class="btn primary" id="sixteen-done">Beurt klaar</button></div>';
+          if(T.laid>0||!hand.length) h+='<div class="btnrow"><button class="btn primary" id="sixteen-done">Beurt klaar</button></div>';
         }
         h+=segHtml()+'<div class="btnrow"><button class="btn" id="sixteen-new">Nieuw spel</button></div></div>';
         root.innerHTML=h; bind();
@@ -189,7 +216,8 @@
         };
         b=el("sixteen-same"); if(b) b.onclick=function(){ G.same=!G.same; A.save(); render(); };
         b=el("sixteen-show"); if(b) b.onclick=function(){ reveal("Laat niemand meekijken."); };
-        b=el("sixteen-done"); if(b) b.onclick=function(){ if(sync()!=="ok"||G.game.phase!=="play"||!G.game.turn.laid){ render(); return; } endTurn(); };
+        b=el("sixteen-go"); if(b) b.onclick=render;
+        b=el("sixteen-done"); if(b) b.onclick=function(){ var g=G.game; if(sync()!=="ok"||g.phase!=="play"||(!g.turn.laid&&g.hands[g.cur].length)){ render(); return; } endTurn(); };
         root.querySelectorAll("[data-h]").forEach(function(x){ x.onclick=function(){ var k=+x.getAttribute("data-h"); sel=(sel===k?null:k); A.play("tick"); render(); }; });
         root.querySelectorAll("[data-p]").forEach(function(x){ x.onclick=function(){
           if(sel===null){ A.toast("Kies eerst een kaart","Tik een kaart uit je hand en daarna de stapel.",2500); return; }
@@ -198,8 +226,15 @@
       }
 
       /* herstel na herladen: een half gespeeld spel gaat verder, maar een hand staat nooit meteen open */
-      var g0=G.game;
-      if(g0&&!(g0.hands&&g0.deck&&g0.turn&&g0.turn.cards&&g0.piles&&g0.piles.length===2&&g0.piles[0].length&&g0.piles[1].length&&g0.hands.length===g0.n)) G.game=null;
+      function okCard(c){ return !!c&&typeof c.r==="number"&&c.r>=1&&c.r<=13&&typeof c.s==="number"&&c.s>=0&&c.s<=3; }
+      function okPile(p){ return Array.isArray(p)&&p.every(okCard); }
+      function valid(g){ /* ook een bewaard spel uit een oudere versie van dit bestand mag niets stuk maken: dan wordt er opnieuw gedeeld */
+        return !!g&&typeof g.n==="number"&&Array.isArray(g.hands)&&g.hands.length===g.n&&g.hands.every(okPile)&&
+          Array.isArray(g.names)&&g.names.length===g.n&&okPile(g.deck)&&
+          Array.isArray(g.piles)&&g.piles.length===2&&g.piles.every(function(p){ return okPile(p)&&p.length>0; })&&
+          typeof g.cur==="number"&&g.cur>=0&&g.cur<g.n&&!!g.turn&&Array.isArray(g.turn.cards)&&typeof g.turn.laid==="number";
+      }
+      if(G.game&&!valid(G.game)) G.game=null;
       if(G.game&&G.game.phase==="play") G.game.phase="wait";
       if(!G.game&&A.S.players.length>=2&&A.S.players.length<=MAXP) deal();
       render();
@@ -208,9 +243,9 @@
       /* een andere speler aangetikt in de balk: die is nu aan de beurt, de open hand gaat dicht */
       this.onPlayer=function(i){
         var g=G.game;
-        if(g&&g.n<=A.S.players.length&&i<A.S.players.length){
-          if(g.turn.laid>0&&g.cur<g.n) refill(g.cur);
-          g.turn=newTurn(); g.cur=i; g.phase="wait"; sel=null; A.save();
+        if(g&&sync()==="ok"&&i<g.n){
+          if(g.turn.laid>0) refill(g.cur);
+          g.turn=newTurn(); g.cur=i; g.phase="wait"; sel=null; A.S.active=i; A.save(); A.renderPlayers();
         }
         render();
       };

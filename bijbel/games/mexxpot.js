@@ -46,7 +46,7 @@
   A.register({ id:ID, title:"Mexxpot", level:"app", beta:true, sub:"Mexx en Jackpot tegelijk: dobbelstenen, negen cijfers, scores en wie drinkt",
     init:function(root){
       css();
-      var G=A.gs(ID), gen=0, Q=[], showing=false, armed=false, armTimer=null;
+      var G=A.gs(ID), gen=0, Q=[], showing=false, armed=false, armTimer=null, dice=null, lockUntil=0, lockTimer=null;
       if(G.straf!==2&&G.straf!==3&&G.straf!==4) G.straf=2;
       if(G.tie!=="ogen") G.tie="mexx";
       if(!Array.isArray(G.log)) G.log=[];
@@ -62,11 +62,31 @@
       function holder(){ return G.R.tie||G.R.t; } /* wie de worp op tafel "bezit": de beurt of de extra ronde */
       function who(){ var R=G.R; return R.tie?R.tie.players[R.tie.i]:R.cur; }
       function startIdx(){ return A.S.active<P().length?A.S.active:0; }
+      function die(x){ return x===1||x===2||x===3||x===4||x===5||x===6; }
+      /* klopt de bewaarde stand nog? Nee = opnieuw beginnen (andere spelers, of een stand uit een oudere versie) */
       function ok(){
-        var R=G.R, n=P().length; if(!Array.isArray(G.board)||G.board.length!==9||!R||R.n!==n||!R.turns) return false;
-        if(!(R.start<n)||!(R.cur<n)) return false;
-        if(R.tie) return !!(R.tie.players&&R.tie.players[R.tie.i]<n&&R.tie.phase&&R.tie.rolls);
-        return !!(R.t&&R.t.phase);
+        var R=G.R, n=P().length, T, t, bad=false;
+        if(!Array.isArray(G.board)||G.board.length!==9||!R||typeof R!=="object"||R.n!==n||!R.turns||typeof R.turns!=="object") return false;
+        if(!(R.start>=0&&R.start<n)||!(R.cur>=0&&R.cur<n)) return false;
+        if(!(R.maxThrows>=1&&R.maxThrows<=3)||!(R.mexx>=0)) return false;
+        Object.keys(R.turns).forEach(function(i){ var x=R.turns[i]; if(!(+i<n)||!x||typeof x.score!=="number"||!die(x.a)||!die(x.b)) bad=true; });
+        if(bad) return false;
+        if(R.tie){
+          T=R.tie; if(!Array.isArray(T.players)||T.players.length<2||!T.rolls||typeof T.rolls!=="object"||!(T.i>=0&&T.i<T.players.length)) return false;
+          T.players.forEach(function(p){ if(!(p>=0&&p<n)) bad=true; });
+          if(bad) return false;
+          if(T.phase==="roll") return true;
+          if(T.phase!=="deal"&&T.phase!=="flip") return false;
+          return die(T.a)&&die(T.b)&&(T.phase!=="flip"||options(T.a,T.b).length>0);
+        }
+        t=R.t; if(!t||typeof t!=="object"||!(t.throws>=0)) return false;
+        if(t.k&&!((t.k.i===0||t.k.i===1)&&(t.k.v===1||t.k.v===2))) return false;
+        if(t.phase==="roll") return t.throws<R.maxThrows;
+        if(t.phase!=="deal"&&t.phase!=="after31"&&t.phase!=="flip"&&t.phase!=="decide") return false;
+        if(!die(t.a)||!die(t.b)) return false;
+        if(t.phase==="flip") return typeof t.score==="number"&&die(t.ca)&&die(t.cb)&&options(t.a,t.b).length>0;
+        if(t.phase==="decide") return typeof t.score==="number"&&die(t.ca)&&die(t.cb)&&t.throws<R.maxThrows;
+        return t.throws<R.maxThrows;
       }
 
       /* ---- meldingen: de stand is al bijgewerkt, de overlays zijn alleen de boodschap; meerdere tegelijk komen na elkaar ---- */
@@ -77,6 +97,16 @@
         if(m.snd) A.play(m.snd);
         A.overlay(m.kind,m.title,m.lines,sticky?0:m.ms,m.extra);
         if(sticky){ showing=true; A.onOverlayClose(function(){ showing=false; flush(); }); }
+        else { lockUntil=Date.now()+(m.ms||2200); applyLock(); }
+      }
+      /* Een melding die vanzelf verdwijnt laat tikken door naar de knoppen eronder (pointer-events:none in de core).
+         Zolang zo'n melding het scherm bedekt doet het spel dus niets met tikken: geen cijfer omdraaien of slok uitdelen op de gok. */
+      function busy(){ return Date.now()<lockUntil; }
+      function applyLock(){
+        clearTimeout(lockTimer); if(!dice) return;
+        if(!busy()){ dice.lock(false); return; }
+        var g=gen; dice.lock(true);
+        lockTimer=setTimeout(function(){ if(g===gen&&dice) dice.lock(false); },lockUntil-Date.now()+30);
       }
       function commit(){ A.S.active=who(); A.save(); A.renderPlayers(); render(); flush(); }
 
@@ -88,7 +118,7 @@
       function boot(){
         if(P().length>=2&&!ok()){
           if(!Array.isArray(G.board)||G.board.length!==9) newGame(startIdx());
-          else { if(G.R) note("Andere spelers aan tafel: de Mexx-ronde begint opnieuw, het Jackpot-bord blijft liggen."); newRound(startIdx()); }
+          else { if(G.R&&G.R.n!==P().length) note("Andere spelers aan tafel: de Mexx-ronde begint opnieuw, het Jackpot-bord blijft liggen."); newRound(startIdx()); }
         }
         if(P().length>=2) commit(); else render();
       }
@@ -142,8 +172,11 @@
       /* ---- een worp ---- */
       function onThrow(v){
         if(guard()) return;
-        var R=G.R, X=holder(), a=v[0], b=v[1], w=who(), nm=A.name(w), inTie=!!R.tie, mexxRules=!inTie||G.tie==="mexx";
-        if(X.phase!=="roll") return;
+        if(busy()){ render(); return; } /* blind ingevuld onder een melding: stenen weer leeg */
+        var R=G.R, X=holder(), w=who(), nm=A.name(w), inTie=!!R.tie, mexxRules=!inTie||G.tie==="mexx", a, b;
+        if(X.phase!=="roll"||!v||!die(v[0])||!die(v[1])) return;
+        if(!inTie&&X.k){ v=v.slice(); v[X.k.i]=X.k.v; } /* de steen die bleef liggen kan bij zelf invullen niet veranderen */
+        a=v[0]; b=v[1];
         A.kruk(ID,[a,b],w); /* adtje kruk: elke worp van de twee stenen telt, ook een 31 en ook als er een steen bleef liggen */
         X.a=a; X.b=b;
         if(is31(a,b)&&mexxRules){ /* uitdelen, telt niet als worp: dus ook geen cijfer omdraaien */
@@ -179,7 +212,7 @@
         afterFlip(); commit();
       }
       function flip(n){
-        if(guard()) return;
+        if(guard()||busy()) return;
         var X=holder(), w=who(), nm=A.name(w);
         if(X.phase!=="flip"||options(X.a,X.b).indexOf(n)<0) return;
         G.board[n-1]=true; A.play("clack");
@@ -193,7 +226,7 @@
         afterFlip(); commit();
       }
       function act(name,arg){
-        if(guard()) return;
+        if(guard()||busy()) return;
         var R=G.R, t=R.t, X=holder(), w=who(), dec=!!t&&t.phase==="decide";
         if(name==="deal"&&X.phase==="deal"){
           if(arg===w||!P()[arg]) return;
@@ -221,7 +254,7 @@
       /* ---- scherm ---- */
       function diceHtml(a,b,k){ return '<div class="dice">'+[a,b].map(function(v,i){ return '<div class="diewrap"><div class="die'+(k&&k.i===i?' kept':'')+'">'+A.pips(v)+'</div></div>'; }).join("")+'</div>'; }
       function render(){
-        gen++; var g=gen, p=P(), h="", n;
+        gen++; dice=null; var g=gen, p=P(), h="", n;
         if(p.length<2){
           root.innerHTML='<p class="hint">Mexxpot speel je met minstens twee spelers: iemand moet laag kunnen staan en je moet een slok kunnen uitdelen. Voeg bovenaan een speler toe.</p><div class="btnrow"><button class="btn gold mexxpot-big" data-act="start">Begin</button></div>';
           root.querySelector('[data-act="start"]').onclick=boot; return;
@@ -241,8 +274,9 @@
 
         /* de worp */
         if(ph==="roll"){
+          h+='<p class="hint mexxpot-do">'+(t&&t.k?'De '+t.k.v+' blijft liggen. Gooi de andere steen: tik op Dobbel.<small>Echte dobbelsteen? Tik op de lege steen en kies de ogen.</small>':
+            (T?'Gooi één keer met beide stenen: tik op Dobbel.':'Gooi beide stenen: tik op Dobbel.')+'<small>Echte dobbelstenen? Tik op een steen en kies de ogen.</small>')+'</p>';
           h+='<div data-box="dice"></div>';
-          if(t&&t.k) h+='<p class="hint">De '+t.k.v+' blijft liggen. Gooi de andere steen.</p>';
         } else {
           h+=diceHtml(X.a,X.b,t?t.k:null);
         }
@@ -250,6 +284,7 @@
           h+='<div class="verdict neutral"><h2>31</h2><p>'+nm+' deelt één slok uit. Telt niet als worp, dus ook geen cijfer omdraaien. Wie drinkt?</p><div class="btnrow">'+
             A.others(w).map(function(j){ return '<button class="btn gold mexxpot-big" data-deal="'+j+'">'+esc(A.name(j))+'</button>'; }).join("")+'</div></div>';
         } else if(ph==="after31"){
+          h+='<p class="hint mexxpot-do">De 31 telde niet als worp. Kies hoe '+nm+' opnieuw gooit.</p>';
           h+='<div class="opts"><button class="opt" data-act="both"><span class="num">⟳</span><span class="lbl">Opnieuw gooien<small>beide stenen</small></span><span></span></button>'+
             '<button class="opt" data-act="keep1"><span class="num">1</span><span class="lbl">De 1 laten liggen<small>andere steen opnieuw, mag één keer</small></span><span></span></button></div>';
         } else if(ph==="flip"){
@@ -257,6 +292,7 @@
             (t&&t.over?'<small>'+(t.why==="mexx"?'Mexx: daarna is de beurt voorbij.':t.why==="vast"?'Vast: daarna is de beurt voorbij.':'Laatste worp: daarna is de volgende aan de beurt.')+'</small>':'')+'</p>';
         } else if(ph==="decide"){
           var k=R.maxThrows-t.throws;
+          h+='<p class="hint mexxpot-do">Kies: '+esc(label(t.ca,t.cb))+' laten staan of opnieuw gooien.</p>';
           h+='<div class="opts"><button class="opt" data-act="stop"><span class="num">'+esc(label(t.ca,t.cb))+'</span><span class="lbl">Laten staan<small>beurt klaar</small></span><span class="odds">'+(lo===null?'eerste score':t.score>lo?'boven laag':'LAAG')+'</span></button>'+
             '<button class="opt" data-act="again"><span class="num">⟳</span><span class="lbl">Opnieuw gooien<small>beide stenen, nog '+k+' '+(k===1?'worp':'worpen')+'</small></span><span></span></button>';
           if(!t.keptUsed) [t.a,t.b].forEach(function(d,idx){
@@ -294,16 +330,18 @@
         if(box){
           var d=A.Dice(box,{n:2,label:"Dobbel",onRoll:function(v){ if(g===gen) onThrow(v); }});
           if(t&&t.k){ var vals=[null,null], kp=[false,false]; vals[t.k.i]=t.k.v; kp[t.k.i]=true; d.set(vals); d.setKept(kp); }
+          dice=d; applyLock();
         }
         each(root,"[data-flip]",function(b){ b.onclick=function(){ flip(+b.getAttribute("data-flip")); }; });
         each(root,"[data-deal]",function(b){ b.onclick=function(){ act("deal",+b.getAttribute("data-deal")); }; });
         each(root,"[data-keep]",function(b){ b.onclick=function(){ act("keep",+b.getAttribute("data-keep")); }; });
         each(root,"[data-act]",function(b){ var a=b.getAttribute("data-act"); if(a!=="new") b.onclick=function(){ act(a); }; });
-        each(root,"[data-tie]",function(b){ b.onclick=function(){ var T2=G.R.tie; if(!T2||T2.i>0||T2.phase!=="roll") return; G.tie=b.getAttribute("data-tie"); A.save(); render(); }; });
-        each(root,"[data-s]",function(b){ b.onclick=function(){ G.straf=+b.getAttribute("data-s"); A.save(); render(); }; });
-        each(root,"[data-v]",function(b){ b.onclick=function(){ var key=b.getAttribute("data-v"); G[key]=!G[key]; A.save(); render(); }; });
+        each(root,"[data-tie]",function(b){ b.onclick=function(){ var T2=G.R.tie; if(busy()||!T2||T2.i>0||T2.phase!=="roll") return; G.tie=b.getAttribute("data-tie"); A.save(); render(); }; });
+        each(root,"[data-s]",function(b){ b.onclick=function(){ if(busy()) return; G.straf=+b.getAttribute("data-s"); A.save(); render(); }; });
+        each(root,"[data-v]",function(b){ b.onclick=function(){ if(busy()) return; var key=b.getAttribute("data-v"); G[key]=!G[key]; A.save(); render(); }; });
         var nw=root.querySelector('[data-act="new"]');
         nw.onclick=function(){
+          if(busy()) return;
           clearTimeout(armTimer);
           if(!armed){ armed=true; nw.textContent="Zeker weten? Tik nog eens"; armTimer=setTimeout(function(){ armed=false; var x=root.querySelector('[data-act="new"]'); if(x) x.textContent="Nieuw spel"; },3000); return; }
           armed=false; Q=[];
@@ -314,7 +352,7 @@
       this.refresh=render;
       /* de app bewaakt de beurt: tikken op een andere speler verandert niet wie er gooit */
       this.onPlayer=function(){ if(P().length>=2&&ok()){ A.S.active=who(); A.save(); A.renderPlayers(); } else boot(); };
-      this.destroy=function(){ gen++; Q=[]; showing=false; armed=false; clearTimeout(armTimer); };
+      this.destroy=function(){ gen++; Q=[]; showing=false; armed=false; dice=null; clearTimeout(armTimer); clearTimeout(lockTimer); };
       boot();
     }
   });

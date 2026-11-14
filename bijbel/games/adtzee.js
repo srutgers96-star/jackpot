@@ -99,6 +99,24 @@
   }
   function label(t){ var s=spec(t); return cname(t.c)+(s?", "+s:""); }
   function same(x,y){ return !!x&&!!y&&x.c===y.c&&x.a===y.a&&x.b===y.b; }
+  /* bewaarde toestand uit een oudere versie mag het spel nooit laten vastlopen: alles wat niet klopt wordt weggegooid */
+  function okSpec(k){ return !!k&&typeof k==="object"&&ORDER.indexOf(k.c)>=0&&specs(k.c).some(function(x){ return same(x,k); }); }
+  function okDice(a){ return Array.isArray(a)&&a.length===5&&a.every(function(v){ return v===null||(v>=1&&v<=6&&v===Math.floor(v)); }); }
+  function okTurn(T,n){
+    if(!T||typeof T!=="object"||typeof T.p!=="number"||!(T.p>=0&&T.p<n)||T.p!==Math.floor(T.p)) return false;
+    if(typeof T.throws!=="number"||!(T.throws>=0&&T.throws<=3)||T.throws!==Math.floor(T.throws)) return false;
+    if(!okDice(T.vals)||!Array.isArray(T.kept)||T.kept.length!==5) return false;
+    if(T.target&&(!okSpec(T.target)||T.throws===0)) return false;
+    if(T.pick&&(!okSpec(T.pick)||T.throws===0)) return false;
+    if(T.prev&&!okDice(T.prev)) return false;
+    if(T.deal&&(typeof T.deal!=="object"||typeof T.deal.n!=="number"||!(T.deal.n>0)||!T.deal.give||typeof T.deal.give!=="object"||!T.target)) return false;
+    return true;
+  }
+  function okCol(col){
+    var out={};
+    if(col&&typeof col==="object") ORDER.forEach(function(c){ var r=col[c]; if(r&&typeof r==="object") out[c]={h:r.h?1:0,n:(typeof r.n==="number"&&r.n>=0)?r.n:0,a:r.a?1:0}; });
+    return out;
+  }
   /* de stenen die er voor dit doel moeten liggen */
   function req(t){
     var c=t.c, u=upper(c), a=t.a;
@@ -175,7 +193,9 @@
   A.register({ id:ID, beta:true, title:"Adtzee", level:"app", kans:true, sub:"Vijf stenen, scoreblad per speler, missen drinken en raak uitdelen",
     init:function(root){
       var G=A.gs(ID), dice=null, sureNew=false;
-      G.opt=G.opt||{}; G.log=G.log||[];
+      if(!G.opt||typeof G.opt!=="object") G.opt={};
+      if(!Array.isArray(G.log)) G.log=[];
+      G.log=G.log.filter(function(x){ return typeof x==="string"; });
       function np(){ return A.S.players.length; }
       function openOf(i){ var col=(G.cols&&G.cols[i])||{}; return ORDER.filter(function(c){return !col[c];}); }
       function firstOpen(from){ var n=np(), k, i; for(k=0;k<n;k++){ i=(from+k)%n; if(openOf(i).length) return i; } return -1; }
@@ -198,16 +218,19 @@
       /* scoreblad gelijk houden met de spelerslijst (speler erbij, speler weg, andere naam) en de beurt met de actieve speler */
       function sync(){
         var names=A.S.players.map(function(q){return q.name;}), old=G.names, T, i, j, used, map, cols, act, s;
-        if(!G.cols||!old){ G.cols=[]; G.turn=null; G.over=false; G.finale=false; G.log=[]; }
-        else if(names.length<old.length){
+        if(!Array.isArray(G.cols)||!Array.isArray(old)){ G.cols=[]; G.turn=null; G.over=false; G.finale=false; G.log=[]; old=null; }
+        if(old&&names.length<old.length){
           used=[]; map=[]; cols=[];
           for(i=0;i<names.length;i++){ map[i]=-1; for(j=0;j<old.length;j++) if(!used[j]&&old[j]===names[i]){ used[j]=true; map[i]=j; break; } cols.push(map[i]>=0&&G.cols[map[i]]?G.cols[map[i]]:{}); }
           G.cols=cols; T=G.turn;
-          if(T){ i=map.indexOf(T.p); if(i<0) G.turn=null; else { T.p=i; if(T.deal)T.deal.give={}; A.S.active=i; } }
+          if(T){ i=map.indexOf(T.p); if(i<0) G.turn=null; else { T.p=i; if(T.deal)T.deal.give={}; A.S.active=i; A.renderPlayers(); } }
         }
-        for(i=0;i<names.length;i++) if(!G.cols[i]) G.cols[i]={};
         G.cols.length=names.length; G.names=names;
-        T=G.turn; if(T&&(!T.vals||T.vals.length!==5||!T.kept||!(T.p<names.length))) G.turn=T=null;
+        for(i=0;i<names.length;i++) G.cols[i]=okCol(G.cols[i]);
+        T=G.turn; if(T&&!okTurn(T,names.length)) G.turn=T=null;
+        /* een beurt op een combinatie die al is afgestreept kan niet (behalve tijdens het uitdelen: dan is ze net afgestreept) */
+        if(T&&T.target&&!T.deal&&G.cols[T.p][T.target.c]){ T.target=null; T.changing=false; T.pick=null; }
+        if(T&&!openOf(T.p).length&&!T.deal) G.turn=T=null;
         if(G.over){ A.save(); return; }
         act=(A.S.active>=0&&A.S.active<names.length)?A.S.active:0;
         if(!T){ s=firstOpen(act); if(s<0){ G.over=true; A.save(); } else startTurn(s); return; }
@@ -215,7 +238,7 @@
           /* nog niet gegooid: de aangetikte speler mag beginnen; anders maakt de huidige speler eerst zijn beurt af */
           if(T.throws===0&&!T.deal&&openOf(act).length) startTurn(act);
           else { A.S.active=T.p; A.save(); A.renderPlayers(); }
-        }
+        } else if(A.S.active!==T.p){ A.S.active=T.p; A.save(); A.renderPlayers(); }
       }
       function guard(fn){ return function(){ if(!G.names||np()!==G.names.length){ render(); return; } fn.apply(this,arguments); }; }
       function rollLocked(){
@@ -252,7 +275,7 @@
         if(T.changing){
           if(same(k,T.target)){ T.changing=false; T.pick=null; A.save(); render(); return; }
           A.atje(p,1); T.target=k; addLog(A.name(p)+" trekt een adtje en wisselt naar "+label(k));
-          A.play("ding"); A.overlay("info","Adtje!",[A.name(p)+" trekt een adtje en gaat nu voor "+label(k)+"."],2800);
+          A.play("ding"); A.overlay("info","Adtje!",[A.name(p)+" trekt een adtje en gaat nu voor "+label(k)+"."],0);
         } else T.target=k;
         T.pick=null; T.changing=false; T.kept=autoKeep(T.target,T.vals);
         A.save(); render();
@@ -265,7 +288,7 @@
         if(miss.length){
           k=sum(miss)*d; G.cols[p][t.c]={h:0,n:k}; A.drink(p,k); addLog(nm+" mist "+lbl+" en drinkt "+slok(k));
           over=advance(); render(); A.play("dood");
-          A.overlay("dood","Mis!",[nm+" drinkt "+slok(k)+".","Mist "+miss.join(", ")+" voor "+lbl+(why?" ("+why+": dubbel)":"")+"."].concat(over?["Het spel is klaar."]:[]),0,A.dicerow(vals));
+          A.overlay("dood","Mis!",[nm+" drinkt "+slok(k)+".","Mist "+(miss.length>1?"de stenen ":"steen ")+A.joinNames(miss.map(String))+" voor "+lbl+(why?" ("+why+": dubbel)":"")+"."].concat(over?["Het spel is klaar."]:[]),0,A.dicerow(vals));
           return;
         }
         po=payout(t,vals); oth=A.others(p);
@@ -301,7 +324,7 @@
         addLog(nm+" haalt "+D.lbl+(tot?" en deelt "+slok(tot)+" uit":", deelt niets uit"));
         over=advance(); render();
         if(tot){ A.play("win"); A.overlay("win","Proost!",[nm+" deelt "+slok(tot)+" uit."].concat(parts).concat(over?["Het spel is klaar."]:[]),0); }
-        else A.overlay("info","Niks",[nm+" deelt niets uit."].concat(over?["Het spel is klaar."]:[]),2200);
+        else A.overlay("info","Niks",[nm+" deelt niets uit."].concat(over?["Het spel is klaar."]:[]),0);
       }
 
       /* ---- schermdelen ---- */
@@ -386,7 +409,9 @@
             if(playing){
               if(!full) h+='<div class="btnrow adtzee-row"><button class="btn" id="adtzeeUndo">Toch niet gooien</button></div>';
               else {
-                if(left>0&&!lockHit) h+='<p class="hint">Zet vast wat blijft liggen en gooi de rest. Met echte stenen: tik eerst op Echte stenen gooien.</p>';
+                if(lockHit) h+='<p class="hint">Gehaald, verder gooien levert niets meer op. Rond je beurt af.</p>';
+                else if(left>0) h+='<p class="hint">Wat op “vast” staat blijft liggen; tik eronder om dat te veranderen. Gooi dan de rest. Echte stenen? Tik eerst op Echte stenen gooien.</p>';
+                else h+='<p class="hint">Drie worpen op. Rond je beurt af'+(hit?'':', of wissel voor een adtje naar een combinatie die er wel ligt')+'.</p>';
                 endLbl=hit?(po.adt?'Gehaald: iedereen een adtje':tot?'Gehaald: '+slok(tot)+' uitdelen':'Gehaald: beurt afronden'):(left>0?'Stoppen en '+slok(ms*d)+' drinken':'Beurt afronden: '+slok(ms*d)+' drinken');
                 h+='<div class="btnrow adtzee-row"><button class="btn'+(hit||left<=0?' gold':'')+'" id="adtzeeEnd">'+endLbl+'</button>'+(left>0&&!lockHit?'<button class="btn" id="adtzeeReal">Echte stenen gooien</button>':'')+'<button class="btn" id="adtzeeChange">Andere combinatie (adtje)</button></div>';
               }
@@ -447,7 +472,8 @@
         };
       }
 
-      render();
+      try{ render(); }
+      catch(e){ G.cols=null; G.names=null; G.turn=null; G.over=false; G.finale=false; G.log=[]; G.opt={}; A.save(); render(); }
       this.refresh=render;
       /* een andere speler aangetikt: mag alleen als de huidige speler nog niet heeft gegooid (sync regelt dat) */
       this.onPlayer=function(i){

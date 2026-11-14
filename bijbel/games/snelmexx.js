@@ -8,11 +8,12 @@
    - Ingehaald = je krijgt een paar terwijl je er nog een hebt. Je hebt dan twee paren en moet met elk paar Mexx gooien.
    - Adtje kruk telt per paar stenen (de telling reist met de stenen mee, zoals bij Mexx "doorgegeven tussen spelers").
    - "etc." bij de benodigdheden: per twee spelers extra een paar erbij (9 of 10 spelers: vier paar). Zelf te kiezen, hooguit vier vakken.
-   - Variant "spel stopt": opnieuw verdelen begint bij de verliezer. */
+   - Variant "spel stopt": opnieuw verdelen begint bij de verliezer.
+   - Minder dan drie spelers kan niet (met twee paar heeft dan iedereen altijd stenen); het scherm zegt dat en biedt "+ speler toevoegen". */
 (function(){
   "use strict";
   var A=App, esc=A.esc;
-  var COL=["#e7b84f","#8fd19e","#9ec3ff","#f0a08f"], TICKS=7, HOLD=1200, SIP=1500;
+  var COL=["#e7b84f","#8fd19e","#9ec3ff","#f0a08f"], TICKS=7, HOLD=1200, SIP=1500, STOPHOLD=2700, PHASES={setup:1,klaar:1,spel:1,stop:1};
   var CSS=[
     ".snelmexx-pair{padding:10px 10px 8px;margin:10px 0;border-left:6px solid var(--gold);-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;touch-action:manipulation}",
     ".snelmexx-lock{box-shadow:inset 0 0 0 2px var(--red),0 10px 30px rgba(0,0,0,.35)}",
@@ -50,10 +51,27 @@
       box.className="snelmexx-box"; root.appendChild(box);
       if(G.mode!=="echt") G.mode="dig";
       if(G.pen!==1) G.pen=0.5;
-      G.phase=G.phase||"setup"; G.pairs=G.pairs||[]; G.wait=G.wait||{}; G.cnt=G.cnt||{}; G.log=G.log||[];
-      if(G.phase!=="setup"&&(G.n!==lastN||!G.pairs.length)){ G.phase="setup"; G.pairs=[]; G.wait={}; }
+      /* bewaarde stand van een oudere versie of een kapotte stand: alles wat niet klopt gaat terug naar het begin */
+      function plain(x){ return x&&typeof x==="object"&&!Array.isArray(x)?x:{}; }
+      function pip(x){ return x===1||x===2||x===3||x===4||x===5||x===6; }
+      function pairOk(P){ return !!P&&typeof P==="object"&&typeof P.holder==="number"&&P.holder===Math.floor(P.holder)&&P.holder>=0&&P.holder<lastN; }
+      G.wait=plain(G.wait); G.cnt=plain(G.cnt);
+      G.log=Array.isArray(G.log)?G.log.filter(function(t){ return typeof t==="string"; }):[];
+      if(!Array.isArray(G.pairs)) G.pairs=[];
+      if(!PHASES[G.phase]) G.phase="setup";
+      if(G.phase!=="setup"&&(G.n!==lastN||lastN<3||G.pairs.length<2||G.pairs.length>COL.length||!G.pairs.every(pairOk)||(G.phase==="stop"&&!(G.loser>=0&&G.loser<lastN)))){ G.phase="setup"; G.pairs=[]; G.wait={}; }
+      G.pairs.forEach(function(P){
+        if(!Array.isArray(P.vals)||P.vals.length!==2||!pip(P.vals[0])||!pip(P.vals[1])) P.vals=null;
+        P.kept=Array.isArray(P.kept)&&P.kept.length===2?[!!P.kept[0],!!P.kept[1]]:[false,false];
+        if(!Array.isArray(P.kruk)) P.kruk=[];
+        P.rolls=+P.rolls||0; P.free=+P.free||0; P.keepUsed=!!P.keepUsed; if(typeof P.note!=="string") P.note="";
+      });
+      Object.keys(G.wait).forEach(function(i){ var w=G.wait[i]; if(!w||!Array.isArray(w.why)||!w.why.length||!(+i<lastN)) delete G.wait[i]; else w.t=+w.t||0; });
+      Object.keys(G.cnt).forEach(function(i){ var c=plain(G.cnt[i]); G.cnt[i]={m:+c.m||0,e:+c.e||0,i:+c.i||0}; });
 
       function N(){ return A.S.players.length; }
+      function sig(){ return A.S.players.map(function(q){ return q.name; }).join(" / "); }
+      var lastSig=sig();
       /* bijbel: 4 tot 6 spelers twee paar, 7 of 8 drie paar, "etc." */
       function autoPairs(n){ return Math.max(2,Math.floor((n-1)/2)); }
       function maxPairs(n){ return Math.max(2,Math.min(COL.length,n-1)); }
@@ -71,7 +89,7 @@
       /* regel 2: de paren ongeveer gelijk over de tafel verdeeld (7 spelers, 3 paar: A, C en E) */
       function deal(start,keepHist){
         var n=N(), p=nPairs(), old=G.pairs||[], k;
-        start=start%n; G.n=n; G.pairs=[];
+        start=Math.floor(+start)||0; start=((start%n)+n)%n; G.n=n; G.pairs=[];
         for(k=0;k<p;k++) G.pairs.push({holder:(start+Math.floor(k*n/p))%n, vals:null, kept:[false,false], keepUsed:false, rolls:0, note:"", free:0, kruk:(keepHist&&old[k]&&old[k].kruk)||[]});
         G.wait={}; G.msg=""; G.phase="klaar"; gen++; busy={};
         if(!keepHist){ G.cnt={}; G.log=[]; }
@@ -156,7 +174,7 @@
           G.phase="stop"; G.loser=nx; G.by=i; G.stopT=Date.now(); A.atje(nx,G.pen); A.play("dood");
           addLog(A.name(nx)+" is ingehaald door "+A.name(i)+" en trekt "+penTxt()+". Het spel stopt.");
           A.overlay("dood","Ingehaald!",[A.name(nx)+" trekt "+penTxt()+".","Daarna worden de stenen opnieuw verdeeld."],2600);
-          render(); later(render,HOLD+40); return;
+          render(); later(render,STOPHOLD+40); return;
         }
         A.atje(nx,0.5); addWait(nx,"een half adtje (ingehaald door "+A.name(i)+")"); A.play("dood");
         addLog(A.name(nx)+" is ingehaald door "+A.name(i)+": half adtje, daarna pas verder gooien.");
@@ -232,33 +250,34 @@
       function seg(lbl,items){ return '<div class="seg"><span class="snelmexx-lbl">'+lbl+'</span>'+items.map(function(x){ return '<button data-set="'+x[0]+'" aria-pressed="'+!!x[2]+'">'+esc(x[1])+'</button>'; }).join("")+'</div>'; }
       function modeSeg(){ return seg("stenen:",[["mode:dig","digitaal",G.mode==="dig"],["mode:echt","echte stenen",G.mode==="echt"]]); }
       function render(){
-        var n=N(), h="", k, p, cur, hs, opts=[];
-        lastN=n;
+        var n=N(), h="", k, p, cur, hs, opts=[], tip;
+        lastN=n; lastSig=sig();
         if(G.phase==="setup"){
           h='<div class="board"><p class="hint">Leg de telefoon midden op tafel. Elk paar dobbelstenen krijgt een eigen vak met de naam van wie de stenen heeft. Gooi zo snel mogelijk Mexx (1 en 2): pas dan gaan je stenen met de klok mee door. Bij 31 neemt iedereen met stenen eerst één slok. Krijg je stenen terwijl je er zelf nog hebt, dan ben je ingehaald: half adtje.</p></div>';
-          if(n<3) h+='<p class="hint">Snelmexx heeft minstens drie spelers nodig; de bijbel rekent met vier of meer (twee paar dobbelstenen). Voeg spelers toe met + speler.</p>';
+          if(n<3) h+='<p class="hint">Snelmexx heeft minstens drie spelers nodig; de bijbel rekent met vier of meer (twee paar dobbelstenen). Jullie zijn nu met '+n+': voeg er '+(n===2?"minstens één":"minstens twee")+' toe.</p><div class="btnrow"><button class="btn gold" id="snelmexx-add">+ speler toevoegen</button></div>';
           else {
             if(G.msg) h+='<p class="hint">'+esc(G.msg)+'</p>';
             if(n===3) h+='<p class="hint">De bijbel rekent met vier of meer spelers; met drie spelers en twee paar gaat het ook.</p>';
             cur=nPairs();
-            for(p=2;p<=maxPairs(n);p++) opts.push(["np:"+p,p+" paar"+(p===autoPairs(n)?" (bijbel)":""),p===cur]);
+            for(p=2;p<=maxPairs(n);p++) opts.push(["np:"+p,p+" paar"+(n>=4&&p===autoPairs(n)?" (bijbel)":""),p===cur]);
             h+=seg("paren:",opts)+modeSeg();
             h+=seg("ingehaald:",[["stop:0","spel gaat door",!G.stop],["stop:1","spel stopt",!!G.stop]]);
             if(G.stop) h+=seg("verliezer trekt:",[["pen:0.5","half adtje",G.pen!==1],["pen:1","heel adtje",G.pen===1]]);
             h+=seg("afspraken:",[["strikt:t","bij 31 niets laten liggen",!!G.strikt],["dubbel:t","dubbel: zelf een slok",!!G.dubbel]]);
-            h+='<div class="btnrow"><button class="btn gold" id="snelmexx-deal">Verdeel de stenen</button></div>';
+            h+='<div class="btnrow"><button class="btn gold" id="snelmexx-deal">Verdeel de stenen</button></div><p class="hint">Kies de afspraken en tik op Verdeel de stenen. '+esc(A.name(A.S.active))+' krijgt het eerste paar; tik boven op een andere naam om bij iemand anders te beginnen.</p>';
           }
           box.innerHTML=h; wire(); return;
         }
         if(G.phase==="stop"){
-          h='<div class="verdict fout"><h2>Ingehaald!</h2><p><b>'+esc(A.name(G.loser))+'</b> is ingehaald door '+esc(A.name(G.by))+' en trekt '+penTxt()+'. Daarna worden de stenen weer gelijk verdeeld.</p><div class="btnrow"><button class="btn gold" id="snelmexx-deal"'+(Date.now()<(G.stopT||0)+HOLD?" disabled":"")+'>Verdeel de stenen opnieuw</button></div></div>';
+          h='<div class="verdict fout"><h2>Ingehaald!</h2><p><b>'+esc(A.name(G.loser))+'</b> is ingehaald door '+esc(A.name(G.by))+' en trekt '+penTxt()+'. Daarna worden de stenen weer gelijk verdeeld.</p><div class="btnrow"><button class="btn gold" id="snelmexx-deal"'+(Date.now()<(G.stopT||0)+STOPHOLD?" disabled":"")+'>Verdeel de stenen opnieuw</button></div></div>';
         } else {
+          if(G.phase==="spel") h='<p class="hint">'+(G.mode==="echt"?"Gooi met je echte stenen en tik Mexx of 31 in je eigen vak zodra je dat gooit.":"Tik Dobbel in je eigen vak tot er Mexx (1 en 2) ligt; pas dan gaan je stenen met de klok mee door.")+'</p>';
           if(G.phase==="klaar"){ hs=holders();
             h='<div class="verdict neutral"><h2>Klaar?</h2><p><b>'+esc(A.joinNames(hs))+'</b> '+(hs.length>1?"hebben":"heeft")+' de stenen. Gooi zo snel mogelijk Mexx en geef dan pas door.</p><div class="btnrow"><button class="btn gold" id="snelmexx-go">Start!</button></div></div>'; }
           for(k=0;k<G.pairs.length;k++) h+='<div id="snelmexx-p'+k+'"></div>';
         }
         h+='<div class="snelmexx-info" id="snelmexx-info"></div>'+modeSeg();
-        if(G.mode==="echt") h+='<p class="hint">Echte stenen: tik Mexx of 31 in het vak van je paar. Wil je adtje kruk laten tellen, voer dan elke worp in door op de stenen te tikken.</p>';
+        if(G.mode==="echt"&&G.phase!=="stop") h+='<p class="hint">Echte stenen: tik Mexx of 31 in het vak van je paar. Wil je adtje kruk laten tellen, voer dan elke worp in door op de vraagtekens te tikken.</p>';
         h+='<div class="btnrow"><button class="btn" id="snelmexx-new">Nieuw spel</button></div>';
         box.innerHTML=h; renderPairs(); renderInfo(); wire();
       }
@@ -269,7 +288,8 @@
           if(s[0]==="np") G.np=+s[1]; else if(s[0]==="mode") G.mode=s[1]; else if(s[0]==="stop") G.stop=s[1]==="1"; else if(s[0]==="pen") G.pen=+s[1]; else G[s[0]]=!G[s[0]];
           A.save(); render();
         }; });
-        if((b=box.querySelector("#snelmexx-deal"))) b.onclick=function(){ if(N()<3){ render(); return; } if(G.phase==="stop") deal(G.loser||0,true); else deal(A.S.active,false); };
+        if((b=box.querySelector("#snelmexx-deal"))) b.onclick=function(){ if(N()<3){ render(); return; } if(G.phase==="stop"){ if(Date.now()<(G.stopT||0)+STOPHOLD) return; deal(G.loser||0,true); } else deal(A.S.active,false); };
+        if((b=box.querySelector("#snelmexx-add"))) b.onclick=function(){ var a=A.el("addPlayer"); if(a) a.click(); };
         if((b=box.querySelector("#snelmexx-go"))) b.onclick=function(){ G.phase="spel"; G.pairs.forEach(function(P){ P.free=0; }); A.save(); render(); };
         if((b=box.querySelector("#snelmexx-new"))) b.onclick=function(){ toSetup(""); };
       }
@@ -289,12 +309,15 @@
 
       /* spelers erbij of eraf: de verdeling klopt dan niet meer */
       ivs.push(setInterval(function(){
-        if(dead||N()===lastN) return;
+        if(dead) return;
+        if(N()===lastN){ if(sig()!==lastSig) render(); return; }
         if(G.phase==="setup") render(); else toSetup("Het aantal spelers is veranderd. Verdeel de stenen opnieuw.");
       },800));
 
       render();
       this.refresh=render;
+      /* in de opzet bepaalt de actieve speler wie het eerste paar krijgt; tijdens het spel verandert een tik op een naam niets */
+      this.onPlayer=function(){ if(!dead&&G.phase==="setup") render(); };
       this.destroy=function(){ dead=true; ivs.forEach(function(x){ clearInterval(x); }); timers.forEach(function(x){ clearTimeout(x); }); };
     }
   });

@@ -18,7 +18,7 @@
       "."+P+"score td b{font-size:18px}",
       "."+P+"score td:first-child{word-break:break-word}",
       "."+P+"over{display:block;font-size:11px;color:#ffb3a6}",
-      "."+P+"opts .seg button{min-height:40px}",
+      "."+P+"opts .seg button,."+P+"opts .btn{min-height:40px}",
       "."+P+"lbl{font-size:12px;color:var(--ivory-dim);align-self:center}",
       "."+P+"ov{margin-top:14px;text-align:center}"
     ].join("");
@@ -46,27 +46,33 @@
          dus dat is je rechterbuur): de vorige in de spelersrij. */
       function prev(){ return (G.cur-1+n())%n(); }
       function log(s){ G.log.unshift(s); if(G.log.length>8) G.log.length=8; }
-      function okTurn(t){ return !!t&&(t.ph==="check"||t.ph==="gooi"||t.ph==="spaar")&&Array.isArray(t.vals)&&t.vals.length===6&&Array.isArray(t.locked)&&t.locked.length===6&&Array.isArray(t.sel)&&t.sel.length===6&&Array.isArray(t.before)&&t.before.length===6; }
+      function okTurn(t){ return !!t&&(t.ph==="check"||t.ph==="gooi"||t.ph==="spaar")&&typeof t.rolls==="number"&&t.rolls>=0&&(t.ph!=="spaar"||(t.d>=1&&t.d<=6))&&Array.isArray(t.vals)&&t.vals.length===6&&Array.isArray(t.locked)&&t.locked.length===6&&Array.isArray(t.sel)&&t.sel.length===6&&Array.isArray(t.before)&&t.before.length===6; }
       function started(t){ return t.ph==="spaar"||t.rolls>0||!!t.pen||t.vals.some(function(v){return v!==null;}); }
       function rosterChanged(){ return (G.names||[]).length!==n(); }
+      function namesChanged(){ var old=G.names||[]; return old.length!==n()||A.S.players.some(function(q,i){ return q.name!==old[i]; }); }
       function startTurn(){ G.t={ph:(G.str[G.cur]||0)>limit()?"check":"gooi", vals:nulls(), locked:falses(), sel:falses(), before:falses(), rolls:0, wait:true, d:0, pen:false}; }
 
-      /* Houdt de strepenlijst gelijk met de spelersbalk (speler erbij of eraf). Geeft true als de beurt opnieuw is begonnen. */
+      /* Houdt de strepenlijst gelijk met de spelersbalk (speler erbij of eraf); de strepen volgen de naam. Wie aan de
+         beurt was houdt zijn lopende beurt als hij er nog is, anders begint de beurt opnieuw bij wie nu actief is.
+         Geeft true als de spelers zijn veranderd of de beurt opnieuw is begonnen: wat op het scherm stond klopt dan niet meer. */
       function sync(){
-        var now=A.S.players.map(function(q){return q.name;}), old=G.names||[], reset=false, i;
+        var now=A.S.players.map(function(q){return q.name;}), old=G.names||[], reset=false, changed=false, i;
         if(old.length&&old.length!==now.length){
-          var used={}, ns=[];
-          now.forEach(function(nm){ var j=-1; for(var k=0;k<old.length;k++) if(old[k]===nm&&!used[k]){ j=k; break; } if(j>=0){ used[j]=1; ns.push(G.str[j]||0); } else ns.push(0); });
-          G.str=ns; reset=true;
+          var used={}, ns=[], map={};
+          now.forEach(function(nm,ni){ var j=-1; for(var k=0;k<old.length;k++) if(old[k]===nm&&!used[k]){ j=k; break; } if(j>=0){ used[j]=1; map[j]=ni; ns.push(G.str[j]||0); } else ns.push(0); });
+          G.str=ns; changed=true;
+          if(typeof G.cur==="number"&&map[G.cur]!==undefined) G.cur=map[G.cur]; else reset=true;
         }
-        for(i=0;i<now.length;i++) if(typeof G.str[i]!=="number") G.str[i]=0;
+        for(i=0;i<now.length;i++) if(typeof G.str[i]!=="number"||!(G.str[i]>=0)||G.str[i]===Infinity) G.str[i]=0;
         G.str.length=now.length; G.names=now;
-        if(typeof G.cur!=="number"||G.cur<0||G.cur>=now.length) reset=true;
+        if(typeof G.cur!=="number"||G.cur<0||G.cur>=now.length||G.cur!==Math.floor(G.cur)) reset=true;
         if(reset||!okTurn(G.t)){ G.cur=A.S.active<now.length?A.S.active:0; startTurn(); reset=true; }
         if(A.S.active!==G.cur){ A.S.active=G.cur; A.renderPlayers(); }
-        if(reset) A.save();
-        return reset;
+        if(reset||changed) A.save();
+        return reset||changed;
       }
+      /* Voor elke boeking: zijn de spelers intussen veranderd, dan eerst opnieuw tekenen en niets boeken. */
+      function stale(){ if(!sync()) return false; render(); A.toast("Spelers gewijzigd","Kijk of de stand klopt en tik daarna opnieuw.",3200); return true; }
 
       /* Sparen: voor elke extra goede steen verdubbelt het aantal (4 x 2 x 2 x 2); variërende regel 1 telt op (4 + 4 + 4 + 4). */
       function spaarStrepen(d,k){ return k?(G.add?d*k:d*Math.pow(2,k-1)):0; }
@@ -144,7 +150,7 @@
 
       /* ---- boeken ---- */
       function weg(i){ /* strepen wegwerken mag alleen per 5; één streep is één slok */
-        if(sync()){ render(); return; }
+        if(stale()) return;
         if((G.str[i]||0)<5) return;
         var wasCheck=G.t.ph==="check";
         G.str[i]-=5; A.drink(i,5);
@@ -153,17 +159,17 @@
         A.save(); renderScore(); renderLog(); if(wasCheck) renderPlay();
       }
       function straf(){
-        if(sync()){ render(); return; }
+        if(stale()) return;
         var t=G.t, c=G.cur, q=pen();
         if(t.ph!=="check") return;
         G.str[c]+=q; t.ph="gooi"; t.pen=true;
         log(A.name(c)+" is aan de beurt met meer dan "+limit()+" strepen: "+q+" erbij (nu "+G.str[c]+").");
         A.save(); render(); A.play("dood");
-        A.overlay("dood","+"+q,[A.name(c)+" zat boven de "+limit()+" strepen en krijgt er "+q+" bij."],2600);
+        show("dood","+"+q,[A.name(c)+" is aan de beurt met meer dan "+limit()+" strepen en krijgt er "+q+" bij (nu "+G.str[c]+").",A.name(c)+" gooit nu gewoon."]);
       }
       function bookMain(){
         if(busy) return;
-        if(sync()){ render(); return; }
+        if(stale()) return;
         var t=G.t;
         if(t.ph!=="gooi"||t.wait||count(t.sel)!==6) return;
         var c=G.cur, p=prev(), tot=sum(t.vals,null), nm=A.name(c), pn=A.name(p), vals=t.vals.slice(), d, k;
@@ -195,7 +201,7 @@
       }
       function bookSpaar(){
         if(busy) return;
-        if(sync()){ render(); return; }
+        if(stale()) return;
         var t=G.t;
         if(t.ph!=="spaar"||!spDone(t)) return;
         var c=G.cur, p=prev(), d=t.d, k=count(t.locked), s=spaarStrepen(d,k), vals=t.vals.slice(), nm=A.name(c), pn=A.name(p);
@@ -284,7 +290,7 @@
         var h=seg("sparen telt:","add","verdubbelen","optellen")+seg("sparen stopt:","drie","bij een misser","na drie worpen")+seg("aan de beurt:","ruim","hooguit 10, anders +15","hooguit 15, anders +10");
         h+='<div class="btnrow">'+(sure?'<button class="btn danger" id="'+P+'new">Zeker? Alle strepen vervallen</button><button class="btn" id="'+P+'nonew">Toch niet</button>':'<button class="btn" id="'+P+'new">Nieuw spel</button>')+'</div>';
         box.innerHTML=h;
-        box.querySelectorAll("[data-o]").forEach(function(b){ b.onclick=function(){ if(busy) return; G[b.getAttribute("data-o")]=b.getAttribute("data-v")==="1"; A.save(); render(); }; });
+        box.querySelectorAll("[data-o]").forEach(function(b){ b.onclick=function(){ if(busy) return; G[b.getAttribute("data-o")]=b.getAttribute("data-v")==="1"; sync(); if(!started(G.t)) startTurn(); A.save(); render(); }; });
         el(P+"new").onclick=function(){
           if(busy) return;
           if(!sure){ sure=true; renderOpts(); return; }
@@ -297,7 +303,7 @@
         if(dead) return;
         sync();
         if(n()<2){
-          root.innerHTML='<p class="hint">Streepjesspel speel je met minimaal twee spelers: de strepen die je spaart gaan naar de speler voor jou. Voeg bovenaan een speler toe.</p><div class="btnrow"><button class="btn gold" id="'+P+'retry">Verder</button></div>';
+          root.innerHTML='<div class="'+P+'play"><p class="hint">Streepjesspel speel je met minimaal twee spelers: de strepen die je spaart gaan naar de speler voor jou. Voeg bovenaan een speler toe met + speler en tik daarna op Verder.</p><div class="btnrow"><button class="btn gold" id="'+P+'retry">Verder</button></div></div>';
           el(P+"retry").onclick=render; return;
         }
         root.innerHTML='<div class="'+P+'play" id="'+P+'play"></div><div class="board '+P+'score" id="'+P+'score"></div><div class="'+P+'opts" id="'+P+'opts"></div><div class="log" id="'+P+'log"></div>';
@@ -308,7 +314,11 @@
       if(okTurn(G.t)&&!rosterChanged()&&!started(G.t)&&A.S.active<n()&&G.cur!==A.S.active){ G.cur=A.S.active; startTurn(); A.save(); }
       render();
       this.refresh=render;
-      this.destroy=function(){ dead=true; };
+      /* Naam gewijzigd, speler erbij of eraf: core tekent alleen de spelersbalk opnieuw, dus het spel doet dat hier zelf.
+         De knop van core heeft de spelers al bijgewerkt voordat deze luisteraar (op het formulier eromheen) aan de beurt is. */
+      var nf=el("nameform"), onNames=function(e){ var t=e&&e.target; if(!dead&&t&&(t.id==="nameOk"||t.id==="nameDel")&&(namesChanged()||n()<2)) render(); };
+      if(nf&&nf.addEventListener) nf.addEventListener("click",onNames);
+      this.destroy=function(){ dead=true; if(nf&&nf.removeEventListener) nf.removeEventListener("click",onNames); };
       this.onPlayer=function(i){
         if(dead) return;
         if(rosterChanged()){ render(); return; }

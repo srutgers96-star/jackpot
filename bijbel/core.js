@@ -94,10 +94,12 @@ var App=(function(){
   /* ---- players ---- */
   function renderPlayers(){
     var p=el("players"); if(!p)return;
-    p.innerHTML=S.players.map(function(q,i){ return '<button class="player'+(i===S.active?' active':'')+'" data-i="'+i+'"><span class="name">'+esc(q.name)+'</span><span class="stats"><b>'+q.slokken+'</b> slokken · <b>'+q.atjes+'</b> atjes</span></button>'; }).join("")+'<button class="player add" id="addPlayer">+ speler</button>';
+    p.innerHTML=S.players.map(function(q,i){ return '<button class="player'+(i===S.active?' active':'')+'" data-i="'+i+'"><span class="name">'+esc(q.name)+'</span><span class="stats"><b>'+q.slokken+'</b> slokken · <b>'+half(q.atjes)+'</b> atjes</span></button>'; }).join("")+'<button class="player add" id="addPlayer">+ speler</button>';
   }
+  function half(x){ x=Math.round((x||0)*2)/2; var w=Math.floor(x), h=x-w>=0.5; return (w||!h?String(w):"")+(h?"½":""); } /* 0.5 → ½, 1.5 → 1½ */
+  function refreshGame(){ if(current&&current.refresh)try{current.refresh();}catch(e){} }
   var nameTarget=null;
-  function openName(i){ nameTarget=i; var f=el("nameform"), inp=el("nameInput"); inp.value=i===null?"":S.players[i].name; inp.placeholder=i===null?"Naam nieuwe speler":"Naam"; f.className="nameform open"; inp.focus(); }
+  function openName(i){ nameTarget=i; var f=el("nameform"), inp=el("nameInput"); inp.value=i===null?"":S.players[i].name; inp.placeholder=i===null?"Naam nieuwe speler":"Naam"; el("nameDel").style.display=(i!==null&&S.players.length>2)?"":"none"; f.className="nameform open"; inp.focus(); }
   function closeName(){ el("nameform").className="nameform"; nameTarget=null; }
   function drink(i,n,reason){ if(S.players[i]){ S.players[i].slokken+=n; } save(); renderPlayers(); }
   function atje(i,n){ if(S.players[i]){ S.players[i].atjes+=(n||1); } save(); renderPlayers(); }
@@ -185,8 +187,8 @@ var App=(function(){
     el("btnSound").onclick=function(){ S.sound=!S.sound; applyFlags(); save(); ctx(); };
     el("players").addEventListener("click",function(e){ var a=e.target.closest("#addPlayer"); if(a){openName(null);return;} var b=e.target.closest(".player"); if(!b)return; var i=+b.getAttribute("data-i"); if(i===S.active)openName(i); else { S.active=i; save(); renderPlayers(); if(current&&current.onPlayer)current.onPlayer(i); } });
     el("nameCancel").onclick=closeName;
-    el("nameOk").onclick=function(){ var nm=el("nameInput").value.trim(); if(!nm){closeName();return;} if(nameTarget===null)S.players.push({name:nm,slokken:0,atjes:0}); else S.players[nameTarget].name=nm; closeName(); save(); renderPlayers(); };
-    el("nameDel").onclick=function(){ if(nameTarget!==null&&S.players.length>1){ S.players.splice(nameTarget,1); if(S.active>=S.players.length)S.active=0; } closeName(); save(); renderPlayers(); };
+    el("nameOk").onclick=function(){ var nm=el("nameInput").value.trim(); if(!nm){closeName();return;} if(nameTarget===null)S.players.push({name:nm,slokken:0,atjes:0}); else S.players[nameTarget].name=nm; closeName(); save(); renderPlayers(); refreshGame(); };
+    el("nameDel").onclick=function(){ if(nameTarget!==null&&S.players.length>2){ var i=nameTarget; S.players.splice(i,1); if(i<S.active)S.active--; if(S.active>=S.players.length)S.active=0; } closeName(); save(); renderPlayers(); refreshGame(); };
     el("overlay").addEventListener("click",function(){ var o=el("overlay"); if(o.className.indexOf("sticky")>=0){ o.className="overlay"; if(onOverlayClose){var f=onOverlayClose;onOverlayClose=null;f();} } });
     el("sheet").addEventListener("click",function(e){ if(e.target.id==="sheet")closeRules(); });
     applyFlags();

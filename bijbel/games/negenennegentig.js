@@ -54,28 +54,33 @@
     init:function(root){
       var G=A.gs(ID);
       var shown=null; /* wiens hand nu open op het scherm staat (nooit bewaard: na herladen weer dicht) */
-      var sel=null, mode=null, sure=false, seen=0;
+      var sel=null, mode=null, sure=false, seen="";
       if(G.pen!==1&&G.pen!==0.5) G.pen=0.5;
       if(G.count===undefined) G.count=true;
 
       function n(){ return A.S.players.length; }
       function idx(x){ return typeof x==="number"&&x>=0&&x<G.n; }
+      function isCard(c){ return !!c&&typeof c.r==="number"&&c.r>=1&&c.r<=13&&typeof c.s==="number"&&c.s>=0&&c.s<=3; }
+      function cards(a){ return Array.isArray(a)&&a.every(isCard); }
+      function sig(){ return A.S.players.map(function(q){ return q.name; }).join("|"); }
       /* Bewaarde stand compleet en bruikbaar? Zo niet, dan wordt er gewoon opnieuw gedeeld. */
       function ok(){
         var P=G.pend, i;
-        if(!(G.hands&&G.hands.length===G.n&&G.pile&&G.stock&&G.skip&&typeof G.total==="number"&&idx(G.cur)))return false;
-        for(i=0;i<G.n;i++) if(!G.hands[i]||typeof G.hands[i].length!=="number")return false;
+        if(!(Array.isArray(G.hands)&&G.hands.length===G.n&&cards(G.pile)&&cards(G.stock)&&Array.isArray(G.skip)&&typeof G.total==="number"&&isFinite(G.total)&&idx(G.cur)))return false;
+        var cnt=G.pile.length+G.stock.length;
+        for(i=0;i<G.n;i++){ if(!cards(G.hands[i])||G.hands[i].length>4)return false; cnt+=G.hands[i].length; }
+        if(cnt!==52||G.skip.length!==G.n)return false;
         if(G.phase==="turn")return true;
         if(G.phase==="over")return idx(G.loser);
-        if(!P||!P.card||!idx(P.who))return false;
-        if(G.phase==="name")return !!(G.opts&&G.opts.length);
+        if(!P||!isCard(P.card)||!idx(P.who)||typeof P.nw!=="number")return false;
+        if(G.phase==="name")return Array.isArray(G.opts)&&G.opts.indexOf(P.nw)>=0;
         if(G.phase==="king")return true;
         if(G.phase==="kingResp")return idx(P.target)&&P.target!==P.who;
         return false;
       }
       /* wie bovenaan gemarkeerd hoort te staan */
       function turnOf(){ return G.phase==="kingResp"?G.pend.target:G.phase==="over"?G.loser:G.pend?G.pend.who:G.cur; }
-      function stale(){ if(n()!==G.n||!ok()){ render(); return true; } return false; }
+      function stale(){ if(n()!==G.n||!ok()){ render(); return true; } if(!Array.isArray(G.last)) G.last=[]; return false; }
 
       /* Nieuwe ronde: alle kaarten terug, schudden, ieder vier kaarten. De bijbel zegt niet of je je hand houdt; opnieuw delen is het eenvoudigst. */
       function newRound(start,fresh){
@@ -125,7 +130,8 @@
           render(); return;
         }
         draw(i);
-        if(wrong){ A.play("dood"); A.overlay("dood","Fout geteld",[nm+" noemt "+tot(said)+", het is "+tot(P.nw)+". 1 slok."],2400); }
+        /* blijft staan tot er getikt wordt: een melding die vanzelf verdwijnt laat tikken door naar de knoppen eronder */
+        if(wrong){ A.play("dood"); A.overlay("dood","Fout geteld",[nm+" drinkt 1 slok.",nm+" noemt "+tot(said)+", het is "+tot(P.nw)+"."],0); A.onOverlayClose(null); }
         else if(said!==null) A.play("tick");
         if(c.r===13){ G.phase="king"; A.save(); render(); return; }
         /* "Bij de volgende ronde overgeslagen" gelezen als: de eerstvolgende keer dat de beurt bij jou komt. */
@@ -143,6 +149,11 @@
         G.pend.target=j; G.phase="kingResp"; shown=null;
         A.S.active=j; A.save(); A.renderPlayers(); render();
         reveal(j,A.name(G.pend.who)+" wijst jou aan met een koning. Laat niemand meekijken.");
+      }
+      /* "Mag een medespeler aanwijzen": het hoeft dus niet. Wie het risico van een koning terug niet wil lopen, wijst niemand aan. */
+      function pickNone(){
+        if(stale()||G.phase!=="king")return;
+        var i=G.pend.who; G.last.push(A.name(i)+" wijst niemand aan."); advance(i);
       }
       /* Koning terugleggen: de aangewezen speler legt buiten de beurt om zijn koning op (0 punten) en pakt een kaart bij;
          hij wijst zelf niemand meer aan en de beurt gaat daarna gewoon door links van de eerste speler. */
@@ -172,7 +183,7 @@
       function on(q,fn){ var b=root.querySelector(q); if(b)b.onclick=fn; }
 
       function render(){
-        var p=n(), h="", askSure=sure; sure=false; seen=p;
+        var p=n(), h="", askSure=sure; sure=false; seen=sig();
         if(p<2||p>12){
           root.innerHTML='<p class="hint">'+(p<2?"99 speel je met minstens twee spelers. Voeg bovenaan een speler toe.":"Met één spel kaarten kunnen hooguit twaalf spelers meedoen (ieder vier kaarten). Haal bovenaan spelers weg.")+'</p>';
           G.n=0; /* straks zitten er andere mensen aan tafel: dan opnieuw delen */
@@ -183,6 +194,8 @@
           newRound(A.S.active,true);
           if(changed){ G.last=["Het aantal spelers is veranderd: er is opnieuw gedeeld."]; A.save(); }
         }
+        if(!Array.isArray(G.last)) G.last=[];
+        if(typeof G.round!=="number"||!(G.round>=1)) G.round=1;
         /* na herladen of een ander spel kan bovenaan de verkeerde speler gemarkeerd staan */
         if(A.S.active!==turnOf()){ A.S.active=turnOf(); A.save(); A.renderPlayers(); }
         var ph=G.phase, cur=G.cur, top=G.pile.length?G.pile[G.pile.length-1]:null, P=G.pend, sk=[], hand, c, j;
@@ -223,7 +236,8 @@
         } else if(ph==="king"){
           h+=lastHtml();
           h+='<div class="verdict win"><h2>Koning</h2><p><b>'+esc(A.name(P.who))+'</b> wijst iemand aan voor een half adtje. Heeft die zelf een koning, dan mag hij of zij hem opleggen en trekt '+esc(A.name(P.who))+' een heel adtje. Tik op een naam.</p><div class="btnrow">'+
-            A.others(P.who).map(function(o){ return '<button class="btn primary" data-t="'+o+'">'+esc(A.name(o))+'</button>'; }).join("")+'</div></div>';
+            A.others(P.who).map(function(o){ return '<button class="btn primary" data-t="'+o+'">'+esc(A.name(o))+'</button>'; }).join("")+'</div>'+
+            '<div class="btnrow"><button class="btn" id="nn99-none">Niemand aanwijzen</button></div></div>';
         } else if(ph==="kingResp"){
           j=P.target; hand=G.hands[j];
           if(shown!==j){
@@ -252,6 +266,7 @@
         on("#nn99-hide",function(){ shown=null; sel=null; mode=null; render(); });
         on("#nn99-pass",function(){ if(stale())return; G.last=[A.name(G.cur)+" heeft geen kaarten en slaat over."]; advance(G.cur); });
         on("#nn99-play",commit);
+        on("#nn99-none",pickNone);
         on("#nn99-counter",function(){ respond(true); });
         on("#nn99-accept",function(){ respond(false); });
         /* De bijbel zegt niet wie de volgende ronde begint: de verliezer begint. */
@@ -262,13 +277,16 @@
         root.querySelectorAll("[data-v]").forEach(function(b){ b.onclick=function(){ if(stale()||G.phase!=="name")return; resolve(+b.getAttribute("data-v")); }; });
         root.querySelectorAll("[data-t]").forEach(function(b){ b.onclick=function(){ pickTarget(+b.getAttribute("data-t")); }; });
         root.querySelectorAll("[data-pen]").forEach(function(b){ b.onclick=function(){ G.pen=+b.getAttribute("data-pen"); A.save(); render(); }; });
-        root.querySelectorAll("[data-cnt]").forEach(function(b){ b.onclick=function(){ G.count=b.getAttribute("data-cnt")==="1"; A.save(); render(); }; });
+        root.querySelectorAll("[data-cnt]").forEach(function(b){ b.onclick=function(){ G.count=b.getAttribute("data-cnt")==="1"; A.save();
+          /* midden in "noem het totaal" naar "de app telt": de app rekent de liggende kaart meteen af */
+          if(!G.count&&G.phase==="name"&&!stale()){ resolve(null); return; }
+          render(); }; });
       }
 
-      /* Spelers erbij of eraf via de balk bovenaan: core meldt dat niet, dus kijk mee en deel dan opnieuw. */
+      /* Spelers erbij of eraf via de balk bovenaan: core meldt dat niet, dus kijk mee en deel dan opnieuw (een andere naam: alleen opnieuw tekenen). */
       if(obs){ obs.disconnect(); obs=null; }
       var bar=el("players");
-      if(bar&&typeof MutationObserver!=="undefined"){ obs=new MutationObserver(function(){ if(n()!==seen) render(); }); obs.observe(bar,{childList:true}); }
+      if(bar&&typeof MutationObserver!=="undefined"){ obs=new MutationObserver(function(){ if(sig()!==seen) render(); }); obs.observe(bar,{childList:true}); }
 
       render();
       this.refresh=render;

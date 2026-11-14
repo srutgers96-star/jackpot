@@ -13,7 +13,10 @@
     s.textContent=
       ".paardenrace-bet{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:10px}"+
       ".paardenrace-lane{display:flex;flex-direction:column;align-items:center;gap:6px;min-width:0}"+
-      ".paardenrace-step{width:100%;min-width:40px;min-height:44px;padding:0;font-size:24px;font-weight:900;line-height:1;border-radius:10px;border:1.5px solid rgba(243,233,210,.35);background:rgba(0,0,0,.22);color:var(--ivory)}"+
+      ".paardenrace-root .btn{min-height:44px}"+
+      ".paardenrace-seg button{min-height:40px}"+
+      ".paardenrace-ovl{display:flex;justify-content:center;margin-top:16px}"+
+      ".paardenrace-step{width:100%;min-width:40px;min-height:44px;padding:0;touch-action:manipulation;font-size:24px;font-weight:900;line-height:1;border-radius:10px;border:1.5px solid rgba(243,233,210,.35);background:rgba(0,0,0,.22);color:var(--ivory)}"+
       ".paardenrace-step:disabled{opacity:.3}"+
       ".paardenrace-n{font-size:22px;font-weight:900;line-height:1;text-align:center}"+
       ".paardenrace-pick td{padding:12px 3px;cursor:pointer}"+
@@ -22,7 +25,7 @@
       ".paardenrace-msg{flex:1;min-width:0;font-size:14px;line-height:1.35;color:var(--ivory-dim)}"+
       ".paardenrace-msg b{color:var(--ivory)}"+
       ".paardenrace-msg small{display:block;margin-top:4px;font-size:12px}"+
-      ".paardenrace-flip{display:block;width:100%;margin:0 0 12px;font-size:22px;font-weight:900;padding:13px 22px;border-radius:14px;border:0;background:var(--gold);color:var(--ink);box-shadow:0 5px 0 #a67c22,0 10px 20px rgba(0,0,0,.3)}"+
+      ".paardenrace-flip{display:block;width:100%;margin:0 0 12px;min-height:56px;touch-action:manipulation;font-size:22px;font-weight:900;padding:13px 22px;border-radius:14px;border:0;background:var(--gold);color:var(--ink);box-shadow:0 5px 0 #a67c22,0 10px 20px rgba(0,0,0,.3)}"+
       ".paardenrace-flip:active{transform:translateY(3px);box-shadow:0 2px 0 #a67c22,0 4px 10px rgba(0,0,0,.3)}"+
       ".paardenrace-track{display:grid;grid-template-columns:auto repeat(4,1fr);gap:4px 6px;align-items:center;justify-items:center}"+
       ".paardenrace-side{display:flex;align-items:center;justify-content:flex-end;gap:6px;min-width:50px;font-size:11px;color:var(--ivory-dim)}"+
@@ -30,7 +33,7 @@
       ".paardenrace-fin{border:1.5px solid var(--gold);background:rgba(231,184,79,.12)}"+
       ".paardenrace-hot{display:inline-flex}"+
       ".paardenrace-hot .card{outline:3px solid var(--gold);outline-offset:1px}"+
-      ".paardenrace-row{display:grid;grid-template-columns:1fr 44px 30px 44px auto;align-items:center;gap:6px;padding:6px 0;border-top:1px solid rgba(243,233,210,.12)}"+
+      ".paardenrace-row{display:grid;grid-template-columns:1fr 44px 38px 44px auto;align-items:center;gap:6px;padding:6px 0;border-top:1px solid rgba(243,233,210,.12)}"+
       ".paardenrace-row:first-child{border-top:0}"+
       ".paardenrace-row .paardenrace-who{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:700}"+
       ".paardenrace-row .btn{min-height:44px;padding:9px 12px}"+
@@ -54,9 +57,14 @@
       }
       /* een bewaard spel van voor een herlaad alleen hervatten als het compleet is */
       function sane(){
+        var i, s, b;
         if(["bet","race","deal","done"].indexOf(G.phase)<0||!Array.isArray(G.bets)) return false;
+        for(i=0;i<G.bets.length;i++){ b=G.bets[i]; if(!Array.isArray(b)||b.length!==4) return false; for(s=0;s<4;s++) if(typeof b[s]!=="number"||!(b[s]>=0)) return false; }
+        if([4,6,8].indexOf(G.len)<0){ if(G.phase!=="bet") return false; G.len=6; }
         if(G.phase==="bet") return true;
-        return Array.isArray(G.steps)&&G.steps.length===G.len&&Array.isArray(G.open)&&Array.isArray(G.deck)&&Array.isArray(G.pos)&&G.pos.length===4&&Array.isArray(G.queue)&&Array.isArray(G.alloc)&&Array.isArray(G.log)&&(G.phase!=="deal"||(G.winner>=0&&G.winner<4));
+        for(s=0;s<4;s++) if(!Array.isArray(G.pos)||typeof G.pos[s]!=="number") return false;
+        return Array.isArray(G.steps)&&G.steps.length===G.len&&Array.isArray(G.open)&&G.open.length===G.len&&Array.isArray(G.deck)&&G.pos.length===4&&Array.isArray(G.queue)&&Array.isArray(G.alloc)&&Array.isArray(G.log)&&
+          (G.phase!=="deal"||(typeof G.winner==="number"&&G.winner>=0&&G.winner<4&&typeof G.qi==="number"));
       }
       /* Spelers kunnen tussendoor worden toegevoegd of verwijderd. De inzet staat op de plek in de spelerslijst;
          valt er precies één speler weg, dan zoekt de app op naam wie dat was, zodat de inzetten bij de juiste mensen blijven. */
@@ -70,8 +78,15 @@
         else if(cur===i) startDeal();
       }
       function fit(){
-        var p=P(), n=p.length, now=p.map(function(q){ return q.name; }), old=G.names, i;
-        if(Array.isArray(old)&&old.length===n+1&&G.bets.length===n+1){ for(i=0;i<n&&old[i]===now[i];i++){} drop(i); }
+        var p=P(), n=p.length, now=p.map(function(q){ return q.name; }), old=G.names, i, j, shifted;
+        if(Array.isArray(old)&&G.bets.length===old.length){
+          for(i=0;i<n&&i<old.length&&old[i]===now[i];i++){}
+          if(old.length===n+1) drop(i);
+          else if(old.length===n&&i<n-1){ /* iemand weg en meteen een nieuwe speler erbij: de rest is één plek opgeschoven */
+            shifted=true; for(j=i;j<n-1;j++) if(now[j]!==old[j+1]) shifted=false;
+            if(shifted) drop(i);
+          }
+        }
         G.names=now;
         while(G.bets.length<n) G.bets.push([0,0,0,0]);
         if(G.bets.length>n) G.bets.length=n;
@@ -85,6 +100,15 @@
           }
         }
         if(!(A.S.active>=0&&A.S.active<n)){ A.S.active=0; A.save(); A.renderPlayers(); }
+      }
+
+      /* De spelersbalk meldt een toegevoegde, verwijderde of hernoemde speler niet aan het spel: het scherm is dan verouderd.
+         Elke knop kijkt daarom eerst of de spelerslijst nog klopt; zo niet, dan wordt alleen het scherm ververst. */
+      function moved(){
+        var p=P(), o=G.names, i;
+        if(!Array.isArray(o)||o.length!==p.length) return true;
+        for(i=0;i<p.length;i++) if(p[i].name!==o[i]) return true;
+        return false;
       }
 
       /* ---- inzetten ---- */
@@ -112,12 +136,15 @@
         if(!G.deck.length){ G.phase="done"; G.winner=-1; A.save(); render(); return; } /* kan bij 4, 6 of 8 stappen niet gebeuren */
         var c=G.deck.pop(); G.last=c; G.ev=null; G.pos[c.s]++;
         if(G.pos[c.s]>G.len){ finish(c.s); return; }
-        var k=G.open.indexOf(false)+1; /* laagste dichte stap, 1 = onderste */
+        var k=G.open.indexOf(false)+1, sc=null; /* laagste dichte stap, 1 = onderste */
         if(k>0&&Math.min.apply(null,G.pos)>k){
-          var sc=G.steps[k-1]; G.open[k-1]=true; G.pos[sc.s]--; G.ev={k:k,s:sc.s}; A.play("clack");
+          sc=G.steps[k-1]; G.open[k-1]=true; G.pos[sc.s]--; G.ev={k:k,s:sc.s}; A.play("clack");
         } else A.play("tick");
         if(!G.deck.length){ G.phase="done"; G.winner=-1; }
-        A.save(); render();
+        A.save();
+        /* de stap terug is hét moment van de race: niet weg te tikken door snel door te draaien */
+        if(sc) A.overlay("info","Stap terug",["Alle azen zijn voorbij stap "+k+", dus die kaart gaat open.",A.cardName(sc)+": "+NAMES[sc.s]+" gaat één stap terug."],0,'<span class="paardenrace-ovl">'+A.cardHtml(sc,"big")+'</span>');
+        render();
       }
       function finish(s){
         var p=P(), lines=[NAMES[s]+" is als eerste voorbij alle stappen."], give=[], i;
@@ -172,7 +199,7 @@
         for(s=0;s<p.length;s++) if(!tot(s)) none.push(s);
         if(ok&&none.length) h+='<p class="hint">Nog geen inzet van '+esc(A.joinNames(none))+'. Wie niets inzet, kijkt alleen mee.</p>';
         h+='<div class="board">'+betsTable(true)+'</div><p class="hint">Tik een naam om de inzet van die speler te wijzigen.</p>';
-        h+='<div class="seg"><span style="font-size:12px;color:var(--ivory-dim);align-self:center">baan:</span>';
+        h+='<div class="seg paardenrace-seg"><span style="font-size:12px;color:var(--ivory-dim);align-self:center">baan:</span>';
         [4,6,8].forEach(function(n){ h+='<button data-len="'+n+'" aria-pressed="'+(G.len===n)+'">'+n+' stappen</button>'; });
         return h+'</div>';
       }
@@ -194,8 +221,9 @@
           if(G.ev) m+='<br>Alle azen zijn voorbij stap '+G.ev.k+'. Daar lag <b>'+esc(A.cardName(G.steps[G.ev.k-1]))+'</b>: '+NAMES[G.ev.s]+' gaat één stap terug.';
         }
         m+='<small>Nog '+G.deck.length+' kaarten op de stapel</small>';
-        return '<div class="paardenrace-top">'+(c?A.cardHtml(c,""):A.cardHtml(null,"back"))+'<div class="paardenrace-msg">'+m+'</div></div>'+
-          '<button class="paardenrace-flip" data-flip>Draai kaart</button>'+trackHtml()+'<div class="board paardenrace-gap">'+betsTable(false)+'</div>';
+        /* de knop staat bovenaan, zodat hij niet verspringt als de tekst eronder langer of korter wordt */
+        return '<button class="paardenrace-flip" data-flip>Draai kaart</button>'+
+          '<div class="paardenrace-top">'+(c?A.cardHtml(c,""):A.cardHtml(null,"back"))+'<div class="paardenrace-msg">'+m+'</div></div>'+trackHtml()+'<div class="board paardenrace-gap">'+betsTable(false)+'</div>';
       }
       function dealHtml(){
         var i=G.queue[G.qi], w=G.winner, bet=G.bets[i][w], n=2*bet, left=n-allocSum(), o=A.others(i), h, k, j;
@@ -213,23 +241,26 @@
       }
       function doneHtml(){
         var w=G.winner, h;
-        if(w===null||w<0) h='<div class="verdict neutral"><h2>Geen winnaar</h2><p>De stapel is op voordat een aas voorbij alle stappen was.</p></div>';
+        if(typeof w!=="number"||w<0||w>3) h='<div class="verdict neutral"><h2>Geen winnaar</h2><p>De stapel is op voordat een aas voorbij alle stappen was.</p></div>';
         else {
           h='<div class="verdict win"><h2>'+A.SUITS[w]+' '+NAMES[w]+' wint</h2>';
           if(G.log.length) h+=G.log.map(function(x){ return '<p class="paardenrace-log">'+esc(x)+'</p>'; }).join("");
           else h+='<p>Niemand had op '+NAMES[w]+' ingezet, dus niemand deelt uit.</p>';
           h+='</div>';
         }
-        return h+'<div class="paardenrace-gap">'+trackHtml()+'</div><div class="board paardenrace-gap">'+betsTable(false)+'</div>';
+        return h+'<p class="hint">Tik Nieuw spel om opnieuw in te zetten.</p>'+trackHtml()+'<div class="board paardenrace-gap">'+betsTable(false)+'</div>';
       }
 
-      function on(sel,fn){ var l=root.querySelectorAll(sel); for(var k=0;k<l.length;k++) l[k].onclick=fn; }
+      function on(sel,fn){
+        var l=root.querySelectorAll(sel), h=function(e){ if(moved()){ render(); return; } fn.call(this,e); };
+        for(var k=0;k<l.length;k++) l[k].onclick=h;
+      }
       function render(arm){
         fit();
         var busy=G.phase==="race"||G.phase==="deal", hot=arm===true&&busy;
         var h=G.phase==="bet"?betHtml():G.phase==="race"?raceHtml():G.phase==="deal"?dealHtml():doneHtml();
-        h+='<div class="btnrow"><button class="btn'+(hot?' danger':G.phase==="done"?' gold':'')+'" data-new="'+(hot?1:0)+'">'+(hot?"Race afbreken? Tik nog eens":"Nieuw spel")+'</button></div>';
-        root.innerHTML=h;
+        h+='<div class="btnrow"><button class="btn'+(hot?' danger':G.phase==="done"?' gold':'')+'" data-new="'+(hot?1:0)+'">'+(hot?"Spel afbreken? Tik nog eens":"Nieuw spel")+'</button></div>';
+        root.innerHTML='<div class="paardenrace-root">'+h+'</div>';
         /* een lopende race breek je pas af met een tweede tik */
         on("[data-new]",function(){ if((G.phase==="race"||G.phase==="deal")&&this.getAttribute("data-new")!=="1"){ render(true); return; } newGame(); render(); });
         on("[data-plus]",function(){ var b=G.bets[A.S.active], s=+this.getAttribute("data-plus"); if(b&&b[s]<99){ b[s]++; A.save(); A.play("tick"); } render(); });

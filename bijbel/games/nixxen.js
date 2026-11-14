@@ -36,12 +36,21 @@
 
   A.register({ id:ID, beta:true, title:"Nixxen", level:"app", sub:"Vijf stenen wegleggen, punten tellen, double or nothing",
     init:function(root){
-      var G=A.gs(ID), R=G.R||null, alive=true, obs=null, seen=-1;
+      var G=A.gs(ID), R=G.R||null, alive=true, obs=null, seen="", armed=0;
 
+      function sig(){ return A.S.players.map(function(p){ return p.name; }).join(""); }
+      /* klopt de bewaarde ronde nog (ander aantal spelers, oude of kapotte opslag)? Zo niet: nieuwe ronde */
       function ok(r,n){
-        return !!(r&&r.n===n&&Array.isArray(r.order)&&r.order.length>=2&&r.res&&r.t&&Array.isArray(r.t.aside)&&
-          r.pos>=0&&r.pos<r.order.length&&r.order.every(function(i){ return i>=0&&i<n; })&&
-          (r.phase==="play"||(r.phase==="done"&&r.out)));
+        if(!(r&&r.n===n&&Array.isArray(r.order)&&r.order.length>=2&&r.res&&typeof r.res==="object"&&r.t&&Array.isArray(r.t.aside)&&
+          r.pos>=0&&r.pos<r.order.length&&r.order.every(function(i,k){ return i>=0&&i<n&&r.order.indexOf(i)===k; })&&
+          (r.mult===1||r.mult===2)&&
+          Object.keys(r.res).every(function(k){ return r.res[k]&&Array.isArray(r.res[k].dice); })&&
+          ((r.phase==="play"&&r.t.aside.length<5)||(r.phase==="done"&&r.out&&Array.isArray(r.out.kind==="vijf"?r.out.others:r.out.los))))) return false;
+        var t=r.t;
+        if(t.roll&&(!Array.isArray(t.roll)||t.roll.length!==5-t.aside.length||!Array.isArray(t.sel))){ t.roll=null; t.sel=[]; }
+        if(!t.roll) t.fix=false;
+        if(r.first&&!(Array.isArray(r.first.order)&&r.first.res)) r.first=null;
+        return true;
       }
       function cur(){ return R.order[R.pos]; }
       function sync(){ A.S.active=cur(); A.save(); A.renderPlayers(); }
@@ -115,7 +124,7 @@
           sync(); render();
           A.play("ding");
           A.overlay("info","Double or nothing!",[A.joinNames(tied)+" hebben "+(tied.length===2?"allebei ":"allemaal ")+punt(x.hi)+(again?", weer gelijk.":"."),
-            "Zij spelen "+(again?"nog een keer":"opnieuw")+". De verliezer drinkt twee keer de laagste score."],0);
+            "Zij gooien "+(again?"nog een keer":"opnieuw")+". Wie dan de meeste punten heeft, drinkt twee keer de laagste score van die ronde."],0);
           A.onOverlayClose(null);
           return;
         }
@@ -131,15 +140,20 @@
 
       function render(){
         if(!alive) return;
-        var P=A.S.players, n=P.length, h="", t, rem, x; seen=n;
+        var P=A.S.players, n=P.length, h="", t, rem, x; seen=sig(); armed=0;
         if(n<2){ root.innerHTML='<p class="hint">Nixxen speel je met minstens twee spelers: wie de meeste punten heeft drinkt de score van wie de minste heeft. Voeg hierboven een speler toe.</p>'; return; }
-        if(!ok(R,n)){ newRound(R&&R.n===n?R.start:A.S.active); return; }
+        if(!ok(R,n)){
+          var broken=!!(R&&R.n&&R.n!==n&&R.phase==="play"&&R.t&&(R.pos>0||R.mult===2||(R.t.aside&&R.t.aside.length)||R.t.roll));
+          newRound(R&&R.n===n?R.start:(R&&R.phase==="done"&&typeof G.next==="number"?G.next:A.S.active));
+          if(broken) A.toast("De ronde begint opnieuw","Er is een speler bij gekomen of weggegaan.",3600);
+          return;
+        }
         t=R.t; rem=5-t.aside.length; x=extremes();
         var playing=R.phase==="play", c=cur();
 
         /* stand */
         h+='<div class="board">';
-        if(R.mult===2) h+='<div class="stat" style="margin:0 4px 8px"><span><b>Double or nothing</b></span><span>verliezer drinkt <b>2 ×</b> de laagste score</span></div>';
+        if(R.mult===2) h+='<div class="stat" style="margin:0 4px 8px"><span><b>Double or nothing</b></span><span>meeste punten drinkt <b>2 ×</b> de laagste score</span></div>';
         h+='<table class="score nixxen-t"><tr><th>speler</th><th>weggelegd</th><th>punten</th></tr>';
         R.order.forEach(function(i){
           var r=R.res[i], me=playing&&i===c, d=r?r.dice:(me&&t.aside.length?t.aside:null);
@@ -187,12 +201,18 @@
         var b1=el("nixxen-commit"); if(b1) b1.onclick=commit;
         var b2=el("nixxen-fix"); if(b2) b2.onclick=function(){ t.fix=true; A.save(); render(); };
         var b3=el("nixxen-fixok"); if(b3) b3.onclick=function(){ t.fix=false; t.sel=t.roll.map(function(){ return false; }); if(t.roll.length===1) t.sel=[true]; A.save(); render(); };
-        var b4=el("nixxen-new"); if(b4) b4.onclick=function(){ newRound(R.phase==="done"?(typeof G.next==="number"?G.next:R.start+1):R.start); };
+        var b4=el("nixxen-new"); if(b4) b4.onclick=function(){
+          if(R.phase==="done"){ newRound(typeof G.next==="number"?G.next:R.start+1); return; }
+          /* midden in een ronde: eerst vragen, een verkeerde tik gooit anders ieders worpen weg */
+          if(!fresh()&&Date.now()-armed>4000){ armed=Date.now(); b4.textContent="Ronde afbreken? Tik nog eens"; return; }
+          newRound(R.start);
+        };
+        if(playing&&A.S.active!==c) sync();
       }
 
-      /* spelers erbij of eraf: opnieuw tekenen (een lopende ronde begint dan opnieuw) */
+      /* spelers erbij of eraf, of een andere naam: opnieuw tekenen (bij een ander aantal spelers begint een lopende ronde opnieuw) */
       var bar=el("players");
-      if(bar&&window.MutationObserver){ obs=new window.MutationObserver(function(){ if(alive&&A.S.players.length!==seen) render(); }); obs.observe(bar,{childList:true}); }
+      if(bar&&window.MutationObserver){ obs=new window.MutationObserver(function(){ if(alive&&sig()!==seen) render(); }); obs.observe(bar,{childList:true}); }
       this.destroy=function(){ alive=false; if(obs){ obs.disconnect(); obs=null; } };
       this.refresh=render;
       /* op een naam tikken: voor de eerste worp of na afloop begint die speler een ronde; midden in een ronde blijft de beurt waar hij is */

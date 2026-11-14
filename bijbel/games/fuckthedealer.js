@@ -64,18 +64,21 @@
         G.pn=now; fix(); A.save();
       }
       /* bewaarde stand weer kloppend maken (herladen, speler erbij of eraf) */
+      function okCard(k){ return !!k&&k.r>=1&&k.r<=13&&k.s>=0&&k.s<=3; }
       function fix(){
         var N=n(), i;
-        G.out=G.out||[]; G.log=G.log||[]; G.sc=G.sc||[];
-        for(i=0;i<N;i++) if(!G.sc[i]) G.sc[i]={b:0,r:0,s:0};
+        if(!Array.isArray(G.out)) G.out=[]; if(!Array.isArray(G.log)) G.log=[]; if(!Array.isArray(G.sc)) G.sc=[];
+        G.log=G.log.filter(function(x){ return x&&okCard(x.c)&&typeof x.n==="number"; }); /* een regel uit een oudere versie mag het scherm niet breken */
+        for(i=0;i<N;i++) if(!G.sc[i]||typeof G.sc[i].b!=="number") G.sc[i]={b:0,r:0,s:0};
+        if(!(G.streak>=0&&G.streak<3)) G.streak=0;
         if(!playing()&&G.phase!=="end") G.phase="setup";
         if(!playing()) return;
-        if(!G.deck||!G.deck.length||G.deck.length+G.out.length!==52){ G.phase="setup"; return; }
+        if(!Array.isArray(G.deck)||!G.deck.length||G.deck.length+G.out.length!==52||!G.deck.every(okCard)||!G.out.every(okCard)){ G.phase="setup"; return; }
         if(G.phase==="second"&&(typeof G.first!=="number"||(G.hint!=="hoger"&&G.hint!=="lager"))){ G.phase="first"; G.first=null; G.hint=null; }
         if(N<2) return;
         if(!(G.dealer>=0&&G.dealer<N)) G.dealer=0;
         if(!(G.guesser>=0&&G.guesser<N)) G.guesser=0;
-        if(G.guesser===G.dealer) G.guesser=(G.dealer+1)%N;
+        if(G.guesser===G.dealer){ G.guesser=(G.dealer+1)%N; G.phase="first"; G.first=null; G.hint=null; } /* een ander raadt: die begint met een eerste gok */
       }
       function reset(){ G.phase="setup"; G.deck=null; G.out=[]; G.log=[]; G.sc=[]; G.streak=0; G.first=null; G.hint=null; sure=false; A.save(); render(); }
       function start(d){
@@ -104,12 +107,16 @@
 
       function guess(v){
         if(!playing()||n()<2||!G.deck.length) return;
+        if(!allowed(v,counts())) return;
         sure=false;
         var card=G.deck[G.deck.length-1], cv=val(card), g=G.guesser, d=G.dealer;
         if(G.phase==="first"&&v!==cv){ /* regel 3.I: fout, de dealer zegt hoger of lager */
           G.first=v; G.hint=cv>v?"hoger":"lager"; G.phase="second"; A.save(); A.play("ding");
-          A.overlay("info",G.hint==="hoger"?"Hoger!":"Lager!",["Geen "+word(v)+". "+A.name(g)+" noemt nog een waarde."],1800);
-          render(); return;
+          /* blijft staan tot er getikt wordt: een melding die vanzelf weggaat laat tikken door naar de waarden eronder */
+          render();
+          A.overlay("info",G.hint==="hoger"?"Hoger!":"Lager!",["Geen "+word(v)+". De kaart is "+G.hint+".",A.name(g)+" noemt nog één waarde."],0);
+          A.onOverlayClose(null);
+          return;
         }
         var kind=v!==cv?"mis":G.phase==="first"?"raak1":"raak2", a=G.phase==="first"?v:G.first, b=G.phase==="first"?null:v;
         var lines=[], wissel=false, sips, who;
@@ -155,7 +162,7 @@
           return;
         }
         if(G.phase==="setup"){
-          h='<p class="hint">Tik aan wie de dealer is. De anderen raden om de beurt de waarde van de bovenste kaart. De app is de stapel: de kaart blijft dicht en de app zegt hoger of lager. Raak: de dealer drinkt. Twee keer mis: de rader drinkt.</p><div class="opts">';
+          h='<p class="hint">Tik aan wie de dealer is. De anderen raden om de beurt de waarde van de bovenste kaart. De app is de stapel: de kaart blijft dicht en de app zegt hoger of lager. Raak: de dealer drinkt. Twee keer mis: je drinkt zelf.</p><div class="opts">';
           A.S.players.forEach(function(p,i){ h+='<button class="opt" data-d="'+i+'"><span class="num">'+(i+1)+'</span><span class="lbl">'+esc(p.name)+'<small>is de dealer</small></span><span class="odds"></span></button>'; });
           h+='</div><div class="btnrow"><button class="btn" id="fuckthedealer-rnd">Willekeurige dealer</button></div>';
           root.innerHTML=h;
@@ -178,7 +185,7 @@
         h='<div class="board"><div class="fuckthedealer-top">'+A.cardHtml(null)+'<div class="fuckthedealer-say">'+
           (G.phase==="first"
             ?'<b>'+esc(A.name(g))+' raadt</b>Noem een waarde en tik hem hieronder aan.'
-            :'<b>'+(G.hint==="hoger"?"Hoger":"Lager")+' dan '+word(G.first)+'</b>Geen '+word(G.first)+'. '+esc(A.name(g))+' noemt nog een waarde.')+
+            :'<b>'+(G.hint==="hoger"?"Hoger":"Lager")+' dan '+word(G.first)+'</b>Geen '+word(G.first)+'. '+esc(A.name(g))+' noemt nog één waarde: tik hem hieronder aan.')+
           '</div></div><div class="stat"><span>Dealer: <b>'+esc(A.name(d))+'</b></span><span>Missers op rij: <b>'+(G.streak||0)+'</b> van 3</span><span>Stapel: <b>'+G.deck.length+'</b></span></div>'+
           (L&&G.phase==="first"?'<div class="fuckthedealer-last">Vorige kaart: <b>'+esc(A.cardName(L.c))+'</b>, '+(L.k==="mis"?'mis':'raak')+'. <b>'+esc(L.w)+'</b> drinkt '+slok(L.n)+'.</div>':'')+'</div>';
         /* de tafel (regel 5: op waarde gesorteerd, gelijke waarden gestapeld) is meteen het rijtje knoppen */

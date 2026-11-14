@@ -24,6 +24,8 @@
   var SHAPE="M13 6C5 22 6 42 15 54H33C42 42 43 22 35 6Z";
   /* tick: elke render en elke destroy hoogt hem op, zodat een worp die nog uitrolt nooit op een oud scherm landt */
   var tick=0;
+  /* kijkt mee met de spelersbalk: een naam gewijzigd of een speler verwijderd terwijl het spel open staat */
+  var obs=null;
 
   if(!document.getElementById(ID+"-style")){
     var css=document.createElement("style"); css.id=ID+"-style";
@@ -61,6 +63,7 @@
     init:function(root){
       var G=A.gs(ID);
       var edit=false; /* "Glazen bijstellen" staat open (niet bewaard) */
+      var dice=null, seenN=-1, seenName=null; /* de dobbelstenen van dit scherm; wie er bij de laatste render aan de beurt stond */
 
       /* fase: opzet (glazen klaarzetten) -> gooi -> bij 7: vul (bijvullen) -> gooi; bij 8 en 9 blijft het gooi, met G.refill
          zolang het linker glas nog bijgevuld moet worden. Alles staat in G, dus een herlaad gaat verder waar het was. */
@@ -70,8 +73,9 @@
       if(G.lv[0]<HALF) G.lv[0]=HALF;
       if(!okLv(G.base)) G.base=G.lv.slice();
       if(!Array.isArray(G.log)) G.log=[];
+      G.log=G.log.filter(function(x){ return x&&typeof x==="object"; });
       if(!Array.isArray(G.last)||G.last.length!==2) G.last=null;
-      if(!G.note||typeof G.note!=="object") G.note=null;
+      if(!G.note||typeof G.note!=="object"||(G.note.k!=="half"&&G.note.k!=="alles")||typeof G.note.n!=="number") G.note=null;
       G.refill=!!G.refill&&G.phase==="gooi"; G.reeks=G.reeks|0;
 
       function cur(){ if(!(A.S.active>=0&&A.S.active<A.S.players.length)){ A.S.active=0; A.save(); A.renderPlayers(); } return A.S.active; }
@@ -105,6 +109,10 @@
         G.lv[k]=nxt; A.play("tick"); A.save(); paintBoard();
       }
 
+      /* een melding die vanzelf verdwijnt vangt geen tikken op: zolang ze staat kan de Gooi-knop eronder niet per ongeluk
+         geraakt worden. Zelf de ogen intikken kan wel meteen. */
+      function lockRoll(ms){ var d=dice, t=tick; if(!d) return; d.lock(true); setTimeout(function(){ if(t===tick) d.lock(false); },ms); }
+
       function onRoll(v){
         if(G.phase!=="gooi"||edit) return;
         var i=cur(), a=v[0], b=v[1], s=a+b, nm=A.name(i), T, d, refill, nxt;
@@ -115,7 +123,7 @@
           /* regel 2.I.i: eerst bijvullen, dan opnieuw gooien */
           G.reeks++; G.phase="vul"; G.base=G.lv.slice(); addLog({who:nm,a:a,b:b,k:"vul"}); A.save();
           A.play("ding");
-          A.overlay("info","Zeven!",[nm+" vult bij: zoveel glazen en zoveel bier als "+nm+" wil.","Daarna gooit "+nm+" opnieuw."],1900,A.dicerow([a,b]));
+          A.overlay("info","Zeven!",[nm+" vult bij: zoveel glazen en zoveel bier als "+nm+" wil.","Daarna gooit "+nm+" opnieuw."],0,A.dicerow([a,b]));
         } else if(s===8||s===9){
           /* regel 2.I.ii en iii: de helft of alles van het bier in de drie glazen opdrinken, dan opnieuw gooien */
           T=totaal(); d=s===8?helft(T):alles(T);
@@ -138,10 +146,12 @@
           A.overlay("info",String(s),["Geen 7, 8 of 9: de beurt van "+nm+" is voorbij.",nxt===i?"Nog een keer.":"Beurt naar "+A.name(nxt)+"."],1600,A.dicerow([a,b]));
         }
         render();
+        if(s<7||s>9) lockRoll(1600);
       }
 
       function render(){
         var token=++tick, i=cur(), n=A.S.players.length, who=esc(A.name(i)), N=G.note, h="", b;
+        seenN=n; seenName=A.name(i); dice=null;
         if(n<2) h+='<p class="hint">Met één speler blijft de beurt bij jezelf. Voeg spelers toe met + speler hierboven.</p>';
         h+='<div class="board" id="'+ID+'Board">'+boardHtml()+'</div>';
 
@@ -162,7 +172,7 @@
               (N.k==="half"?'de helft van al het bier in de drie glazen':'al het bier in de drie glazen op')+': <b>'+sl(N.n)+'</b>.</p>'+
               (G.refill?'<p>Vul het linker glas meteen weer tot minstens halfvol. Staat het voller dan half? Tik dan op het glas.</p>':'')+'</div>';
           }
-          h+='<p class="hint"><b class="zevenachtnegen-who">'+who+'</b> '+(G.reeks>0?'gooit opnieuw':'is aan de beurt')+'</p>';
+          h+='<p class="hint"><b class="zevenachtnegen-who">'+who+'</b> '+(G.reeks>0?'gooit opnieuw':'is aan de beurt')+': tik op Gooi, of tik op een steen om jullie echte worp in te vullen.</p>';
           h+='<div id="'+ID+'Dice"></div>';
         }
 
@@ -182,14 +192,27 @@
         if((b=el(ID+"Filled"))) b.onclick=function(){ G.phase="gooi"; A.save(); render(); };
         if((b=el(ID+"Edit"))) b.onclick=function(){ edit=true; render(); };
         el(ID+"New").onclick=function(){ edit=false; fresh(); A.save(); render(); };
-        if((b=el(ID+"Dice"))) A.Dice(b,{n:2,label:"Gooi",onRoll:function(v){ if(token!==tick) return; onRoll(v); }});
+        if((b=el(ID+"Dice"))) dice=A.Dice(b,{n:2,label:"Gooi",onRoll:function(v){ if(token!==tick) return; onRoll(v); }});
       }
 
       render();
       this.refresh=render;
+      /* De spelersbalk hoort bij de app en meldt een nieuwe naam of een verwijderde speler niet aan het spel. Daarom kijkt
+         het spel zelf mee, anders blijft de oude naam staan. Is de speler die aan de beurt was verwijderd (alleen die kan
+         verwijderd worden), dan begint de volgende een verse beurt: een open zeven, acht of negen vervalt met hem. */
+      if(obs){ obs.disconnect(); obs=null; }
+      if(typeof MutationObserver==="function"&&el("players")){
+        obs=new MutationObserver(function(){
+          var n=A.S.players.length, nm=A.name(cur());
+          if(n===seenN&&nm===seenName) return;
+          if(n<seenN&&nm!==seenName){ G.reeks=0; G.note=null; G.refill=false; if(G.phase==="vul") G.phase="gooi"; A.save(); }
+          render();
+        });
+        obs.observe(el("players"),{childList:true});
+      }
       /* een andere speler aangetikt: die is nu aan de beurt en begint een verse beurt (een open bijvulbeurt gaat mee) */
       this.onPlayer=function(){ G.reeks=0; G.note=null; G.refill=false; A.save(); render(); };
     },
-    destroy:function(){ tick++; }
+    destroy:function(){ tick++; if(obs){ obs.disconnect(); obs=null; } }
   });
 })();

@@ -70,20 +70,23 @@
         G.names=namen(); G.cur=A.S.active; G.mode=G.mode||"digitaal"; G.vrouw=G.vrouw||{};
       }
       function changed(){ var now=namen(), old=G.names||[]; if(now.length!==old.length)return true; for(var i=0;i<now.length;i++)if(now[i]!==old[i])return true; return false; }
-      /* Spelers kunnen tussendoor worden toegevoegd of verwijderd: zet dan alle spelernummers om via de namen. */
+      /* Spelers kunnen tussendoor worden toegevoegd of verwijderd: zet dan alle spelernummers om via de namen.
+         Zelfde aantal maar een naam op een andere plek = iemand weg en iemand erbij; alleen een andere naam = hernoemd. */
       function sync(){
-        var now=namen(), old=G.names||now, n=now.length;
+        var now=namen(), old=G.names||now, n=now.length, j, schuif=old.length!==n;
+        for(j=0;j<n&&!schuif;j++) if(old[j]!==now[j]&&now.indexOf(old[j])>=0) schuif=true;
         G.names=now;
-        if(old.length!==n){
-          var map=function(i){ return now[i]===old[i]?i:now.indexOf(old[i]); };
+        if(schuif){
+          var map=function(i){ return (i>=0&&i<old.length&&now[i]===old[i])?i:(i>=0&&i<old.length?now.indexOf(old[i]):-1); };
+          var om=function(lijst){ return (lijst||[]).filter(function(d){ d[0]=map(d[0]); return d[0]>=0; }); };
           G.tok=G.tok.filter(function(f){ f.p=map(f.p); return f.p>=0; });
-          var c=map(G.cur); if(c>=0)G.cur=c;
-          if(G.turn){ var tp=map(G.turn.p);
-            if(tp<0&&!G.over) G.turn=null;
-            else { if(tp>=0)G.turn.p=tp; G.turn.fx=leeg(); if(G.turn.sel)G.turn.sel=voorkeur(G.turn.c.r); } }
+          var c=map(G.cur); if(c>=0)G.cur=c; /* is de speler aan de beurt weg, dan schuift de volgende vanzelf op deze plek */
+          if(G.turn){ var t=G.turn, tp=map(t.p), fx=t.fx||leeg();
+            if(tp<0&&!G.over) G.turn=null; /* de trekker is weg: zijn kaart is gespeeld, de volgende trekt */
+            else { t.p=tp; t.fx={d:om(fx.d),a:om(fx.a),t:fx.t||[],r:fx.r||[]}; if(t.sel&&!t.done)t.sel=voorkeur(t.c.r); } }
           pick=null;
         }
-        if(!(G.cur>=0))G.cur=0; if(n)G.cur%=n;
+        if(!(G.cur>=0))G.cur=0; if(n)G.cur%=n; else G.cur=0;
       }
       function log(txt,q){ G.log.unshift({t:txt,q:q}); if(G.log.length>14)G.log.length=14; }
       function meld(msg){ A.toast("Drinken!",msg); A.play("ding"); }
@@ -110,7 +113,8 @@
         else if(r===13){
           G.kings++;
           if(G.kings<4){ klaar(t,nm+" mag het glas in het midden vullen (heer "+G.kings+" van 4).","neutral"); A.play("special");
-            A.overlay("win","Heer "+G.kings,[nm+" mag het glas in het midden vullen met wat hij of zij wil.","Wie de vierde heer trekt, drinkt het leeg."],2600); }
+            /* blijft staan tot een tik: een overlay die vanzelf verdwijnt laat tikken door naar de knoppen eronder */
+            A.overlay("win","Heer "+G.kings,[nm+" mag het glas in het midden vullen met wat hij of zij wil.","Wie de vierde heer trekt, drinkt het leeg."],0); A.onOverlayClose(null); }
           else { A.atje(x,1); t.fx.a.push([x,1]); G.over=true; G.overNaam=nm; pick=null;
             klaar(t,nm+" trekt de laatste heer en drinkt het glas in het midden leeg. Het spel is afgelopen.","fout"); A.play("dood");
             /* korte titel: een lang woord past op een telefoon niet in de grote overlayletters */
@@ -175,9 +179,9 @@
           var t=G.turn; if(!t||!t.done||G.over)return;
           G.turn=null; jufOpen=false; G.cur=(G.cur+1)%A.S.players.length; /* de beurt gaat met de klok mee */
         },
-        opnieuw:function(){ var t=G.turn; if(!t||G.over)return; var c=t.c, s=t.slot, man=t.man; herstel(); pasToe(c,man); G.turn.slot=s; },
+        opnieuw:function(){ var t=G.turn; if(!t||G.over)return; var c=t.c, s=t.slot, man=t.man, d=t.draft||""; herstel(); pasToe(c,man); G.turn.slot=s; G.turn.draft=d; },
         terug:function(){
-          var t=G.turn; if(!t)return; herstel(); G.left.push(t.c); if(t.slot>=0)G.slots[t.slot]=1;
+          var t=G.turn; if(!t||!t.man)return; herstel(); G.left.push(t.c); if(t.slot>=0)G.slots[t.slot]=1;
           G.n=Math.max(0,G.n-1); G.turn=null; pick=null; jufOpen=false;
         },
         mode:function(i,b){ var m=b.getAttribute("data-m"); if(m==="digitaal"||m==="echt")G.mode=m; },
@@ -223,7 +227,7 @@
         return h+'<span class="kingsen-glas"><b style="height:'+(G.kings>=4?0:Math.round(G.kings/3*88))+'%"></b></span></div>';
       }
       function uitleg(t){
-        var b='<b>'+esc(A.name(t.p))+'</b>', c=t.c;
+        var c=t.c, b='<b>'+esc(G.over&&c.r===13&&G.overNaam?G.overNaam:A.name(t.p))+'</b>';
         switch(c.r){
           case 1: return b+' bedenkt een regel die de rest van het spel blijft gelden.';
           case 2: return A.isRed(c)?'Een rode twee: '+b+' moet twee slokken drinken.':'Een zwarte twee: '+b+' mag twee slokken uitdelen.';
@@ -268,23 +272,27 @@
         if(r===13) h+='<p class="hint">Het glas in het midden is echt: vul het zelf, de app telt alleen de heren.</p>';
         if(!t.done){
           if(r===2) h+='<p class="hint">Tik wie een slok krijgt. Nog <b>'+t.left+'</b> uit te delen.</p>'+wie(A.others(x),"deel");
-          else if(r===4||r===6) h+='<p class="hint">Tik aan wie een slok neemt. De app onthoudt het voor de volgende keer.</p>'+wie(allen(),"sel",t.sel)+'<div class="btnrow"><button class="btn gold" data-a="groep">Laat drinken</button></div>';
+          else if(r===4||r===6) h+='<p class="hint">Tik '+(r===4?'de vrouwen':'de mannen')+' aan en tik dan op Laat drinken. De app onthoudt wie het zijn.</p>'+wie(allen(),"sel",t.sel)+'<div class="btnrow"><button class="btn gold" data-a="groep">Laat drinken</button></div>';
           else if(r===7||r===9||r===11){
-            h+='<p class="hint">Wie maakt als eerste een fout? Tik de naam aan: die drinkt een slok.</p>'+wie(allen(),"fout");
+            h+='<p class="hint">Speel het aan tafel. Wie maakt als eerste een fout? Tik de naam aan: die drinkt een slok.</p>'+wie(allen(),"fout");
             if(r===7){ h+='<div class="btnrow"><button class="btn" data-a="juf" aria-pressed="'+jufOpen+'">Spiekbriefje voor de scheidsrechter</button></div>';
               if(jufOpen){ var jl=[]; for(j=1;j<=100;j++)if(isJuf(j))jl.push(j); h+='<p class="kingsen-juf">Juf tot 100: '+jl.join(", ")+'</p>'; } }
           }
-          else if(r===1) h+='<div class="kingsen-regel"><input class="txt" id="kingsen-regel" type="text" maxlength="120" autocomplete="off" placeholder="Schrijf de regel op (mag leeg)" value="'+esc(t.draft||"")+'"><button class="btn gold" data-a="regel">Regel vastleggen</button></div>';
+          else if(r===1) h+='<p class="hint">Typ de regel van '+esc(A.name(x))+' (mag leeg) en tik op Regel vastleggen.</p><div class="kingsen-regel"><input class="txt" id="kingsen-regel" type="text" maxlength="120" autocomplete="off" placeholder="Schrijf de regel op (mag leeg)" value="'+esc(t.draft||"")+'"><button class="btn gold" data-a="regel">Regel vastleggen</button></div>';
+        }
+        if(t.done&&!G.over){
+          if(r===5||r===8||r===10||r===12) h+='<p class="hint">Dit staat nu onder ‘Geldt de rest van het spel’: tik daar aan als het gebeurt. Tik nu op Volgende.</p>';
+          else h+='<p class="hint">Klaar? Tik op Volgende, dan trekt <b>'+esc(A.name((G.cur+1)%n))+'</b> een kaart.</p>';
         }
         h+='<div class="btnrow">';
         if(t.done) h+='<button class="btn gold" data-a="volgende">Volgende: '+esc(A.name((G.cur+1)%n))+'</button>';
         if(t.picked) h+='<button class="btn" data-a="opnieuw">Opnieuw invullen</button>';
-        if(G.mode==="echt") h+='<button class="btn" data-a="terug">Verkeerde kaart</button>';
+        if(t.man) h+='<button class="btn" data-a="terug">Verkeerde kaart</button>';
         return h+'</div>';
       }
       function overHtml(){
         return '<div class="verdict fout"><h2>Koningsadtje</h2><p><b>'+esc(G.overNaam||"?")+'</b> trok de laatste heer en drinkt het glas in het midden leeg. Het spel is afgelopen.</p><div class="btnrow"><button class="btn gold" data-a="nieuw">Nieuw spel</button>'+
-          (G.mode==="echt"&&G.turn?'<button class="btn" data-a="terug">Verkeerde kaart</button>':'')+'</div></div>';
+          (G.turn&&G.turn.man?'<button class="btn" data-a="terug">Verkeerde kaart</button>':'')+'</div></div>';
       }
       function pickHtml(){
         var k=pick.k, nm=A.name(pick.p), lijst=(k==="snake"||k==="houding"||k==="plas")?A.others(pick.p):allen(), v;
@@ -293,7 +301,7 @@
         else if(k==="houding") v=nm+" neemt de houding aan. Wie deed het als laatste na? Die drinkt een slok.";
         else if(k==="plas") v="Aan wie verkoopt "+nm+" de plaskaart?";
         else if(k==="kring") v="Wie verbrak de cirkel? Die trekt een adtje.";
-        else v="Wie overtrad een regel? Per tik een slok.";
+        else v="Wie overtrad een regel? Die drinkt een slok.";
         return '<div class="verdict neutral" id="kingsen-pick"><p><b>'+esc(v)+'</b></p>'+wie(lijst,"kies")+'<div class="btnrow"><button class="btn" data-a="pkx">Annuleren</button></div></div>';
       }
       function statusHtml(){
@@ -322,7 +330,7 @@
         h+=statusHtml();
         h+='<div class="seg" style="margin-top:14px"><span class="kingsen-lbl">Kaarten:</span><button data-a="mode" data-m="digitaal" aria-pressed="'+(G.mode==="digitaal")+'">digitaal</button><button data-a="mode" data-m="echt" aria-pressed="'+(G.mode==="echt")+'">echte kaarten</button></div>';
         h+='<p class="hint" style="padding-top:0">'+(G.mode==="echt"?'Leg de kaarten in een cirkel om het glas en trek er om de beurt een. De app zegt wat de kaart betekent en houdt de stand bij.':'De app is de stapel. Het glas in het midden blijft echt. Een cirkel om te verbreken is er zo niet: kies daarvoor echte kaarten.')+'</p>';
-        h+='<div class="btnrow">'+(G.mode==="echt"&&!G.broken&&!G.over?'<button class="btn danger" data-a="pk" data-k="kring" data-i="-1">Cirkel verbroken</button>':'')+'<button class="btn" data-a="nieuw">'+(sure?"Zeker weten? Tik nog eens":"Nieuw spel")+'</button></div>';
+        h+='<div class="btnrow">'+(G.mode==="echt"&&!G.broken&&!G.over?'<button class="btn danger" data-a="pk" data-k="kring" data-i="-1">Cirkel verbroken</button>':'')+(G.over?'':'<button class="btn" data-a="nieuw">'+(sure?"Zeker weten? Tik nog eens":"Nieuw spel")+'</button>')+'</div>'; /* na afloop staat Nieuw spel al bovenaan */
         if(G.log.length) h+='<div class="log">'+G.log.map(function(l){ return '<div>'+esc(l.t)+'</div>'; }).join("")+'</div>';
         box.innerHTML=h;
         var pp=A.el("kingsen-pick"); if(pp&&pp.scrollIntoView)pp.scrollIntoView({block:"nearest"});
@@ -337,11 +345,16 @@
       box.addEventListener("input",function(e){ if(e.target&&e.target.id==="kingsen-regel"&&G.turn)G.turn.draft=e.target.value; });
       box.addEventListener("keydown",function(e){ if(e.key==="Enter"&&e.target&&e.target.id==="kingsen-regel"&&!changed()){ ACT.regel(); A.save(); render(); } });
 
-      if(G.v!==1||!G.left||!G.slots||!G.tok||!G.regels||!G.log) fresh();
+      /* een bewaard spel van een oudere versie of met een kapot onderdeel: begin schoon */
+      var isA=Array.isArray;
+      if(G.v!==1||!isA(G.left)||!isA(G.slots)||G.slots.length!==52||!isA(G.tok)||!isA(G.regels)||!isA(G.log)||!(G.kings>=0)||!(G.n>=0)||!G.vrouw||typeof G.vrouw!=="object"||
+         (G.turn&&(!G.turn.c||!(G.turn.c.r>=1)||!G.turn.fx))||(!G.over&&!G.turn&&!G.left.length)) fresh();
       else if(G.n===0&&!G.turn) G.cur=A.S.active;
+      if(G.mode!=="echt")G.mode="digitaal";
       A.save(); render();
       this.refresh=render;
-      this.onPlayer=function(i){ if((!G.turn||G.over)&&A.S.players.length>=2){ G.cur=i; A.save(); } render(); };
+      /* eerst de spelernummers bijwerken (er kan net iemand zijn toegevoegd of verwijderd), dan pas de beurt verzetten */
+      this.onPlayer=function(i){ sync(); if((!G.turn||G.over)&&A.S.players.length>=2&&A.S.players[i]){ G.cur=i; A.save(); } render(); };
     }
   });
 })();

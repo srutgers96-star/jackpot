@@ -13,7 +13,9 @@
    - Jackpot: claimen kan zolang er nog niet geboden is, door iedereen met vijf stenen (bluffen kan, de bijbel kent de uitkomst "er liggen geen vijf dezelfde").
      "Iedereen moet een adtje" is gelezen als iedereen behalve de claimer (zoals bij optie I); de uitdager die verliest trekt dat adtje plus nog een half adtje,
      bovenop het halve adtje van het uitdagen. Na een jackpot is de ronde voorbij: iedereen gooit opnieuw, dezelfde speler begint, niemand levert een steen in.
-   - Een bod hoger dan het aantal stenen op tafel kan nooit kloppen; de teller stopt daarom bij het totaal. */
+   - Een bod hoger dan het aantal stenen op tafel kan nooit kloppen; de teller stopt daarom bij het totaal.
+   - Adtje kruk (A.kruk) hoort bij spellen met twee dobbelstenen. Dit is een spel met vijf stenen per speler en de worp blijft geheim,
+     dus de app roept het nooit aan, ook niet als iemand door de steen-kwijt-afspraak nog twee stenen over heeft. */
 (function(){
   var A=App, el=A.el, esc=A.esc, pct=A.pct, ID="liarsdice";
   var EEN=["","één","twee","drie","vier","vijf","zes"], MEER=["","enen","tweeën","drieën","vieren","vijven","zessen"];
@@ -42,6 +44,7 @@
       ".liarsdice-faces button[aria-pressed=\"true\"]{opacity:1;outline:3px solid var(--gold);outline-offset:2px}"+
       ".liarsdice-faces .pip{width:8px;height:8px}"+
       ".liarsdice-miss{opacity:.35}"+
+      ".liarsdice-gap{margin-top:10px}"+
       ".liarsdice-hit{box-shadow:0 0 0 2px var(--gold),0 2px 0 #c4b793}"+
       ".liarsdice-b{min-height:44px}"+
       ".liarsdice-seg button{min-height:40px}"+
@@ -57,8 +60,11 @@
       var shown=null;            /* van wie de stenen nu open op het scherm staan; wordt nooit bewaard */
       var selQ=null, selF=null;  /* het bod dat de speler aan het samenstellen is */
       var cntSel=0, sure=false, dead=false, seq=0;
+      var ask=null, askNext=null; /* "new" of "again": de knop is één keer getikt en vraagt om een tweede tik */
+      var tClose=0;               /* wanneer de uitslag-overlay dicht ging: een dubbele tik mag de uitslag niet overslaan */
       if(G.mode!=="tafel")G.mode="app";
       G.vLose=!!G.vLose; G.vAdt=!!G.vAdt; G.vExact=!!G.vExact; G.vJack=!!G.vJack;
+      if(G.phase==="count"&&G.bid&&G.bid.q>0)cntSel=G.bid.q;
 
       function n(){ return A.S.players.length; }
       function alive(){ var a=[],i; for(i=0;i<G.n;i++) if(G.cnt[i]>0)a.push(i); return a; }
@@ -72,6 +78,11 @@
         var i;
         if(!G.cnt||G.cnt.length!==G.n||!G.dice||G.dice.length!==G.n||!G.man||!G.hist)return false;
         if(!/^(roll|bid|count|jack|reveal|over)$/.test(G.phase))return false;
+        if(!(G.round>=1))return false;
+        for(i=0;i<G.n;i++){ if(!(G.cnt[i]>=0&&G.cnt[i]<=5))return false; if((G.phase==="roll"||G.phase==="bid")&&G.dice[i]&&G.dice[i].length!==G.cnt[i])return false; }
+        if(G.bid&&!(G.bid.q>=1&&G.bid.f>=1&&G.bid.f<=6&&G.bid.by>=0&&G.bid.by<G.n))return false;
+        if(G.res&&G.res.type==="call"&&!(G.res.loser>=0&&G.res.loser<G.n))return false;
+        if(G.phase==="over"&&!(G.res.type==="call"&&G.res.winner>=0&&G.res.winner<G.n))return false;
         if(!(G.cur>=0&&G.cur<G.n&&G.start>=0&&G.start<G.n))return false;
         if((G.phase==="reveal"||G.phase==="over")&&!G.res)return false;
         if(G.phase==="count"&&(!G.bid||G.mode!=="tafel"))return false;
@@ -82,14 +93,17 @@
         return true;
       }
       function stale(){ if(dead)return true; if(n()<2||n()!==G.n||!ok()){ shown=null; render(); return true; } return false; }
-      function sync(){
+      /* wie is er aan zet (of moet er nu iets doen)? */
+      function turn(){
         var a=G.cur;
         if(G.phase==="roll"){ a=toRoll(); if(a<0)a=G.start; }
         else if((G.phase==="reveal"||G.phase==="over")&&G.res) a=G.res.type==="call"?G.res.loser:G.res.by;
         else if(G.phase==="jack"&&G.jack&&G.jack.by!==null) a=G.jack.by;
         if(!(a>=0&&a<n()))a=0;
-        A.S.active=a; A.save(); A.renderPlayers();
+        return a;
       }
+      function sync(){ A.S.active=turn(); A.save(); A.renderPlayers(); }
+      function fresh(){ return !G.bid&&G.phase!=="jack"&&G.phase!=="count"&&!G.dice.some(function(d){ return !!d; }); }
       function newGame(){ var i; G.n=n(); G.cnt=[]; for(i=0;i<G.n;i++)G.cnt.push(5); G.round=0; newRound(A.S.active<G.n?A.S.active:0); }
       function newRound(start){
         var i; if(!(G.cnt[start]>0))start=nextAlive(start);
@@ -130,7 +144,7 @@
         var L=[], dr=r.dbl?"dubbel: een heel glas (8 slokken), want het bod lag er precies":"een half glas (4 slokken)";
         L.push("Er "+(r.count===1?"ligt ":"liggen ")+bidTxt(r.count,r.f)+(r.wild?" (enen tellen mee)":"")+"; "+A.name(r.bidder)+" bood "+bidTxt(r.q,r.f)+".");
         L.push(r.holds?A.name(r.caller)+" geloofde het niet en drinkt "+dr+".":A.name(r.bidder)+" bood te hoog en drinkt "+dr+".");
-        if(r.lost) L.push(A.name(r.loser)+" levert een steen in"+(r.out?" en ligt eruit"+(r.adt?": adtje erbij.":"."):" en heeft er nog "+r.left+"."));
+        if(r.lost) L.push(A.name(r.loser)+" levert een steen in"+(r.out?" en ligt eruit."+(r.adt?" Alle stenen kwijt: "+A.name(r.loser)+" trekt ook een adtje.":""):" en heeft er nog "+r.left+"."));
         if(r.winner!==null) L.push(A.name(r.winner)+" heeft als laatste nog stenen en wint het spel.");
         return L;
       }
@@ -147,7 +161,7 @@
         }
         G.res=r; G.phase=r.winner!==null?"over":"reveal"; sure=false; shown=null; sync();
         A.play("dood"); A.overlay("dood",holds?"Het klopt!":"Gelogen!",callLines(r),0);
-        A.onOverlayClose(r.winner!==null?function(){ if(!dead)A.play("win"); }:null);
+        A.onOverlayClose(function(){ tClose=Date.now(); if(!dead&&r.winner!==null)A.play("win"); });
         render();
       }
       function nextStart(){ var r=G.res, s=(r&&r.type==="call")?r.loser:G.start; return G.cnt[s]>0?s:nextAlive(s); }
@@ -170,7 +184,7 @@
         G.res=r; G.jack=null; G.phase="reveal"; shown=null; sync();
         if(ch!==null&&!real){ A.play("dood"); A.overlay("dood","Bluf!",jackLines(r),0); }
         else { A.play("special"); A.overlay("win","Jackpot!",jackLines(r),0); }
-        A.onOverlayClose(null); render();
+        A.onOverlayClose(function(){ tClose=Date.now(); }); render();
       }
       function challenge(c){
         var J=G.jack;
@@ -232,7 +246,7 @@
         } else if(G.mode==="tafel"){
           h+='<p class="hint">Ronde '+G.round+': iedereen gooit zijn stenen onder de beker en kijkt. Liggen er stenen op elkaar, schud dan met je beker. Daarna wordt er niet meer gegooid.</p>';
         }
-        h+='<p class="hint"><b>'+cur+'</b> is aan de beurt'+(b?': hoger bieden of de beker trekken.':' en begint met bieden. Het bod telt voor alle stenen van alle spelers.')+'</p>';
+        h+='<p class="hint"><b>'+cur+'</b> '+(b?'is aan de beurt: bied hoger (meer stenen of hogere ogen) of trek de beker.':'begint met bieden: kies hoeveel stenen van welke ogen er minstens liggen, onder alle bekers samen.')+'</p>';
         if(canRaise()){
           good=valid(selQ,selF);
           h+='<div class="liarsdice-step"><button id="ld-qm" aria-label="Eén minder"'+(selQ<=1?' disabled':'')+'>−</button><b>'+selQ+' ×</b><button id="ld-qp" aria-label="Eén meer"'+(selQ>=t?' disabled':'')+'>+</button></div><div class="liarsdice-faces">';
@@ -287,7 +301,7 @@
           L=callLines(r);
           h+='<div class="verdict fout"><h2>'+(r.holds?'Het klopt!':'Gelogen!')+'</h2>'+L.map(function(x){ return '<p>'+esc(x)+'</p>'; }).join("")+'</div>';
           if(r.app){
-            h+='<div class="board" style="margin-top:10px"><table class="score"><tr><th>speler</th><th>stenen</th><th>telt</th></tr>';
+            h+='<div class="board liarsdice-gap"><table class="score"><tr><th>speler</th><th>stenen</th><th>telt</th></tr>';
             A.S.players.forEach(function(p,i){ var d=G.dice[i], c=0; if(!d)return;
               h+='<tr'+(i===r.loser?' class="cur"':'')+'><td>'+esc(p.name)+'</td><td>'+d.map(function(v){ var x=hit(v,r.f,r.wild); if(x)c++; return small(v,x?'liarsdice-hit':'liarsdice-miss'); }).join("")+'</td><td>'+c+'</td></tr>'; });
             h+='</table><div class="stat"><span>Bod: <b>'+esc(bidTxt(r.q,r.f))+'</b></span><span>Op tafel: <b>'+r.count+'</b></span></div></div>';
@@ -309,7 +323,7 @@
         h+='<div class="seg liarsdice-seg"><span class="liarsdice-lbl">Afspraken:</span><button data-v="vLose" aria-pressed="'+G.vLose+'">verliezer levert een steen in</button>';
         if(G.vLose) h+='<button data-v="vAdt" aria-pressed="'+G.vAdt+'">alles kwijt: adtje</button>';
         h+='<button data-v="vExact" aria-pressed="'+G.vExact+'">precies het bod: dubbel</button><button data-v="vJack" aria-pressed="'+G.vJack+'">jackpot claimen</button></div>';
-        h+='<div class="btnrow">'+(G.phase==="reveal"||G.phase==="over"?'':'<button class="btn liarsdice-b" id="ld-again">Ronde opnieuw</button>')+'<button class="btn liarsdice-b" id="ld-new">Nieuw spel</button></div></div>';
+        h+='<div class="btnrow">'+(G.phase==="reveal"||G.phase==="over"?'':'<button class="btn liarsdice-b" id="ld-again">'+(ask==="again"?'Zeker? Tik nog eens: ronde opnieuw':'Ronde opnieuw')+'</button>')+(G.phase==="over"?'':'<button class="btn liarsdice-b" id="ld-new">'+(ask==="new"?'Zeker? Tik nog eens: nieuw spel':'Nieuw spel')+'</button>')+'</div></div>';
         return h;
       }
 
@@ -344,10 +358,11 @@
         on("ld-jyes",function(){ if(stale()||G.phase!=="jack"||G.jack.ch===null)return; resolveJack(true); });
         on("ld-jno",function(){ if(stale()||G.phase!=="jack"||G.jack.ch===null)return; resolveJack(false); });
         on("ld-jcancel",function(){ if(stale()||G.phase!=="jack"||G.jack.ch!==null)return; var back=G.jack.back; G.jack=null; G.phase=(back==="roll"&&G.mode==="app")?"roll":"bid"; sync(); render(); });
-        on("ld-next",function(){ if(stale()||G.phase!=="reveal")return; newRound(nextStart()); render(); });
+        on("ld-next",function(){ if(stale()||G.phase!=="reveal"||Date.now()-tClose<400)return; newRound(nextStart()); render(); });
         on("ld-new2",function(){ if(n()>=2)newGame(); render(); });
-        on("ld-new",function(){ if(n()>=2)newGame(); render(); });
-        on("ld-again",function(){ if(stale())return; G.round--; newRound(G.start); render(); });
+        /* midden in een ronde of een spel vragen deze twee knoppen om een tweede tik */
+        on("ld-new",function(){ if(stale())return; if(ask!=="new"&&!(fresh()&&G.round===1)){ askNext="new"; render(); return; } newGame(); render(); });
+        on("ld-again",function(){ if(stale())return; if(ask!=="again"&&!fresh()){ askNext="again"; render(); return; } G.round--; newRound(G.start); render(); });
         each("[data-mode]",function(b){ b.onclick=function(){
           var m=b.getAttribute("data-mode"); if(stale()||m===G.mode)return;
           G.mode=m;
@@ -359,6 +374,7 @@
       function render(){
         var changed, h;
         if(dead)return;
+        ask=askNext; askNext=null;
         if(n()<2){
           shown=null;
           root.innerHTML='<p class="hint">Liar’s Dice speel je met minstens twee spelers. Voeg bovenaan een speler toe en tik op Nieuw spel.</p><div class="btnrow"><button class="btn gold liarsdice-b" id="ld-new">Nieuw spel</button></div>';
@@ -372,6 +388,7 @@
         }
         if(shown!==null&&(!(G.cnt[shown]>0)||(G.phase!=="roll"&&G.phase!=="bid")))shown=null;
         if(G.phase==="roll"&&shown===null&&toRoll()<0){ G.phase="bid"; G.cur=G.start; sync(); }
+        if(A.S.active!==turn())sync(); /* iemand tikte een andere speler aan: de beurt blijft bij wie hij was */
         if(shown!==null) h=privHtml();
         else h=(G.phase==="roll"?rollHtml():G.phase==="bid"?bidHtml():G.phase==="count"?countHtml():G.phase==="jack"?jackHtml():revealHtml())+footHtml();
         root.innerHTML=h; wire();

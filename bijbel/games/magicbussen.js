@@ -13,7 +13,9 @@
    - een plaatje is boer, vrouw of heer (de aas niet);
    - zitten er meer spelers in de bus, dan steken ze samen over: om de beurt een kaart aanwijzen, bij een plaatje drinken ze allemaal;
    - de kolom telt vanaf de kant waar je begon (eerste kaart = kolom 1);
-   - is de stok in fase 3 op, dan worden de afgedekte kaarten onder de stapeltjes geschud tot nieuwe stok. */
+   - is de stok in fase 3 op, dan worden de afgedekte kaarten onder de stapeltjes geschud tot nieuwe stok;
+   - komt er tijdens het spel een speler bij, dan doet die pas het volgende spel mee (hij kan wel slokken krijgen);
+     gaat er een speler weg, dan kloppen de handen niet meer en moet er een nieuw spel komen. */
 (function(){
   "use strict";
   var A=App, esc=A.esc, ID="magicbussen";
@@ -49,7 +51,8 @@
       "button.magicbussen-next{cursor:pointer}"+
       ".magicbussen-reveal{display:flex;justify-content:center;margin:0 0 10px}"+
       ".magicbussen-who{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin:4px 0 2px}"+
-      ".magicbussen-who .btn{min-height:44px;min-width:72px}";
+      ".magicbussen-who .btn{min-height:44px;min-width:72px}"+
+      ".magicbussen-btn{min-height:44px}";
     document.head.appendChild(s);
   }
 
@@ -80,14 +83,17 @@
 
   A.register({ id:ID, beta:true, title:"Magic Bussen", level:"app", kans:true, sub:"Deelt de kaarten, legt het veld en de bus, telt alle slokken",
     init:function(root){
-      var G=A.gs(ID), confirmNew=false;
+      var G=A.gs(ID), confirmNew=false, lockUntil=0;
       css();
 
       /* ---- toestand ---- */
       function wipe(){ Object.keys(G).forEach(function(k){ delete G[k]; }); }
       function validCount(){ var n=A.S.players.length; return n>=2&&n<=10; } /* 4 kaarten per speler + 9 voor het veld uit 52 */
       function busy(){ return G.phase==="deal"||G.phase==="field"||G.phase==="bus"; }
-      function stale(){ return busy()&&G.n!==A.S.players.length; }
+      /* een speler erbij (achteraan in de lijst) verschuift niets: het spel loopt door. Een speler eraf verschuift de nummers. */
+      function stale(){ return busy()&&A.S.players.length<G.n; }
+      /* na een tik die het scherm verandert even geen tikken aannemen: een dubbele tik raakt anders de knop die op dezelfde plek verschijnt */
+      function hold(){ lockUntil=Date.now()+350; }
       function say(t){ G.log=G.log||[]; G.log.unshift(t); if(G.log.length>6) G.log.length=6; }
       function sip(i,n){ G.tally[i]=(G.tally[i]||0)+n; A.drink(i,n); }
       function expected(){
@@ -113,20 +119,20 @@
         hand.push(card); G.pend={ok:ok,a:a};
         if(ok){ A.play("ding"); A.save(); }
         else { say(A.name(p)+" zegt "+ansLabel(G.q,a)+", krijgt "+A.cardName(card)+": drinkt 1 slok"); A.play("clack"); sip(p,1); }
-        render();
+        hold(); render();
       }
       function advance(){
         G.pend=null; G.cur=(G.cur+1)%G.n;
         if(G.cur===G.start){ G.q++; if(G.q>3) layField(); }
       }
       function give1(t){
-        if(!G.pend||!G.pend.ok||t===G.cur) return;
+        if(G.phase!=="deal"||!G.pend||!G.pend.ok||t===G.cur) return;
         var p=G.cur;
         say(A.name(t)+" drinkt 1 slok, uitgedeeld door "+A.name(p));
         A.toast(A.name(t)+" drinkt 1 slok","Uitgedeeld door "+A.name(p)+".",2400);
-        advance(); sip(t,1); sync(); render();
+        advance(); sip(t,1); sync(); hold(); render();
       }
-      function next1(){ if(!G.pend||G.pend.ok) return; advance(); sync(); render(); }
+      function next1(){ if(G.phase!=="deal"||!G.pend||G.pend.ok) return; advance(); sync(); hold(); render(); }
 
       /* ---- fase 2: het veld ---- */
       function layField(){
@@ -143,7 +149,8 @@
             G.riders=who.slice().sort(function(a,b){ return a-b; });
             G.msgs.push(A.joinNames(G.riders)+(who.length>1?" hebben een "+rw+" en zitten":" heeft een "+rw+" en zit")+" in de bus.");
             say(A.joinNames(G.riders)+(who.length>1?" zitten":" zit")+" in de bus ("+A.cardName(card)+")");
-            A.play("dood"); A.overlay("dood","In de bus!",[A.joinNames(G.riders)],2400);
+            /* blijft staan tot een tik: een overlay die vanzelf verdwijnt laat tikken door naar de knop eronder */
+            A.play("dood"); A.overlay("dood","In de bus!",[A.joinNames(G.riders)+(who.length>1?" hebben":" heeft")+" een "+rw+"."],0); A.onOverlayClose(null);
           } else G.nobus=true;
           sync(); render(); return;
         }
@@ -159,7 +166,7 @@
       }
       function turn(){
         if(G.phase!=="field"||G.fq.length||G.turned>=9) return;
-        G.turned++; resolve(G.turned-1);
+        G.turned++; hold(); resolve(G.turned-1);
       }
       function give2(t){
         var f=G.fq[0], line; if(G.phase!=="field"||!f||t===f.p) return;
@@ -167,15 +174,15 @@
         if(f.n<=0){
           G.fq.shift();
           line=A.name(f.p)+" deelt "+slok(f.tot)+" uit: "+Object.keys(f.to).map(function(k){ return A.name(+k)+" "+f.to[k]; }).join(", ");
-          G.msgs.push(line+"."); say(line);
+          G.msgs.push(line+"."); say(line); hold();
         }
         A.play("tick"); sip(t,1); sync(); render();
       }
-      function redraw(){ if(G.phase!=="field"||!G.nobus||!G.stock.length) return; G.field[8]=G.stock.pop(); resolve(8); }
+      function redraw(){ if(G.phase!=="field"||!G.nobus||!G.stock.length) return; G.field[8]=G.stock.pop(); hold(); resolve(8); }
       function appoint(i){
         if(G.phase!=="field"||!G.nobus) return;
         G.nobus=false; G.riders=[i]; G.msgs=[A.name(i)+" is door de tafel aangewezen en zit in de bus."];
-        say(A.name(i)+" zit in de bus (aangewezen)"); A.play("dood"); sync(); render();
+        say(A.name(i)+" zit in de bus (aangewezen)"); A.play("dood"); sync(); hold(); render();
       }
 
       /* ---- fase 3: de bus ---- */
@@ -185,7 +192,7 @@
         for(i=0;i<9;i++){ piles.push([d.pop()]); open.push(false); }
         G.phase="bus"; G.hands=null; G.field=null; G.fq=[]; G.msgs=[];
         G.bus={piles:piles,open:open,path:[],stock:d,tries:1,turn:0,fail:null,resh:false};
-        sync(); render();
+        sync(); hold(); render();
       }
       function pickable(){
         var B=G.bus, path=B.path, out=[], last, dir;
@@ -207,7 +214,7 @@
           B.path.push(i);
           if(B.path.length===5){
             G.phase="done"; say(A.joinNames(r)+(r.length>1?" zijn":" is")+" uit de bus na "+(B.tries===1?"1 poging":B.tries+" pogingen"));
-            A.play("win"); A.overlay("win","Uit de bus!",[A.joinNames(r)+(r.length>1?" zijn":" is")+" het veld overgestoken."],2600);
+            A.play("win"); A.overlay("win","Uit de bus!",[A.joinNames(r)+(r.length>1?" zijn":" is")+" het veld overgestoken."],0); A.onOverlayClose(null);
           } else { B.turn++; A.play("clack"); }
         }
         sync(); render();
@@ -221,7 +228,7 @@
         }
         need.forEach(function(j){ B.piles[j].push(B.stock.pop()); B.open[j]=false; });
         B.path=[]; B.fail=null; B.tries++; B.turn++;
-        A.play("tick"); sync(); render();
+        A.play("tick"); sync(); hold(); render();
       }
 
       /* ---- tekenen ---- */
@@ -241,10 +248,11 @@
       function labels(arr){ return '<div class="magicbussen-field" style="margin:0">'+arr.map(function(t){ return '<span class="magicbussen-cl">'+esc(t)+'</span>'; }).join("")+'</div>'; }
 
       function renderIntro(){
-        var ok=validCount(), h='<div class="verdict neutral"><h2>Magic Bussen</h2><p>Eerst krijgt iedereen vier kaarten en raadt er per kaart iets over. Dan bepaalt het veld wie uitdeelt, wie drinkt en wie in de bus zit. Wie in de bus zit, moet het laatste veld oversteken zonder plaatjes.</p>';
-        if(ok) h+='<p><b>'+esc(A.name(A.S.active))+'</b> krijgt de eerste kaart, daarna met de klok mee. Tik hierboven een andere speler om te wisselen.</p><button class="roll" data-act="start">Deel de kaarten</button>';
-        h+='</div>';
-        if(!ok) h+='<p class="hint">Magic Bussen speel je met 2 tot 10 spelers: vier kaarten per speler en negen voor het veld. '+(A.S.players.length<2?'Voeg hierboven een speler toe.':'Haal hierboven spelers weg.')+'</p>';
+        var ok=validCount(), n=A.S.players.length, st=A.S.active<n?A.S.active:0, h='<div class="verdict neutral"><h2>Magic Bussen</h2><p>Eerst krijgt iedereen vier kaarten en raadt er per kaart iets over. Dan bepaalt het veld wie uitdeelt, wie drinkt en wie in de bus zit. Wie in de bus zit, moet het laatste veld oversteken zonder plaatjes.</p>';
+        if(ok) h+='<p><b>'+esc(A.name(st))+'</b> krijgt de eerste kaart, daarna met de klok mee. Tik hierboven een andere speler om te wisselen.</p>';
+        /* de knop staat er altijd: de app tekent dit scherm niet vanzelf opnieuw als er hierboven een speler bij komt of weg gaat */
+        h+='<button class="roll" data-act="start">Deel de kaarten</button></div>';
+        if(!ok) h+='<p class="hint">Magic Bussen speel je met 2 tot 10 spelers: vier kaarten per speler en negen voor het veld. '+(n<2?'Voeg hierboven een speler toe met + speler':'Haal hierboven spelers weg: tik een speler twee keer aan en kies Verwijder')+', en tik dan op Deel de kaarten.</p>';
         return h;
       }
       function renderDeal(){
@@ -349,24 +357,24 @@
         return h;
       }
       function renderDone(){
-        var B=G.bus, r=G.riders, h, i;
+        var B=G.bus, r=G.riders, h, i, rows=Math.min(Math.max(G.n,G.tally.length),A.S.players.length);
         h='<div class="verdict win"><h2>Uit de bus!</h2><p>'+esc(A.joinNames(r))+(r.length>1?' zijn':' is')+' het veld overgestoken in '+(B.tries===1?'één poging':B.tries+' pogingen')+'. Het spel is afgelopen.</p><button class="roll" data-act="new">Nieuw spel</button></div>';
         h+='<div class="board magicbussen-gap">'+busField()+'</div>';
         h+='<div class="board magicbussen-gap"><table class="score"><tr><th>speler</th><th>slokken dit spel</th></tr>';
-        for(i=0;i<G.n;i++) h+='<tr'+(r.indexOf(i)>=0?' class="cur"':'')+'><td>'+esc(A.name(i))+(r.indexOf(i)>=0?' (bus)':'')+'</td><td>'+(G.tally[i]||0)+'</td></tr>';
+        for(i=0;i<rows;i++) h+='<tr'+(r.indexOf(i)>=0?' class="cur"':'')+'><td>'+esc(A.name(i))+(r.indexOf(i)>=0?' (bus)':'')+'</td><td>'+(G.tally[i]||0)+'</td></tr>';
         return h+'</table></div>';
       }
       function render(){
         var h;
         if(!G.phase) h=renderIntro();
-        else if(stale()) h='<p class="hint">Het aantal spelers is veranderd, de gedeelde kaarten kloppen niet meer. Begin een nieuw spel.</p>';
+        else if(stale()) h='<p class="hint">Er is een speler weggehaald, de gedeelde kaarten kloppen niet meer. Tik op Nieuw spel.</p>';
         else if(G.phase==="deal") h=renderDeal();
         else if(G.phase==="field") h=renderField();
         else if(G.phase==="bus") h=renderBus();
         else h=renderDone();
         if(G.phase){
           h+=logHtml();
-          if(G.phase!=="done") h+='<div class="btnrow magicbussen-gap"><button class="btn'+(confirmNew?' danger':'')+'" data-act="new">'+(confirmNew?'Zeker weten? Tik nog eens':'Nieuw spel')+'</button></div>';
+          if(G.phase!=="done") h+='<div class="btnrow magicbussen-gap"><button class="btn magicbussen-btn'+(confirmNew?' danger':'')+'" data-act="new">'+(confirmNew?'Zeker weten? Tik nog eens':'Nieuw spel')+'</button></div>';
         }
         root.innerHTML=h;
         bind("[data-a]",function(b){ answer(b.getAttribute("data-a")); });
@@ -375,9 +383,12 @@
         bind("[data-i]",function(b){ pick(+b.getAttribute("data-i")); });
         bind("[data-act]",function(b,sure){
           var a=b.getAttribute("data-act");
-          if(a==="new"||a==="start"){
-            if(a==="new"&&busy()&&!stale()&&!sure){ confirmNew=true; render(); return; }
-            wipe(); if(validCount()){ deal(); sync(); } else A.save();
+          if(a==="new"){ /* terug naar het beginscherm: daar kies je wie de eerste kaart krijgt */
+            if(busy()&&!stale()&&!sure){ confirmNew=true; render(); return; }
+            wipe(); A.save(); hold(); render(); return;
+          }
+          if(a==="start"){
+            if(!G.phase&&validCount()){ deal(); sync(); hold(); }
             render(); return;
           }
           if(stale()){ render(); return; }
@@ -390,7 +401,7 @@
         for(i=0;i<list.length;i++) attach(list[i],fn,free);
       }
       function attach(b,fn,free){
-        b.onclick=function(){ var sure=confirmNew; confirmNew=false; if(!free&&stale()){ render(); return; } fn(b,sure); };
+        b.onclick=function(){ var sure; if(Date.now()<lockUntil) return; sure=confirmNew; confirmNew=false; if(!free&&stale()){ render(); return; } fn(b,sure); };
       }
 
       /* een opgeslagen spel dat niet meer te lezen is: schoon beginnen in plaats van vastlopen */

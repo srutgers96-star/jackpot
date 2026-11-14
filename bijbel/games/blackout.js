@@ -41,9 +41,19 @@
 
   A.register({ id:ID, beta:true, title:"Total Black-Out", level:"app", kans:true, sub:"Vijf rijen, hoger of lager: de app deelt, keurt en telt de slokken",
     init:function(root){
-      var G=A.gs(ID), sure=false;
+      var G=A.gs(ID), sure=false, self=this;
       function cur(){ if(!(A.S.active>=0&&A.S.active<A.S.players.length)){ A.S.active=0; } return A.S.active; }
-      function valid(){ return Array.isArray(G.rows)&&G.rows.length===ROWS&&Array.isArray(G.deck)&&G.rows.every(function(r){return Array.isArray(r)&&r.length>0;}); }
+      function okCard(c){ return !!c&&typeof c==="object"&&c.r>=1&&c.r<=13&&c.s>=0&&c.s<=3; }
+      /* een opgeslagen stand van een oudere versie (of een kapotte) wordt niet gespeeld: dan begint een nieuw spel */
+      function valid(){ return Array.isArray(G.rows)&&G.rows.length===ROWS&&Array.isArray(G.deck)&&G.deck.every(okCard)&&G.rows.every(function(r){return Array.isArray(r)&&r.length>0&&r.every(okCard);}); }
+      /* De telling "goed op rij" hoort bij één speler. Staat er iemand anders aan de beurt dan bij de vorige tik (speler verwijderd,
+         of de beurt is in een ander spel verschoven), dan begint die op nul. Een nieuwe naam voor dezelfde speler telt niet. */
+      function sync(){
+        var i=cur(), np=A.S.players.length, nm=A.name(i);
+        if(!(G.streak>=0&&G.streak<NEED)) G.streak=0;
+        if(typeof G.ai==="number"&&(G.ai!==i||(G.np!==np&&G.who!==nm))){ G.streak=0; G.sel=null; }
+        G.ai=i; G.np=np; G.who=nm; return i;
+      }
       function newGame(){
         var d=A.deck(0), i; G.rows=[]; for(i=0;i<ROWS;i++)G.rows.push([d.pop()]);
         G.deck=d; G.streak=0; G.sel=null; G.last=null; G.fresh=null; G.log=[]; G.over=false; sure=false; A.save(); render();
@@ -54,7 +64,8 @@
 
       function guess(kind){
         if(G.over||!G.sel||!G.deck.length) return;
-        var i=cur(), sel=G.sel, row=G.rows[sel.r], base=baseOf(sel), c=G.deck.pop();
+        var i=sync(); if(!G.sel||!G.rows[G.sel.r]){ render(); return; }
+        var sel=G.sel, row=G.rows[sel.r], base=baseOf(sel), c=G.deck.pop();
         if(sel.e==="L") row.unshift(c); else row.push(c);
         var d=val(c)-val(base), res=d>0?"hoger":d<0?"lager":"gelijk", ok=res===kind;
         /* Slokken = aantal kaarten van de rij. De bijbel zegt niet of de fout geraden kaart meetelt; die ligt dan al in de rij, dus hij telt mee. */
@@ -88,14 +99,16 @@
 
       function render(){
         if(!valid()){ newGame(); return; }
-        var i=cur(), k=A.S.kans, h='', np=A.S.players.length, nm=A.name(i);
+        var i=sync(), k=A.S.kans, h='', np=A.S.players.length;
         /* stapel leeg = spel uit (ook als een oude opgeslagen stand dat vlaggetje mist) */
-        if(!G.deck.length) G.over=true;
-        if(G.sel&&(G.over||!G.rows[G.sel.r])) G.sel=null;
-        /* speler verwijderd terwijl het spel liep en er staat nu iemand anders op deze plek: die begint op nul */
-        if(G.np&&G.np!==np&&G.who!==nm) G.streak=0;
-        G.np=np; G.who=nm;
+        G.over=!G.deck.length;
+        if(G.sel&&(G.over||typeof G.sel!=="object"||!G.rows[G.sel.r])) G.sel=null;
+        if(G.fresh&&(typeof G.fresh!=="object"||!G.rows[G.fresh.r])) G.fresh=null;
+        if(G.last&&(typeof G.last!=="object"||typeof G.last.t!=="string"||!okCard(G.last.c))) G.last=null;
+        if(!Array.isArray(G.log)) G.log=[];
         h+='<p class="hint blackout-who">'+(G.over?'Het spel is uit':'<b>'+esc(A.name(i))+'</b> is aan de beurt · goed op rij: <b>'+(G.streak||0)+'</b> van '+NEED)+'</p>';
+        /* de bijbel noemt geen aantal spelers; alleen spelen kan, maar dan schuift de beurt nergens heen */
+        if(np<2&&!G.over) h+='<p class="hint blackout-note">Je speelt nu alleen. Tik bovenaan op + speler om meespelers toe te voegen.</p>';
         h+='<div class="board">';
         G.rows.forEach(function(row,r){
           var n=row.length;
@@ -144,7 +157,14 @@
       this.refresh=render;
       /* een andere speler aantikken in de balk = die is aan de beurt; zijn telling begint op nul */
       this.onPlayer=function(){ G.streak=0; G.sel=null; sure=false; A.save(); render(); };
+      /* Naam gewijzigd, speler toegevoegd of verwijderd: core tekent alleen de spelersbalk opnieuw, dus het spel doet dat hier zelf.
+         De knop van core heeft de spelers al bijgewerkt voordat deze luisteraar (op het formulier eromheen) aan de beurt is. */
+      if(self._off) self._off();
+      var nf=el("nameform"), onNames=function(e){ var t=e&&e.target; if(t&&(t.id==="nameOk"||t.id==="nameDel")){ sure=false; render(); A.save(); } };
+      if(nf&&nf.addEventListener) nf.addEventListener("click",onNames);
+      self._off=function(){ if(nf&&nf.removeEventListener) nf.removeEventListener("click",onNames); self._off=null; };
       if(valid()) render(); else newGame();
-    }
+    },
+    destroy:function(){ if(this._off) this._off(); }
   });
 })();

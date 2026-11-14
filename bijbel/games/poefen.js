@@ -7,7 +7,9 @@
    - Regel 4, "iedereen drinkt": alle andere spelers, de verdediger zelf niet.
    - De Poef: de inzet wordt één keer afgerekend, op de eerstvolgende kaart die gedraaid wordt (zo staat het in het
      voorbeeld). Kiezen is een recht van de verdediger ("mag"), dus "Geen Poef" kan ook.
-   - Is de stapel op, dan wordt er een nieuw spel van 52 kaarten geschud; de bijbel noemt geen einde. */
+   - Is de stapel op, dan wordt er een nieuw spel van 52 kaarten geschud; de bijbel noemt geen einde.
+   - Vol raak (5 slokken) krijgt een scherm dat blijft staan tot er getikt wordt, zodat een tik niet doorvalt naar
+     de knop Verder eronder. */
 (function(){
   "use strict";
   var A=App, el=A.el, esc=A.esc, obs=null;
@@ -44,7 +46,9 @@
 
   A.register({ id:"poefen", beta:true, title:"Poefen", level:"app", sub:"Noem een kaart: de app draait, rekent af en regelt de Poef",
     init:function(root){
-      var G=A.gs("poefen"), lastSig="";
+      var G=A.gs("poefen"), lastSig="", flipAt=0;
+      function int(v,lo,hi){ return typeof v==="number"&&v%1===0&&v>=lo&&v<=hi; }
+      function isCard(c){ return !!c&&int(c.r,1,13)&&int(c.s,0,3); }
       function P(){ return A.S.players; }
       function names(){ return P().map(function(p){return p.name;}); }
       function sig(){ return names().join("\n"); }
@@ -65,9 +69,18 @@
          dezelfde persoon, ook als iemand vóór hen uit de spelersbalk verdwijnt */
       function sync(){
         var len=P().length, now=names(), old=G.names, d, t, p;
-        if(!G.deck||!G.phase||typeof G.def!=="number"||typeof G.turn!=="number"){ fresh(A.S.active); return; }
-        if(!G.pick)G.pick={s:null,r:null};
-        if(!G.log)G.log=[];
+        if(len<1)return;
+        if(!Array.isArray(G.deck)||!G.phase||!int(G.def,0,99)||!int(G.turn,0,99)){ fresh(A.S.active); return; }
+        /* een stand uit een oudere versie of een half bewaarde stand: wat niet klopt wordt leeggemaakt, geen foutmelding */
+        G.deck=G.deck.filter(isCard);
+        if(!G.pick||typeof G.pick!=="object")G.pick={s:null,r:null};
+        if(!int(G.pick.s,0,3))G.pick.s=null;
+        if(!int(G.pick.r,1,13))G.pick.r=null;
+        if(!Array.isArray(G.log))G.log=[];
+        if(!Array.isArray(old))old=null;
+        if(G.poef&&(typeof G.poef!=="object"||!int(G.poef.i,0,99)))G.poef=null;
+        if(G.poef&&G.poef.open&&(!int(G.poef.n,1,5)||typeof G.poef.red!=="boolean"))G.poef=null;
+        if(G.last&&(!isCard(G.last.g)||!isCard(G.last.c)||!Array.isArray(G.last.lines)||!Array.isArray(G.last.sum)))G.last=null;
         if(old&&old.length!==len){
           d=where(old,now,G.def); t=where(old,now,G.turn);
           if(G.poef){ p=where(old,now,G.poef.i); if(p<0)G.poef=null; else G.poef.i=p; }
@@ -96,13 +109,14 @@
       function actor(){ return G.phase==="poef"?G.def:G.phase==="bet"?G.poef.i:G.turn; }
 
       function flip(){
+        if(P().length<2)return;
         sync();
-        if(P().length<2||G.phase!=="guess"||G.pick.s===null||G.pick.r===null)return;
+        if(G.phase!=="guess"||G.pick.s===null||G.pick.r===null)return;
         var who=G.turn, def=G.def, own=who===def;
         if(!G.deck.length){ G.deck=A.deck(0); A.toast("Nieuwe stapel","Alle 52 kaarten zijn gedraaid. De stapel is opnieuw geschud.",3500); }
         var c=G.deck.pop(), g={r:G.pick.r,s:G.pick.s};
         var sOk=c.s===g.s, rOk=c.r===g.r, n=sOk&&rOk?5:rOk?2:sOk?1:0;
-        var tally={}, lines=[];
+        var tally={}, lines=[], kort=[];
         function give(i,k){ A.drink(i,k); tally[i]=(tally[i]||0)+k; }
         var said=A.name(who)+" noemt "+A.cardName(g)+", de kaart is "+A.cardName(c)+". ";
         var wat=n===5?"Soort en waarde goed":n===2?"De waarde klopt":n===1?"De soort klopt":"Soort en waarde fout";
@@ -113,6 +127,7 @@
         if(G.poef&&G.poef.open){
           var pf=G.poef, red=A.isRed(c), raak=red===pf.red, wie=raak?def:pf.i;
           pf.open=false; pf.done=true; give(wie,pf.n);
+          kort.push("Poef: "+A.name(wie)+" drinkt "+sl(pf.n)+".");
           lines.push("De Poef: "+A.name(pf.i)+" zette "+sl(pf.n)+" in op "+kleur(pf.red)+" en de kaart is "+kleur(red)+". "+(raak?"Verdediger "+A.name(def)+" drinkt ":A.name(pf.i)+" drinkt zelf ")+sl(pf.n)+".");
         }
         var sum=Object.keys(tally).map(Number).sort(function(a,b){return a-b;}).map(function(i){ return [A.name(i),tally[i]]; });
@@ -120,14 +135,17 @@
         G.last={g:g,c:c,n:n,title:n===5?"Vol raak!":n===2?"Waarde goed":n===1?"Soort goed":"Mis",kind:n?"win":"fout",lines:lines,sum:sum};
         G.log.unshift(A.name(who)+(own?" (verdediger)":"")+": "+A.cardName(g)+" genoemd, "+A.cardName(c)+" gedraaid. Slokken: "+sum.map(function(x){return x[0]+" "+x[1];}).join(", ")+".");
         if(G.log.length>8)G.log.length=8;
-        G.phase="result"; A.save();
+        G.phase="result"; flipAt=Date.now(); A.save();
         A.play(n===5?"special":n?"ding":"clack");
-        if(n===5)A.overlay("win","Vol raak!",[own?"Iedereen drinkt 5 slokken.":A.name(def)+" drinkt 5 slokken."],2200);
         render();
+        /* blijft staan tot er getikt wordt (ms 0): een scherm dat vanzelf verdwijnt laat tikken door naar de knop Verder */
+        if(n===5){ A.overlay("win","Vol raak!",[(own?"Iedereen drinkt 5 slokken":A.name(def)+" drinkt 5 slokken")+"."].concat(kort),0); A.onOverlayClose(null); }
       }
       function next(){
+        if(P().length<2)return;
         sync();
-        if(P().length<2||G.phase!=="result")return;
+        /* een dubbele tik op "Draai de kaart" mag de uitslag niet meteen wegtikken */
+        if(G.phase!=="result"||Date.now()-flipAt<700)return;
         var len=P().length;
         if(G.turn===G.def){ G.def=(G.def+1)%len; G.turn=(G.def+1)%len; G.poef=null; G.phase="poef"; }
         else { G.turn=(G.turn+1)%len; G.phase="guess"; }
@@ -137,7 +155,11 @@
       function render(){
         var len=P().length, h="";
         lastSig=sig();
-        if(len<2){ root.innerHTML='<p class="hint">Poefen speel je met minstens twee spelers: een verdediger met de stapel en minstens één aanvaller. Voeg hierboven een speler toe.</p>'; return; }
+        if(len<2){
+          /* de ronde vervalt: wie er straks bij komt erft geen beurt of Poef-inzet van iemand die weg is */
+          if(G.phase){ G.def=0; G.turn=0; G.phase="poef"; G.poef=null; G.last=null; G.pick={s:null,r:null}; G.names=names(); A.save(); }
+          root.innerHTML='<p class="hint">Poefen speel je met minstens twee spelers: een verdediger met de stapel en minstens één aanvaller. Tik hierboven op + speler.</p>'; return;
+        }
         sync();
         if(A.S.active!==actor()){ A.S.active=actor(); A.save(); A.renderPlayers(); }
         var def=G.def, dn=esc(A.name(def)), pf=G.poef;
@@ -145,17 +167,18 @@
         h+='<div class="board"><div class="stat" style="margin-top:0"><span>Verdediger: <b>'+dn+'</b></span><span>Poef: <b>'+ptxt+'</b></span><span>Stapel: <b>'+G.deck.length+'</b></span></div></div>';
 
         if(G.phase==="poef"){
-          h+='<div class="verdict neutral"><h2>Poef kiezen</h2><p><b>'+dn+'</b> heeft de stapel en verdedigt. '+dn+' mag een Poef aanwijzen: die zet 1 tot 5 slokken in op zwart of rood voor de eerstvolgende kaart.</p><div class="btnrow">'+
+          h+='<div class="verdict neutral"><h2>Poef kiezen</h2><p><b>'+dn+'</b> heeft de stapel en verdedigt. '+dn+' mag een Poef aanwijzen: die zet 1 tot 5 slokken in op zwart of rood voor de eerstvolgende kaart. Tik op wie de Poef wordt, of op Geen Poef.</p><div class="btnrow">'+
             A.others(def).map(function(i){ return '<button class="btn primary poefen-tap" data-poef="'+i+'">'+esc(A.name(i))+'</button>'; }).join("")+
             '</div><div class="btnrow"><button class="btn poefen-tap" id="poefenNone">Geen Poef</button></div></div>';
           if(!G.turned) h+='<p class="hint">Iemand anders laten verdedigen? Tik op zijn naam hierboven.</p>';
         }
         else if(G.phase==="bet"){
-          var pn=esc(A.name(pf.i)), ok=pf.n&&(pf.red===true||pf.red===false);
+          var pn=esc(A.name(pf.i)), ok=int(pf.n,1,5)&&(pf.red===true||pf.red===false);
           h+='<div class="verdict neutral"><h2>De Poef zet in</h2><p><b>'+pn+'</b> is de Poef van '+dn+' en zet 1 tot 5 slokken in op een kleur. Is de volgende kaart die kleur, dan drinkt '+dn+' de inzet. Anders drinkt '+pn+' hem zelf.</p><div class="seg poefen-seg">';
           for(var k=1;k<=5;k++) h+='<button data-n="'+k+'" aria-pressed="'+(pf.n===k)+'">'+k+'</button>';
           h+='</div><div class="seg poefen-seg"><button data-col="0" aria-pressed="'+(pf.red===false)+'">♠ ♣ zwart</button><button data-col="1" aria-pressed="'+(pf.red===true)+'">♥ ♦ rood</button></div>'+
             '<div class="btnrow"><button class="btn gold poefen-tap" id="poefenBet"'+(ok?'':' disabled')+'>'+(ok?'Zet '+sl(pf.n)+' op '+kleur(pf.red):'Zet in')+'</button><button class="btn poefen-tap" id="poefenBack">Andere Poef</button></div></div>';
+          if(!ok) h+='<p class="hint">'+pn+', tik een aantal slokken en een kleur aan.</p>';
         }
         else if(G.phase==="guess"){
           var own=G.turn===def, wn=esc(A.name(G.turn)), pk=G.pick, r;
@@ -183,7 +206,7 @@
         var none=el("poefenNone"); if(none)none.onclick=function(){ G.poef=null; G.phase="guess"; A.save(); render(); };
         root.querySelectorAll("[data-n]").forEach(function(b){ b.onclick=function(){ if(!G.poef)return; G.poef.n=+b.getAttribute("data-n"); A.play("tick"); A.save(); render(); }; });
         root.querySelectorAll("[data-col]").forEach(function(b){ b.onclick=function(){ if(!G.poef)return; G.poef.red=b.getAttribute("data-col")==="1"; A.play("tick"); A.save(); render(); }; });
-        var bet=el("poefenBet"); if(bet)bet.onclick=function(){ var q=G.poef; if(!q||!q.n||q.red===null)return; q.open=true; G.phase="guess"; A.play("ding"); A.save(); render(); };
+        var bet=el("poefenBet"); if(bet)bet.onclick=function(){ var q=G.poef; if(!q||!int(q.n,1,5)||typeof q.red!=="boolean")return; q.open=true; G.phase="guess"; A.play("ding"); A.save(); render(); };
         var back=el("poefenBack"); if(back)back.onclick=function(){ G.poef=null; G.phase="poef"; A.save(); render(); };
         root.querySelectorAll("[data-s]").forEach(function(b){ b.onclick=function(){ G.pick.s=+b.getAttribute("data-s"); A.play("tick"); A.save(); render(); }; });
         root.querySelectorAll("[data-r]").forEach(function(b){ b.onclick=function(){ G.pick.r=+b.getAttribute("data-r"); A.play("tick"); A.save(); render(); }; });

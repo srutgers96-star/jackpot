@@ -2,6 +2,7 @@
 (function(){
   "use strict";
   var A=App, esc=A.esc, pct=A.pct, ID="vierkanten", N=16;
+  var docH=null; /* luistert mee of de spelers bovenin veranderen (zie init) */
 
   /* Keuzes waar de bijbel niets over zegt (zie ook de opmerkingen bij guess, chain en deal):
      - De aas is hoog en een gelijke kaart is fout. Zo staat het in de bijbel bij de andere hoger/lager-spellen
@@ -42,9 +43,15 @@
 
   A.register({ id:ID, beta:true, title:"Vierkanten", level:"app", kans:true, sub:"Legt het vierkant, keurt hoger/lager en binnen/buiten, telt drie op rij en de slokken",
     init:function(root){
-      var G=A.gs(ID), sel=null;
+      var G=A.gs(ID), sel=null, drawn="";
 
-      function valid(){ return Array.isArray(G.board)&&G.board.length===N&&Array.isArray(G.open)&&G.open.length===N; }
+      /* ook een bewaard spel uit een oudere versie moet zestien echte kaarten hebben, anders wordt er opnieuw gelegd */
+      function valid(){
+        return Array.isArray(G.board)&&G.board.length===N&&Array.isArray(G.open)&&G.open.length===N&&
+          G.board.every(function(c){ return c&&typeof c.r==="number"&&c.r>=1&&c.r<=13&&typeof c.s==="number"&&c.s>=0&&c.s<=3; });
+      }
+      /* wat er van de spelersbalk op het scherm staat: aantal, wie aan de beurt is en de namen */
+      function sig(){ return A.S.active+"|"+A.S.players.map(function(q){return q.name;}).join("|"); }
       /* Nieuw vierkant: 16 kaarten uit een geschud spel, de vier hoeken open (regel 1).
          keepTurn: het vierkant was op; wie aan de beurt is gaat verder en houdt zijn reeks, want drie op rij is nog
          steeds de voorwaarde om door te geven (de bijbel zegt niet wat er gebeurt als alle kaarten open liggen). */
@@ -56,11 +63,12 @@
       /* Houdt G.who gelijk aan A.S.active. Core roept het spel niet aan als er een speler wordt verwijderd, dus dat
          wordt hier gemerkt aan het aantal spelers: de reeks van iemand die weg is gaat niet over op een ander. */
       function sync(){
-        var np=A.S.players.length, changed=false;
-        if(G.who!==A.S.active||(typeof G.np==="number"&&np<G.np)){ G.who=A.S.active; G.streak=0; sel=null; changed=true; }
-        if(G.np!==np){ G.np=np; changed=true; }
-        if(changed)A.save();
-        return changed;
+        var np=A.S.players.length, turn=false, dirty=false;
+        if(!(A.S.active>=0&&A.S.active<np)){ A.S.active=0; dirty=true; A.renderPlayers(); } /* beurt buiten de lijst (oude opslag) */
+        if(G.who!==A.S.active||(typeof G.np==="number"&&np<G.np)){ G.who=A.S.active; G.streak=0; sel=null; turn=true; dirty=true; }
+        if(G.np!==np){ G.np=np; dirty=true; }
+        if(dirty)A.save();
+        return turn; /* true = de beurt is van iemand anders geworden */
       }
       function openN(i){ return [(i+N-1)%N,(i+1)%N].filter(function(j){return G.open[j];}); }
       function guessable(i){ return !G.open[i]&&openN(i).length>0; }
@@ -87,7 +95,7 @@
       }
 
       function guess(choice){
-        if(sync()){ render(); return; } /* de spelers zijn veranderd sinds het scherm getekend is */
+        if(sync()){ render(); return; } /* de beurt is van een ander geworden sinds het scherm getekend is */
         var i=sel; if(i===null||!guessable(i))return;
         var who=G.who, c=G.board[i], v=val(c), nb=openN(i), ok, detail, a, b, lo, hi, n=chain(i);
         if(nb.length===1){ /* regel 2: hoger of lager dan de ene open buurkaart; gelijk is fout */
@@ -117,7 +125,10 @@
         }
         A.save(); render(i);
       }
-      function pass(){ sync(); G.streak=0; G.last=null; sel=null; A.nextPlayer(); G.who=A.S.active; A.save(); render(); }
+      function pass(){
+        if(sync()||G.streak<3){ render(); return; } /* regel 4: doorgeven mag pas na drie op rij, en alleen door wie aan de beurt is */
+        G.streak=0; G.last=null; sel=null; A.nextPlayer(); G.who=A.S.active; A.save(); render();
+      }
 
       function render(fresh){
         var p=A.S.players, i, h="", nb, rc, cls, pr, n, left, ref={};
@@ -161,10 +172,10 @@
           }
         }
         h+='</div></div></div>';
-        if(G.last) h+='<p class="vierkanten-last '+(G.last.ok?'vierkanten-ok':'vierkanten-fout')+'">'+esc(G.last.text)+'</p>';
+        if(G.last&&typeof G.last.text==="string") h+='<p class="vierkanten-last '+(G.last.ok?'vierkanten-ok':'vierkanten-fout')+'">'+esc(G.last.text)+'</p>';
         h+='<p class="hint">Naast één open kaart: hoger of lager. Tussen twee open kaarten: binnen of buiten. De aas is hoog, gelijk is fout. Fout: één slok per open kaart die aaneengesloten aan jouw kaart ligt.</p>';
         h+='<div class="btnrow"><button class="btn" data-act="reset">Nieuw spel</button></div>';
-        root.innerHTML=h;
+        root.innerHTML=h; drawn=sig();
         root.querySelectorAll("[data-i]").forEach(function(b){ b.onclick=function(){ var k=+b.getAttribute("data-i"); sel=(sel===k?null:k); A.play("tick"); render(); }; });
         root.querySelectorAll("[data-g]").forEach(function(b){ b.onclick=function(){ guess(b.getAttribute("data-g")); }; });
         root.querySelectorAll("[data-act]").forEach(function(b){ b.onclick=function(){
@@ -174,10 +185,16 @@
         }; });
       }
 
-      if(!valid()||typeof G.streak!=="number") deal(false);
+      if(!valid()||typeof G.streak!=="number"||!(G.streak>=0)) deal(false);
       render();
+      /* Core meldt het niet als er een speler bij komt, weggaat of een andere naam krijgt. Daarom na elke tik even
+         kijken of de spelersbalk nog klopt met wat er getekend is, en anders opnieuw tekenen. */
+      if(docH&&document.removeEventListener)document.removeEventListener("click",docH);
+      docH=function(){ if(sig()!==drawn) render(); };
+      if(document.addEventListener)document.addEventListener("click",docH);
       this.refresh=function(){ render(); };
       this.onPlayer=function(){ G.who=A.S.active; G.streak=0; sel=null; A.save(); render(); };
-    }
+    },
+    destroy:function(){ if(docH&&document.removeEventListener)document.removeEventListener("click",docH); docH=null; }
   });
 })();
