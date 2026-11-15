@@ -187,3 +187,25 @@ button.card{ border:0; padding:0; font-family:inherit; } .card.sel{ outline:3px 
 .homeplayers{ text-align:center; margin:-4px 0 14px; }
 .homeplayers .link{ background:none; border:0; color:var(--ivory-dim); font-size:13px; text-decoration:underline; padding:8px 6px; line-height:1.4; }
 .homeplayers .link b{ color:var(--ivory); font-weight:700; }
+/* oordeel per spel: ogen (drie = werkt perfect) en een pen (de app is vooral scoreblok) */
+.ogen{ display:inline-flex; gap:3px; vertical-align:middle; }
+.ogen i{ width:7px; height:7px; border-radius:50%; box-shadow:inset 0 0 0 1.3px currentColor; opacity:.45; }
+.ogen i.on{ background:currentColor; box-shadow:none; opacity:1; }
+.pen{ width:13px; height:13px; flex:none; }
+.chip .pen{ width:11px; height:11px; margin-left:4px; vertical-align:-1px; }
+.chip.r3{ background:var(--gold); color:var(--ink); }
+.chip.r2{ background:rgba(231,184,79,.42); color:var(--ivory); }
+.chip.r1{ background:transparent; color:var(--ivory); box-shadow:inset 0 0 0 1.5px rgba(231,184,79,.65); }
+.gitem.r3{ border-color:var(--gold); } .gitem.r2{ border-color:rgba(231,184,79,.5); } .gitem.r1{ border-color:rgba(231,184,79,.3); }
+.gitem .tag{ display:inline-flex; align-items:center; gap:5px; white-space:nowrap; }
+.gitem.r3 .tag{ background:var(--gold); color:var(--ink); }
+.gitem.r2 .tag{ background:rgba(231,184,79,.42); }
+.gitem.r1 .tag{ background:transparent; box-shadow:inset 0 0 0 1.5px rgba(231,184,79,.65); }
+.legendcap{ text-align:center; font-size:12px; color:var(--ivory-dim); margin:0 0 6px; }
+.legend{ flex-wrap:wrap; gap:6px; margin:0 0 14px; }
+.legend span::before{ content:none; display:none; }
+.legend .chip{ display:inline-flex; align-items:center; gap:6px; padding:8px 11px; font-size:11px; }
+.legend .chip .pen{ margin:0; }
+.legend .chip[aria-pressed="true"]{ outline:2px solid var(--ivory); outline-offset:2px; }
+#view-home [hidden]{ display:none !important; }
+.gitem .tag{ min-height:21px; padding:3px 9px; }

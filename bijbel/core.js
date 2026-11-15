@@ -139,7 +139,7 @@ var App=(function(){
   /* ---- views / routing ---- */
   var GAMES={}, current=null;
   function register(g){ GAMES[g.id]=g; }
-  function show(view){ document.querySelectorAll(".view").forEach(function(v){ v.classList.toggle("active",v.id==="view-"+view); }); el("bar-home").style.display=view==="home"?"":"none"; el("bar-game").style.display=view==="home"?"none":""; el("playersWrap").style.display=(view==="game")?"":"none"; }
+  function show(view){ document.querySelectorAll(".view").forEach(function(v){ v.classList.toggle("active",v.id==="view-"+view); }); el("bar-home").style.display=view==="home"?"":"none"; el("bar-game").style.display=view==="home"?"none":""; el("playersWrap").style.display=(view==="game")?"":"none"; if(view!=="game") el("ucBanner").style.display="none"; }
   function openGame(id){
     var g=GAMES[id]; if(!g)return;
     if(current&&current.destroy)try{current.destroy();}catch(e){}
@@ -190,15 +190,39 @@ var App=(function(){
     "Vierkanten":[1,1],"Oude Bami, Nieuwe Bami":[1,0],"Vieren":[2,0],"Drommels":[1,0],"PowerMexx":[1,0],"Inverse Mexx":[1,1],"Nostradamus PowerMexx":[2,1],"Ottomaans Mexx":[1,0]};
   function gameByTitle(t){ for(var k in GAMES) if(GAMES[k].title===t) return GAMES[k]; return null; }
   function levelOf(t){ var g=gameByTitle(t); return g?(g.level||"app"):"regels"; }
+  /* Hoe goed een spel in de app werkt: [ogen, pen]. 3 ogen = werkt perfect, 2 = werkt goed, 1 = niet echt handig.
+     pen = de app is hier vooral scoreblok of hulpje; het spel zelf staat op tafel (of is van nature pen en papier).
+     Inschatting van november 2026; pas hem hier aan als een spel na het spelen anders uitpakt. */
+  var OORDEEL={"Jackpot":[3],"Mexx":[3],"PowerMexx":[3],"Inverse Mexx":[3],"Driemannen":[3],"Drommels":[3],"Vieren":[3],"Oude Bami, Nieuwe Bami":[3],"Paardenrace":[3],"Fuck the Dealer":[3],"Vierkanten":[3],"Poefen":[3],"Mexxpot":[3],
+    "Kaartje Dobbelen":[2],"Total Black-Out":[2],"Straatje Leggen":[2],"Tegendraads":[2],"Nixxen":[2],"1’tje Gooien":[2],"Jessen":[2],"Nostradamus PowerMexx":[2],"Ottomaans Mexx":[2],"Magic Bussen":[2],
+    "Kingsen":[2,1],"Chinees Roulette":[2,1],"Eigen Risico":[2,1],"7, 8, 9":[2,1],"Adtzee":[2,1],"Streepjesspel":[2,1],
+    "99":[1],"Sixteen":[1],"Liar’s Dice":[1],"Blind Mexxen":[1],"Piramide Spel":[1],"Snelmexx":[1]};
+  var OORDEEL_TXT={3:"werkt perfect",2:"werkt goed",1:"niet echt handig"};
+  var PEN='<svg class="pen" viewBox="0 0 24 24" role="img" aria-label="scoreblok"><path d="M4 20l1-4.5L16.5 4a2.1 2.1 0 0 1 3 3L8 18.5 4 20z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M14.5 6l3 3" fill="none" stroke="currentColor" stroke-width="2"/></svg>';
+  function oordeelOf(t){ var o=OORDEEL[t]; return (o&&gameByTitle(t))?{r:o[0],pen:!!o[1]}:null; }
+  function ogen(r){ var h='<span class="ogen" role="img" aria-label="'+OORDEEL_TXT[r]+'">'; for(var i=1;i<=3;i++)h+='<i'+(i<=r?' class="on"':'')+'></i>'; return h+'</span>'; }
+  var homeFilter=null;
+  function legendHtml(){
+    function b(f,cls,inner){ return '<button class="chip '+cls+'" data-f="'+f+'" aria-pressed="false">'+inner+'</button>'; }
+    return '<p class="legendcap">Hoe goed werkt het in de app? Tik om te filteren.</p><div class="legend">'+
+      b("3","r3",ogen(3)+'werkt perfect')+b("2","r2",ogen(2)+'werkt goed')+b("1","r1",ogen(1)+'niet echt handig')+
+      b("pen","",PEN+'scoreblok')+b("regels","",'alleen regels')+'</div>';
+  }
+  function setFilter(f){
+    homeFilter=(homeFilter===f)?null:f; var v=el("view-home");
+    Array.prototype.forEach.call(v.querySelectorAll("[data-f]"),function(b){ b.setAttribute("aria-pressed",String(b.getAttribute("data-f")===homeFilter)); });
+    Array.prototype.forEach.call(v.querySelectorAll("[data-t]"),function(b){ var r=b.getAttribute("data-r"), ok=!homeFilter||(homeFilter==="pen"?b.getAttribute("data-pen")==="1":homeFilter==="regels"?!r:r===homeFilter); b.hidden=!ok; });
+    Array.prototype.forEach.call(v.querySelectorAll(".cat"),function(c){ c.hidden=!c.querySelector(".gitem:not([hidden])"); });
+  }
   function renderHome(){
     var v=el("view-home"), h='<div class="hero"><p class="ed">Jeroen en Kevins</p><h1>Bierspelbijbel</h1><p>Tweede editie, januari 2024. Nu met rekenwerk.</p><button class="link" id="voorwoord">Voorwoord</button></div><div class="homeplayers" id="homePlayers"></div>';
-    h+='<div class="tabel"><span></span><span class="h">Laag</span><span class="h">Gemiddeld</span><span class="h">Hoog</span>';
+    h+=legendHtml()+'<div class="tabel"><span></span><span class="h">Laag</span><span class="h">Gemiddeld</span><span class="h">Hoog</span>';
     ["Weinig bier","Gemiddeld","Veel bier"].forEach(function(lbl,bi){
       h+='<span class="h row">'+lbl+'</span>';
-      for(var ci=0;ci<3;ci++){ h+='<span class="cell">'+Object.keys(TABEL).filter(function(t){return TABEL[t][0]===bi&&TABEL[t][1]===ci;}).map(function(t){ var lv=levelOf(t); var gg=gameByTitle(t); return '<button class="chip '+lv+'" data-t="'+esc(t)+'">'+esc(t)+(gg&&gg.beta?' <span class="uc" title="in aanbouw">🚧</span>':'')+'</button>'; }).join("")+'</span>'; }
+      for(var ci=0;ci<3;ci++){ h+='<span class="cell">'+Object.keys(TABEL).filter(function(t){return TABEL[t][0]===bi&&TABEL[t][1]===ci;}).map(function(t){ var o=oordeelOf(t); return '<button class="chip '+(o?'r'+o.r:'regels')+'" data-t="'+esc(t)+'"'+(o?' data-r="'+o.r+'"'+(o.pen?' data-pen="1"':''):'')+'>'+esc(t)+(o&&o.pen?PEN:'')+'</button>'; }).join("")+'</span>'; }
     });
-    h+='</div><div class="legend"><span class="l-app">in de app</span><span class="l-hulp">met hulp</span><span class="l-regels">regels</span></div>';
-    CATS.forEach(function(c){ h+='<div class="cat"><h2>'+esc(c[0])+'</h2><div class="glist">'+c[1].map(function(t){ var g=gameByTitle(t), lv=levelOf(t), r=rulesFor(t); var sub=g?g.sub:(r&&r.benodigdheden.length?r.benodigdheden.slice(0,2).join(", "):""); return '<button class="gitem '+lv+'" data-t="'+esc(t)+'"><span><span class="t">'+esc(t)+' '+pullen(r?r.pullen:null)+(g&&g.beta?' <span class="uc" title="in aanbouw">🚧</span>':'')+'</span><span class="s">'+esc(sub||"")+(r&&r.glas?' · '+esc(r.glas)+' in een glas':'')+'</span></span><span class="tag">'+(lv==="app"?"spelen":lv==="hulp"?"hulp":"regels")+'</span></button>'; }).join("")+'</div></div>'; });
+    h+='</div>';
+    CATS.forEach(function(c){ h+='<div class="cat"><h2>'+esc(c[0])+'</h2><div class="glist">'+c[1].map(function(t){ var g=gameByTitle(t), r=rulesFor(t), o=oordeelOf(t); var sub=g?g.sub:(r&&r.benodigdheden.length?r.benodigdheden.slice(0,2).join(", "):""); return '<button class="gitem '+(o?'r'+o.r:'regels')+'" data-t="'+esc(t)+'"'+(o?' data-r="'+o.r+'"'+(o.pen?' data-pen="1"':''):'')+'><span><span class="t">'+esc(t)+' '+pullen(r?r.pullen:null)+'</span><span class="s">'+esc(sub||"")+(r&&r.glas?' · '+esc(r.glas)+' in een glas':'')+'</span></span><span class="tag">'+(o?(o.pen?PEN:'')+ogen(o.r):"regels")+'</span></button>'; }).join("")+'</div></div>'; });
     h+='<p class="amen">Moge deze bijbel ook in uw handen heilig blijven.<br><span>SV KoKo, Commissie tot de Bar</span></p>';
     v.innerHTML=h;
     el("voorwoord").onclick=function(){ var p=el("sheetPanel"); p.innerHTML='<button class="btn close" id="sheetClose">Sluiten</button><h2>Voorwoord</h2>'+VOORWOORD.map(function(x,i){ return i===0?'<p class="meta">'+esc(x)+'</p>':'<p class="vw">'+esc(x)+'</p>'; }).join("")+'<p class="vw"><em>Eerste editie september 2016 door Jeroen Velzing, commissaris CtB 2013-2014. Tweede editie januari 2024 door Kevin Bruggeman. Deze app: Stijn, 2026.</em></p>'; el("sheet").className="sheet open"; el("sheetClose").onclick=closeRules; };
@@ -209,7 +233,7 @@ var App=(function(){
   var VOORWOORD=[];
   function init(rules,voorwoord){
     RULES=rules; VOORWOORD=voorwoord||[]; renderHome(); renderPlayers();
-    el("view-home").addEventListener("click",function(e){ if(e.target.closest("#homePlayersBtn")){ openPlayers(); return; } var b=e.target.closest("[data-t]"); if(b)tapTitle(b.getAttribute("data-t")); });
+    el("view-home").addEventListener("click",function(e){ var fb=e.target.closest("[data-f]"); if(fb){ setFilter(fb.getAttribute("data-f")); return; } if(e.target.closest("#homePlayersBtn")){ openPlayers(); return; } var b=e.target.closest("[data-t]"); if(b)tapTitle(b.getAttribute("data-t")); });
     el("btnBack").onclick=goHome;
     el("btnRules").onclick=function(){ if(current) openRules(current.rules||current.title); };
     el("btnKans").onclick=function(){ S.kans=!S.kans; applyFlags(); save(); if(current&&current.refresh)current.refresh(); };
