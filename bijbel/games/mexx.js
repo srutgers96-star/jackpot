@@ -10,9 +10,11 @@
    - Afspraak "32 staat altijd vast": wie 32 gooit is meteen klaar met 32.
    - Extra ronde bij gelijk laag: de eerste van de gelijke spelers kiest Mexx of Ogen (zoals Speler D in het voorbeeld).
      Bij Mexx telt een 31 daar ook niet (slok uitdelen, opnieuw); bij Ogen is 31 gewoon vier ogen. Een Mexx in de extra
-     ronde telt niet mee voor het aantal Mexxen. Nog steeds gelijk: de gelijke spelers gooien nog een extra ronde.
+     ronde telt wel mee voor het aantal Mexxen (besluit Stijn), ook bij Ogen: 1 en 2 is dan drie ogen en een Mexx.
+     Nog steeds gelijk: de gelijke spelers gooien nog een extra ronde.
    - Een half adtje per Mexx wordt als half adtje geboekt (niet als slokken).
-   - PowerMexx: 3 3 telt als twee Mexx en is de hoogste worp (boven Mexx). De rest (31, vast, extra ronde) loopt als bij Mexx.
+   - PowerMexx: 3 3 telt als twee Mexx (ook in de extra ronde) en is de hoogste worp (boven Mexx). De rest (31, vast,
+     extra ronde) loopt als bij Mexx.
    - Inverse Mexx: laagste steen is het tiental, dubbel telt niet als honderdtal, Mexx blijft de beste worp, de hoogste score
      verliest en staat "vast". Bij Ogen in de extra ronde verliest dan ook wie de meeste ogen gooit. Laten liggen blijft mogen. */
 (function(){
@@ -247,7 +249,7 @@
         A.save(); render();
       }
       function tieRoll(a,b){
-        var T=R.tie, i=T.p[T.k], nm=A.name(i), kr, note;
+        var T=R.tie, i=T.p[T.k], nm=A.name(i), og=T.mode==="ogen", kr, note, m, pm, lines;
         if(!pip(a)||!pip(b)){ render(); return; }
         kr=kruk(a,b,i);
         if(T.mode==="mexx"&&is31(a,b)){
@@ -257,7 +259,17 @@
         }
         T.rolls[i]={a:a, b:b};
         note=dubbel(a,b,i,kr);
-        R.note=nm+" gooit "+(T.mode==="ogen"?(a+b)+" ogen":label(a,b,V()))+"."+note;
+        lines=[nm+" gooit "+(og?(a+b)+" ogen":label(a,b,V()))+"."];
+        m=isMexx(a,b); pm=power()&&a===3&&b===3;
+        if(m||pm){
+          /* besluit Stijn: een Mexx in de extra ronde telt mee voor de straf (3 3 bij PowerMexx als twee), ook bij Ogen */
+          R.mexx+=pm?2:1;
+          lines.push(pm?"3 en 3 telt ook in de extra ronde als twee Mexx.":(og?"1 en 2 is Mexx en telt":"Die telt")+" ook in de extra ronde mee voor de straf.");
+          lines.push("De verliezer drinkt nu "+strafTxt(R.mexx)+".");
+          addLog(lines.join(" "));
+          A.play("win"); lock(1500); A.overlay("win",pm?"Power Mexx!":"Mexx!",lines,1800);
+        }
+        R.note=lines.join(" ")+note;
         T.k++;
         if(T.k>=T.p.length){ resolveTie(); return; }
         A.save(); render();
@@ -397,7 +409,7 @@
         if(R.phase==="tiepick"){
           tr=R.turns[T.p[0]];
           h=hint(first+" kiest de extra ronde: Mexx of Ogen.");
-          h+='<div class="verdict neutral"><h2>Gelijk '+lowWord()+'</h2><p>'+(T.again?"Nog steeds gelijk. ":"")+'<b>'+esc(names)+'</b> staan samen '+lowWord()+(T.again?"":" met "+esc(label(tr.a,tr.b,v)))+'. Extra ronde: ieder gooit één keer. '+esc(first)+' kiest hoe.</p>';
+          h+='<div class="verdict neutral"><h2>Gelijk '+lowWord()+'</h2><p>'+(T.again?"Nog steeds gelijk. ":"")+'<b>'+esc(names)+'</b> staan samen '+lowWord()+(T.again?"":" met "+esc(label(tr.a,tr.b,v)))+'. Extra ronde: ieder gooit één keer; een Mexx telt ook nu mee voor de straf. '+esc(first)+' kiest hoe.</p>';
           h+='<div class="btnrow"><button class="btn gold" data-act="tiemode" data-arg="mexx">Mexx: '+lowest()+' score verliest</button><button class="btn gold" data-act="tiemode" data-arg="ogen">Ogen: '+(inv()?"meeste":"minste")+' ogen verliest</button></div></div>';
           return h;
         }

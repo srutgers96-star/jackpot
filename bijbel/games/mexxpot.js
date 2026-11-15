@@ -8,7 +8,7 @@
      en de extra ronde bij gelijk laag gelden. Het cijfer kies je uit de twee stenen die op tafel liggen, ook als er één bleef liggen.
    - Vastlopen of Jackpot midden in een beurt: het bord gaat meteen opnieuw open, de speler houdt zijn resterende Mexx-worpen.
    - Extra ronde bij gelijk laag: ook dat zijn worpen, dus ook daar wordt een cijfer omgedraaid ("bij elke worp").
-     Mexx gegooid in de extra ronde telt niet mee voor de straf van de ronde.
+     Mexx gegooid in de extra ronde telt wel mee voor de straf van de ronde (besluit Stijn), ook bij Ogen.
    - Half adtje per Mexx = 4 slokken (8 slokken in een glas), zoals bij Mexx. */
 (function(){
   "use strict";
@@ -152,7 +152,7 @@
       function tieNext(){
         var R=G.R, T=R.tie, w=T.players[T.i], mx=G.tie==="mexx";
         T.rolls[w]={a:T.a,b:T.b};
-        note(A.name(w)+" gooit "+(mx?label(T.a,T.b):(T.a+T.b)+" ogen")+" in de extra ronde.");
+        note(A.name(w)+" gooit "+(mx?label(T.a,T.b):(T.a+T.b)+" ogen")+" in de extra ronde."+(score(T.a,T.b)===1000?(mx?" Die":" Dat is Mexx en die")+" telt mee voor de straf.":""));
         T.i++; T.a=null; T.b=null; T.phase="roll";
         if(T.i<T.players.length) return;
         var lo=null, low=[];
@@ -202,6 +202,9 @@
             t.over=true; t.why="vast";
             say({kind:"info",title:"Vast",lines:[nm+" gooit "+label(a,b)+(lo!==null&&t.score===lo?", gelijk aan de laagste.":", en 32 is altijd vast.")+" Beurt voorbij na het omdraaien."],ms:2200,snd:"ding"});
           } else if(t.throws>=R.maxThrows){ t.over=true; t.why="op"; }
+        } else if(score(a,b)===1000){ /* besluit Stijn: een Mexx in de extra ronde telt mee voor de straf, ook bij Ogen */
+          R.mexx++;
+          say({kind:"win",title:"Mexx!",lines:[nm+" gooit Mexx in de extra ronde: die telt mee. De laagste drinkt straks "+slok(R.mexx*G.straf)+"."],ms:2400,snd:"win"});
         }
         if(options(a,b).length){ X.phase="flip"; commit(); return; }
         /* vastgelopen: resterende cijfers in slokken, nieuw bord, de Mexx-ronde gaat gewoon door */
@@ -304,7 +307,7 @@
         /* extra ronde bij gelijk laag */
         if(T){
           var locked=T.i>0||T.phase!=="roll", done=Object.keys(T.rolls);
-          h+='<div class="verdict neutral mexxpot-gap"><h2>Gelijk laag</h2><p>'+esc(A.joinNames(T.players))+' staan samen laag. Ieder gooit één keer; ook nu draai je na de worp een cijfer om.</p>'+
+          h+='<div class="verdict neutral mexxpot-gap"><h2>Gelijk laag</h2><p>'+esc(A.joinNames(T.players))+' staan samen laag. Ieder gooit één keer; ook nu draai je na de worp een cijfer om. Een Mexx telt ook nu mee voor de straf.</p>'+
             '<div class="seg mexxpot-seg"><button data-tie="mexx" aria-pressed="'+(G.tie==="mexx")+'"'+(locked?' disabled':'')+'>Mexx: laagste score verliest</button><button data-tie="ogen" aria-pressed="'+(G.tie==="ogen")+'"'+(locked?' disabled':'')+'>Ogen: minste ogen verliest</button></div>'+
             done.map(function(i){ var r=T.rolls[i]; return '<p class="mexxpot-rolls">'+esc(A.name(+i))+': '+A.dicerowSmall([r.a,r.b])+' '+(G.tie==="mexx"?esc(label(r.a,r.b)):(r.a+r.b)+' ogen')+'</p>'; }).join("")+'</div>';
         }

@@ -1,6 +1,6 @@
 // Bierspelbijbel service worker: alles offline beschikbaar, nieuwe versie wordt op de achtergrond opgehaald.
 // Dit bestand wordt geschreven door tools/bijbel-index.js; pas het daar aan.
-const CACHE = "bijbel-v4";
+const CACHE = "bijbel-v5";
 const FILES = ["./","./index.html","./style.css","./rules.js","./core.js","./extras.js","./manifest.webmanifest","./icon-192.png","./icon-512.png","./apple-touch-icon.png","./games/adtzee.js","./games/blackout.js","./games/blindmexxen.js","./games/chineesroulette.js","./games/driemannen.js","./games/drommels.js","./games/eentjegooien.js","./games/eigenrisico.js","./games/fuckthedealer.js","./games/jessen.js","./games/kaartjedobbelen.js","./games/kingsen.js","./games/liarsdice.js","./games/magicbussen.js","./games/mexx.js","./games/mexxpot.js","./games/negenennegentig.js","./games/nixxen.js","./games/nostradamus.js","./games/ottomaans.js","./games/oudebami.js","./games/paardenrace.js","./games/piramide.js","./games/poefen.js","./games/sixteen.js","./games/snelmexx.js","./games/straatje.js","./games/streepjesspel.js","./games/tegendraads.js","./games/vieren.js","./games/vierkanten.js","./games/zevenachtnegen.js"];
 
 self.addEventListener("install", (e) => {

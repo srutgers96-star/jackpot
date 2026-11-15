@@ -10,8 +10,8 @@
    - De voorspellingen zijn open (hardop aan tafel); de bijbel noemt geen geheime voorspelling.
    - De gooier wijst twee ANDERE spelers aan, dus minstens drie spelers.
    - 31 "telt niet mee als worp": de voorspellingen blijven staan, de gooier deelt een slok uit en gooit opnieuw.
-   - "Voordat een speler gooit" geldt ook in de extra ronde bij gelijk laag. Een Mexx in die extra ronde telt niet
-     mee voor de straf (de extra ronde wijst alleen de verliezer aan), net als in het gewone Mexx-spel van de app.
+   - "Voordat een speler gooit" geldt ook in de extra ronde bij gelijk laag. Een Mexx in die extra ronde telt wel
+     mee voor de straf (besluit Stijn; 3 3 ook daar als twee, ook bij Ogen), net als in het gewone Mexx-spel van de app.
    - PowerMexx (3 3) is als score hoger dan Mexx. De verliezer begint de volgende ronde.
    - De uitslag van een worp en de 31 staan in een overlay die blijft staan tot er getikt wordt: een overlay met
      een timer laat tikken door naar de knoppen eronder (wie krijgt het halve adtje / wie drinkt de slok). */
@@ -145,8 +145,9 @@
           else { A.drink(p[k],m.diff[k]); lines.push(A.name(p[k])+" zit er "+m.diff[k]+" naast: drink "+slok(m.diff[k])+"."); }
         });
         if(G.dubbel&&a===b){ res.dubbel=true; A.drink(t.who,1); lines.push(A.name(t.who)+" gooit dubbel: zelf 1 slok."); }
-        if(!R.tie){ var s=score(a,b); res.mexx=s===2000?2:s===1000?1:0; R.mexx+=res.mexx; }
-        if(res.mexx) lines.push(A.name(t.who)+" gooit "+label(a,b)+(res.mexx===2?", telt als twee Mexx.":"."));
+        /* besluit Stijn: ook een Mexx in de extra ronde telt mee voor de straf (bij Mexx-score en bij Ogen) */
+        var s=score(a,b); res.mexx=s===2000?2:s===1000?1:0; R.mexx+=res.mexx;
+        if(res.mexx) lines.push(A.name(t.who)+" gooit "+label(a,b)+(res.mexx===2?", telt als twee Mexx":"")+(R.tie?(res.mexx===2?", ook in de extra ronde.":": telt ook in de extra ronde mee."):"."));
         t.res=res; t.ph="uitslag";
         A.save(); render();
         if(both){ A.play("dood"); show("dood","Adtje!",lines,A.dicerow([a,b])); }
@@ -214,7 +215,7 @@
 
         if(R.tie&&!R.done){
           var T=R.tie;
-          h+='<div class="nostradamus-box"><b class="nostradamus-kop">Gelijk laag</b>'+esc(A.joinNames(T.players))+' gooien elk nog één keer. '+(T.mode==="ogen"?"Wie de minste ogen gooit, verliest.":"Wie de laagste Mexx-score gooit, verliest.");
+          h+='<div class="nostradamus-box"><b class="nostradamus-kop">Gelijk laag</b>'+esc(A.joinNames(T.players))+' gooien elk nog één keer. '+(T.mode==="ogen"?"Wie de minste ogen gooit, verliest.":"Wie de laagste Mexx-score gooit, verliest.")+" Een Mexx telt ook nu mee voor de straf.";
           T.players.forEach(function(i){ var r=T.rolls[i]; if(r) h+='<div class="nostradamus-rolls">'+esc(A.name(i))+': '+A.dicerowSmall([r.a,r.b])+' '+(T.mode==="ogen"?(r.a+r.b)+" ogen":label(r.a,r.b))+'</div>'; });
           h+='</div>';
         }
@@ -248,7 +249,7 @@
             else li+='<li><b>'+esc(A.name(p[k]))+'</b> voorspelde '+t.gok[k]+', de steen is '+r.die[k]+': drinkt <b>'+slok(r.diff[k])+'</b>.</li>';
           });
           if(r.dubbel) li+='<li><b>'+esc(nm)+'</b> gooit dubbel en neemt zelf <b>1 slok</b>.</li>';
-          if(r.mexx) li+='<li><b>'+esc(nm)+'</b> gooit '+label(t.a,t.b)+(r.mexx===2?' (telt als twee Mexx)':'')+'. De verliezer drinkt nu '+esc(strafTxt(R.mexx))+'.</li>';
+          if(r.mexx) li+='<li><b>'+esc(nm)+'</b> gooit '+label(t.a,t.b)+(r.mexx===2?' (telt als twee Mexx)':'')+(R.tie?', ook in de extra ronde telt dat mee':'')+'. De verliezer drinkt nu '+esc(strafTxt(R.mexx))+'.</li>';
           var pending=r.dealer>=0&&r.dealt===null;
           h+='<div class="verdict '+(r.both?"fout":r.dealer>=0?"win":"neutral")+'"><div class="nostradamus-roll">'+A.dicerowSmall([t.a,t.b])+'<span>'+(R.tie&&R.tie.mode==="ogen"?(t.a+t.b)+" ogen":label(t.a,t.b))+'</span></div><ul class="nostradamus-lines">'+li+'</ul>';
           if(pending) h+='<p>Wie krijgt het halve adtje van <b>'+esc(A.name(p[r.dealer]))+'</b>?</p>'+who(A.others(p[r.dealer]),"deal")+'<div class="btnrow"><button class="btn" id="nos-nodeal">Niet uitdelen</button></div>';

@@ -12,8 +12,14 @@
    - Suk a kok (2.V): vanaf drie zessen komt dit in de plaats van Jes roepen. De drie zessen zijn ook drie dezelfde,
      dus de muur van 2.III geldt daarnaast gewoon.
    - Straat (2.VI en VII): voor elke drie opeenvolgende ogen die op tafel liggen drinkt wie de middelste waarde gooide
-     één slok; ligt die waarde er twee keer, dan drinken beiden. Het tweede voorbeeld in de bijbel noemt speler D
-     (de 3) voor de straat 3-4-5; volgens de regel zelf is dat de middelste, de 4, en zo telt de app.
+     één slok; ligt die waarde er twee keer, dan drinken beiden. Het tweede voorbeeld in de bijbel laat daarnaast
+     speler D (de 3, de laagste van de straat) drinken. Besluit van Stijn (15 nov 2026): "bij jessen drinkt de middelste
+     of middelsten van een straat, maar ook de laagste. er wordt daar gewoon heel veel gedronken." Dus per hele straat
+     (de langste rij opeenvolgende ogen, drie of meer) drinkt ook ieder met de laagste waarde van die straat één slok,
+     bovenop 2.I: bij 6-4-5-3 drinkt de 3 er twee (laagste worp + laagste van de straat 3-4-5-6), de 4 en de 5 elk één.
+     Omdat de zin ook als alleen 2.I te lezen is, staat het als schakelaar onderaan ("Straat: ook de laagste van de
+     straat drinkt", standaard aan, G.straatLaag); hij geldt vanaf de volgende worp, een getelde worp onthoudt in
+     r.laag waarmee hij geboekt is.
    - Half adtje = 0,5 adtje (glas van 8 slokken, dus 4 slokken), geboekt zoals bij de andere spellen.
    - Er zijn geen beurten: iedereen gooit tegelijk, dus de actieve speler in de balk verandert niet.
    - Geen adtje kruk: dat is voor spellen met precies twee stenen, hier is het één steen per speler.
@@ -28,20 +34,24 @@
     '.jessen-sip.jessen-on{background:var(--gold);color:var(--ink);font-weight:700}'+
     '.jessen-act{margin-top:14px}'+
     '.jessen-btn{min-height:44px}'+
+    '.jessen-seg{margin-top:14px}'+
+    '.jessen-seg button{min-height:40px}'+
     '.jessen-log{margin-top:10px}';
   function addCss(){ if(document.getElementById("jessen-css"))return; var s=document.createElement("style"); s.id="jessen-css"; s.textContent=CSS; document.head.appendChild(s); }
   function slok(n){ return n===1?"1 slok":n+" slokken"; }
 
   /* De scheidsrechter: vals = ogen per speler (1..6). Geeft de vaste slokken per speler met de reden,
-     en de momenten waarop de groep moet aanwijzen wie de laatste was. */
-  function judge(vals,nameOf){
-    var n=vals.length, cnt=[0,0,0,0,0,0,0,0], sips=[], why=[], ev=[], low=7, i, v, k;
+     en de momenten waarop de groep moet aanwijzen wie de laatste was. laag = ook de laagste van een straat drinkt. */
+  function judge(vals,nameOf,laag){
+    var n=vals.length, cnt=[0,0,0,0,0,0,0,0], sips=[], why=[], ev=[], low=7, i, v, k, s;
     for(i=0;i<n;i++){ cnt[vals[i]]++; if(vals[i]<low)low=vals[i]; sips.push(0); why.push([]); }
     for(i=0;i<n;i++){
       v=vals[i];
       if(v===low){ sips[i]+=1; why[i].push("laagste worp (1 slok)"); }
       if(cnt[v]===2){ for(k=0;k<n;k++) if(k!==i&&vals[k]===v) break; sips[i]+=2; why[i].push("zelfde worp als "+nameOf(k)+" (2 extra)"); }
       if(cnt[v-1]&&cnt[v+1]){ sips[i]+=1; why[i].push("midden van de straat "+(v-1)+"-"+v+"-"+(v+1)+" (1 slok)"); }
+      /* v is het begin van een hele straat: niets eronder, minstens twee erboven */
+      if(laag&&!cnt[v-1]&&cnt[v+1]&&cnt[v+2]){ s=""+v; for(k=v+1;cnt[k];k++) s+="-"+k; sips[i]+=1; why[i].push("laagste van de straat "+s+" (1 slok)"); }
     }
     if(cnt[6]>=3) ev.push({t:"suk",k:cnt[6],last:null}); else if(cnt[6]>0) ev.push({t:"jes",k:cnt[6],last:null});
     for(v=1;v<=6;v++) if(cnt[v]>=3) ev.push({t:"muur",k:v,c:cnt[v],last:null});
@@ -64,6 +74,8 @@
       addCss();
       var G=A.gs("jessen"), box, pick=null, rolling=false, timer=null, tmp=[], side=null, sig="", obs=null;
       root.innerHTML='<div id="jessen-root"></div>'; box=root.firstChild;
+      /* een bewaarde stand van voor deze keuze heeft het veld nog niet: standaard aan */
+      if(typeof G.straatLaag!=="boolean") G.straatLaag=true;
 
       function blank(n){ var a=[]; for(var i=0;i<n;i++)a.push(null); return a; }
       function okVal(v){ return v===1||v===2||v===3||v===4||v===5||v===6; }
@@ -117,7 +129,7 @@
           else h+='<button class="roll" data-act="roll"'+(rolling?' disabled':'')+'>Gooi allemaal</button>';
           h+='</div>';
         } else {
-          var j=judge(r.vals,A.name), open=0;
+          var j=judge(r.vals,A.name,r.laag===true), open=0;
           var todo=r.ev.filter(function(e){ return e.last===null; }).length;
           h+='<p class="hint">Worp '+(G.n||1)+': de vaste slokken zijn geteld. '+(todo?'Tik hieronder aan wie de laatste was.':'Tik op <b>Volgende worp</b> om weer te gooien.')+'</p><div class="board">'+grid(r.vals,j)+'<div class="log jessen-log">';
           P.forEach(function(p,i){ if(j.sips[i]) h+='<div><b>'+esc(p.name)+'</b> drinkt '+slok(j.sips[i])+': '+esc(j.why[i].join(", "))+'</div>'; });
@@ -138,6 +150,8 @@
         } else {
           h+='<div class="btnrow" style="margin-top:16px"><button class="btn jessen-btn" data-act="steen">Verkeerde steen gepakt</button><button class="btn jessen-btn" data-act="vrij">Vrijwillig adtje</button></div>';
         }
+        h+='<div class="seg jessen-seg"><button data-act="laag" aria-pressed="'+G.straatLaag+'">Straat: ook de laagste van de straat drinkt</button></div>';
+        if(r.done&&(r.laag===true)!==G.straatLaag) h+='<p class="hint">Deze worp is al geteld; de keuze geldt vanaf de volgende worp.</p>';
         h+='<div class="btnrow"><button class="btn jessen-btn" data-act="new">Nieuw spel</button></div>';
         box.innerHTML=h;
       }
@@ -146,7 +160,7 @@
       function settle(){
         var r=round(), j, i;
         if(r.done||!r.vals.every(okVal)){ render(); return; }
-        j=judge(r.vals,A.name); r.done=true; r.ev=j.ev; G.n=(G.n||0)+1; pick=null;
+        r.laag=G.straatLaag!==false; j=judge(r.vals,A.name,r.laag); r.done=true; r.ev=j.ev; G.n=(G.n||0)+1; pick=null;
         for(i=0;i<j.sips.length;i++) if(j.sips[i]) A.drink(i,j.sips[i]);
         A.save(); A.play("clack",0.8); render();
       }
@@ -205,6 +219,7 @@
         else if(act==="next"){ r=round(); if(r.done&&r.ev.every(function(x){return x.last!==null;})){ G.r=null; pick=null; A.save(); render(); } }
         else if(act==="steen"||act==="vrij"){ side=act; render(); }
         else if(act==="cancel"){ side=null; render(); }
+        else if(act==="laag"){ G.straatLaag=!G.straatLaag; A.save(); render(); }
         else if(act==="new"){ stop(); G.n=0; G.r=null; pick=null; side=null; A.save(); render(); }
       });
 

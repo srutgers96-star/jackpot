@@ -183,20 +183,26 @@ Dit zijn standen van Mexx; zie de derde stap bij Mexx.
 
 Jackpot is af en opent als eigen app binnen de bijbel.
 
-## Regelkeuzes om te bevestigen
+## Beslist door Stijn (15 november 2026)
+
+- **Adtje kruk:** geldt alleen als één speler met twee stenen gooit, ook als er één bleef liggen zoals bij Mexx. Niet bij Drommels, waar ieder één steen gooit.
+- **Driemannen, 3 en 3:** de Drieman drinkt (één slok per drie) én mag er 10 uitdelen.
+- **Mexx-familie:** een Mexx in de extra ronde telt mee voor de straf (Mexx, PowerMexx, Inverse Mexx, Nostradamus PowerMexx en Mexxpot; bij PowerMexx telt 3 en 3 daar als twee).
+- **Kaartje Dobbelen:** de Vrouw telt als 12; het voorbeeld in de bijbel (11) is fout.
+- **Jessen, straat:** de middelste of middelsten drinken, en ook de laagste. Er wordt daar gewoon veel gedronken. In de app is "ook de laagste van de straat" een schakelaar die standaard aan staat.
+- **Half adtje:** wordt geboekt als ½ adtje, niet als 4 slokken.
+- **Spelers:** in de bijbel overal toevoegen, hernoemen en verwijderen; Stijn en Daan zijn alleen in Jackpot de standaard.
+
+## Regelkeuzes die nog open staan
 
 De bijbel laat op deze punten ruimte. De app kiest nu wat hieronder staat; zeg het als jullie het anders spelen.
 
-- **Adtje kruk (beslist door Stijn, 15 november):** geldt alleen als één speler met twee stenen gooit, ook als er één bleef liggen zoals bij Mexx. Niet bij Drommels, waar ieder één steen gooit.
-- **Driemannen, 3 en 3:** de Drieman drinkt 2 slokken (één per drie) en mag er daarna 10 uitdelen.
-- **Mexx:** PowerMexx (3 en 3) staat boven Mexx. Een Mexx in de extra ronde telt niet mee voor de straf.
+- **Mexx:** PowerMexx (3 en 3) staat boven Mexx.
 - **Snelmexx, 31:** iedereen met stenen drinkt één slok; er wordt niets uitgedeeld.
-- **Kaartje Dobbelen:** de Vrouw telt als 12 (zoals de tabel zegt), terwijl het voorbeeld in de bijbel met 11 rekent.
-- **Jessen, straat:** de middelste drinkt (zoals de regel zegt); het tweede voorbeeld in de bijbel laat de laagste drinken.
 - **Sixteen, twee achten:** de vorige speler trekt een adtje en de volgende drinkt dan geen slok.
 - **Total Black-Out:** de foute kaart telt mee in het aantal slokken (eerste fout in een rij is 2 slokken).
 - **Streepjesspel:** "de speler voor jou" is de speler die net vóór jou aan de beurt was.
 - **Liar's Dice, jackpot:** verliest de uitdager, dan komt hij op 2 adtjes in totaal; de zin in de bijbel kan ook als 1,5 gelezen worden.
 - **7, 8, 9:** de bijbel geeft geen slokken per glas; de app rekent een vol buikje als 8 slokken.
 - **Vieren:** de knop "Roep: VIER!" is het roepen. Wie alleen aan tafel roept en niet tikt, krijgt de halve bak.
-- **Half adtje:** wordt geboekt als ½ adtje, niet als 4 slokken.
+- **Ottomaans Mexx, adtje kruk:** de voorlaatste speler gooit zelf met twee stenen, dus daar geldt de kruk nog.
