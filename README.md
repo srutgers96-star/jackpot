@@ -20,7 +20,7 @@ Instructies voor Claude op de laptop (gekoppeld aan GitHub). Alles staat klaar i
 - De QR-scanner (Stand bewerken, Stand overnemen) werkt op dit https-adres wel, in tegenstelling tot een los HTML-bestand.
 
 ## Updaten
-- Nieuwe versie van de app: overschrijf `index.html` en push. Verhoog in `sw.js` de regel `const CACHE = "jackpot-v3";` naar `v4`, `v5`, enzovoort, zodat telefoons de nieuwe versie zeker ophalen.
+- Nieuwe versie van de app: overschrijf `index.html` en push. Verhoog in `sw.js` de regel `const CACHE = "jackpot-v4";` naar `v5`, `v6`, enzovoort, zodat telefoons de nieuwe versie zeker ophalen.
 - Scores en de totaalstand staan in de browseropslag per telefoon en blijven bij een update behouden.
 
 ## Taal

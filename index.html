@@ -66,7 +66,13 @@ h1{ font-size:28px; font-weight:900; margin:0; }
 #nameform{ flex-wrap:wrap; }
 #nameform input{ flex:1 1 130px; }
 footer button.confirm{ color:var(--red); font-weight:700; }
-.playerlinks{ display:flex; justify-content:space-between; }
+.playerlinks{ display:flex; justify-content:space-between; gap:8px; }
+.playerlinks .pl-left{ display:flex; gap:6px; }
+.addplayer[hidden]{ display:none; }
+#removePlayer::before{ content:"· "; display:inline-block; text-decoration:none; }
+.removeform{ flex-wrap:wrap; align-items:center; justify-content:center; }
+.removeform span{ flex-basis:100%; text-align:center; font-size:13px; color:var(--ivory-dim); }
+.removeform button.who{ background:var(--red); color:#fff; }
 .alltime{ display:block; margin:-4px 0 6px; font-size:13px; color:var(--ivory-dim); background:none; border:0; width:100%; text-decoration:underline; }
 .alltime b{ color:var(--ivory); font-size:20px; font-weight:900; }
 .alltime .lead{ color:var(--gold); }
@@ -322,7 +328,8 @@ body.play .picker.open{ margin:-6px 0 14px; }
 <button class="alltime" id="alltime" data-i18n-title="alltimeTitle"></button>
 <div class="alltimeform" id="alltimeform"></div>
 <div class="sessionbar" id="sessionbar" style="display:none"><button id="endSession" data-i18n="endSession"></button><button id="shareStand" data-i18n="shareStand"></button></div>
-<div class="playerlinks"><button class="addplayer" id="addPlayer" data-i18n="addPlayer"></button><button class="addplayer" id="notUs" data-i18n="notUs"></button></div>
+<div class="playerlinks"><span class="pl-left"><button class="addplayer" id="addPlayer" data-i18n="addPlayer"></button><button class="addplayer" id="removePlayer" data-i18n="removeLink" hidden></button></span><button class="addplayer" id="notUs" data-i18n="notUs"></button></div>
+<div class="nameform removeform" id="removeform"></div>
 <div class="nameform" id="twoform"><input id="twoA" type="text" maxlength="20" data-i18n-placeholder="player1" autocomplete="off"><input id="twoB" type="text" maxlength="20" data-i18n-placeholder="player2" autocomplete="off"><button id="twoOk" data-i18n="save"></button><button class="cancel" id="twoCancel" data-i18n="cancel"></button></div>
 
 <section class="box" data-i18n-aria="board"><div class="tiles" id="tiles"></div></section>
@@ -2696,7 +2703,7 @@ var qrcode = function() {
       name:"Naam", newName:"Naam nieuwe speler", player1:"Speler 1", player2:"Speler 2",
       alltimeTitle:"Tik om bij te werken", editStand:"Stand bewerken", allTime:"Totaalstand (alle sessies)", drawBtn:"Gelijk",
       jpSession:"Jackpots deze sessie", jpSessionLc:"jackpots deze sessie", takeQr:"Stand overnemen (QR)",
-      endSession:"Einde sessie", shareStand:"Deel stand", addPlayer:"Speler toevoegen", notUs:"Ben je niet Stijn of Daan?",
+      endSession:"Einde sessie", shareStand:"Deel stand", addPlayer:"Speler toevoegen", removeLink:"verwijderen", removeWho:"Wie gaat weg? Tik op de naam.", notUs:"Ben je niet Stijn of Daan?",
       board:"Bord", jackpot:"Jackpot", jackpotLc:"jackpot", net:"Saldo",
       sip:"slok", sips:"slokken", chug:"atje", chugs:"atjes", stool:"kruk", stools:"kruk", turn:"beurt", million:"mln",
       noSpecial:"Geen speciale jackpot meer mogelijk.", stillPossible:"Nog mogelijk: ", oneIn:"1 op {n}",
@@ -2789,7 +2796,7 @@ var qrcode = function() {
       name:"Name", newName:"New player's name", player1:"Player 1", player2:"Player 2",
       alltimeTitle:"Tap to update", editStand:"Edit score", allTime:"All-time score (all sessions)", drawBtn:"Draw",
       jpSession:"Jackpots this session", jpSessionLc:"jackpots this session", takeQr:"Import score (QR)",
-      endSession:"End session", shareStand:"Share score", addPlayer:"Add player", notUs:"Not Stijn or Daan?",
+      endSession:"End session", shareStand:"Share score", addPlayer:"Add player", removeLink:"remove", removeWho:"Who is leaving? Tap the name.", notUs:"Not Stijn or Daan?",
       board:"Board", jackpot:"Jackpot", jackpotLc:"jackpot", net:"Net",
       sip:"sip", sips:"sips", chug:"chug", chugs:"chugs", stool:"stool", stools:"stools", turn:"turn", million:"million",
       noSpecial:"No special jackpot possible any more.", stillPossible:"Still on: ", oneIn:"1 in {n}",
@@ -2961,6 +2968,7 @@ var qrcode = function() {
     attrs.forEach(function(s){ Array.prototype.forEach.call(document.querySelectorAll("["+s[0]+"]"),function(e){ s[1](e,String(t(e.getAttribute(s[0])))); }); });
     var lb=el("mLang"); lb.textContent=S.lang==="nl"?"EN":"NL"; lb.setAttribute("aria-label",t("langAria"));
     el("resetScores").classList.remove("confirm");
+    el("removeform").className="nameform removeform";
     renderInstall();
     if(!el("help").hidden) renderHelp();
     if(EMBEDDED) el("bijbelLink").style.display="none";
@@ -3247,7 +3255,7 @@ var qrcode = function() {
     });
     h.innerHTML=html;
   }
-  function renderAll(){renderPlayers();renderAlltime();renderTiles();renderDice();renderMoves();renderSpecial();renderHist();save();}
+  function renderAll(){renderPlayers();renderRemoveLink();renderAlltime();renderTiles();renderDice();renderMoves();renderSpecial();renderHist();save();}
 
   /* ---- actions ---- */
   function play(v, ms, best){
@@ -3530,19 +3538,32 @@ var qrcode = function() {
   el("mView").onclick=function(){ S.view=S.view==="play"?"meer":"play"; setMode(); };
   el("mLang").onclick=function(){ S.lang=S.lang==="nl"?"en":"nl"; applyLang(); setStratLabels(); setMode(); };
   el("nameCancel").onclick=closeName;
-  el("nameDel").onclick=function(){
-    var i=nameTarget; if(i===null||!S.players[i]||S.players.length<=2){ closeName(); return; }
+  /* Remove a player (only with more than two): their turns leave the history, indices and the turn shift along. */
+  function removePlayer(i){
+    if(i===null||!S.players[i]||S.players.length<=2) return;
     var wasActive=i===S.active;
     S.players.splice(i,1);
-    /* history: drop the removed player's turns and shift the indices behind them */
     S.turns=S.turns.filter(function(tn){ return tn.player!==i; });
     S.turns.forEach(function(tn){ if(tn.player>i) tn.player--; });
     if(wasActive){ /* their unfinished turn goes with them; the next player starts on a fresh board */
       S.decisions=[]; S.ended=null; S.board=FULL; S.d1=null; S.d2=null; S.kruk=0; pick=null; fresh=false;
       if(S.active>=S.players.length) S.active=0;
     } else if(i<S.active) S.active--;
-    closeName(); renderAll();
+  }
+  function closeRemove(){ el("removeform").className="nameform removeform"; }
+  function renderRemoveLink(){ var can=S.players.length>2; el("removePlayer").hidden=!can; if(!can) closeRemove(); }
+  el("nameDel").onclick=function(){ var i=nameTarget; closeName(); removePlayer(i); renderAll(); };
+  el("removePlayer").onclick=function(){
+    var f=el("removeform"); if(f.className.indexOf("open")>=0){ closeRemove(); return; }
+    closeName();
+    f.innerHTML='<span>'+esc(t("removeWho"))+'</span>'+S.players.map(function(p,i){ return '<button class="who" data-i="'+i+'">'+esc(p.name)+'</button>'; }).join("")+'<button class="cancel" data-cancel="1">'+esc(t("cancel"))+'</button>';
+    f.className="nameform removeform open";
   };
+  el("removeform").addEventListener("click",function(e){
+    var b=e.target.closest("button"); if(!b)return;
+    if(b.getAttribute("data-cancel")){ closeRemove(); return; }
+    closeRemove(); removePlayer(parseInt(b.getAttribute("data-i"),10)); renderAll();
+  });
   el("nameOk").onclick=function(){
     var nm=el("nameInput").value.trim(); if(!nm){closeName();return;}
     if(nameTarget===null) S.players.push({name:nm,slokken:0,jackpots:0,atjes:0,kruk:0}); else S.players[nameTarget].name=nm;
