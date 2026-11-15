@@ -5,8 +5,9 @@
    - De verliezer zet de volgende ronde op.
    - "Mag in principe driemaal gooien": eerder laten staan mag; de laatste worp is je score.
    - Een steen laten liggen kan één keer per beurt, voor één worp, met één steen (een 1 of een 2).
-   - 31 telt niet als worp. Lag de 1 al vast, dan blijft hij liggen voor de nieuwe worp. Na een 31 met twee stenen mag je
-     de 1 nog laten liggen als je dat deze beurt nog niet deed (afspraak "bij 31 niets laten liggen" zet dat uit).
+   - 31 telt niet als worp. Lag de 1 al vast, dan blijft hij liggen voor de nieuwe worp. Na Mexx of 31 mag je niets vasthouden (Stijn, 15 nov
+     2026): de afspraak "bij 31 niets laten liggen" staat daarom standaard aan; zet je hem uit, dan mag de 1 na een 31 nog.
+     Laten liggen doe je door op de 1 of de 2 zelf te tikken (of via de knop in de lijst eronder).
    - Afspraak "32 staat altijd vast": wie 32 gooit is meteen klaar met 32.
    - Extra ronde bij gelijk laag: de eerste van de gelijke spelers kiest Mexx of Ogen (zoals Speler D in het voorbeeld).
      Bij Mexx telt een 31 daar ook niet (slok uitdelen, opnieuw); bij Ogen is 31 gewoon vier ogen. Een Mexx in de extra
@@ -29,6 +30,8 @@
     ".mexx-note{margin:10px 2px 0;font-size:14px;line-height:1.35;text-align:center;color:var(--ivory)}",
     ".mexx-tag{font-size:11px;font-weight:500;color:var(--ivory-dim);white-space:nowrap}",
     ".mexx-static .die{cursor:default}",
+    ".mexx-static button.mexx-hold{cursor:pointer;box-shadow:0 0 0 3px var(--gold),0 5px 0 #c4b793,0 8px 14px rgba(0,0,0,.35)}",
+    ".mexx-holdlbl{font-size:11px;color:var(--gold);min-height:14px}",
     ".mexx-tie{margin:0 0 6px;font-size:14px;line-height:2.2;text-align:center;color:var(--ivory-dim)}",
     ".mexx-tie b{color:var(--ivory)}",
     ".mexx-set{margin-top:14px}",
@@ -90,6 +93,8 @@
       if(G.straf!==2&&G.straf!==3&&G.straf!=="half") G.straf=G.mexxStraf===3?3:G.mexxStraf===4?"half":2;
       delete G.mexxStraf;
       G.opt32=!!G.opt32; G.strikt=!!G.strikt; G.dubbel=!!G.dubbel;
+      /* Stijn (15 nov 2026): na Mexx of 31 mag je niets vasthouden. Die afspraak staat daarom standaard aan (eenmalig gezet; de knop blijft). */
+      if(!G.striktV2){ G.striktV2=true; G.strikt=true; }
       G.log=Array.isArray(G.log)?G.log.filter(function(x){ return typeof x==="string"; }).slice(0,8):[];
 
       function N(){ return A.S.players.length; }
@@ -356,6 +361,12 @@
 
       /* ---- tekenen ---- */
       function staticDice(a,b,keptIdx){ return '<div class="dice mexx-static"><span class="die'+(keptIdx===0?" kept":"")+'">'+A.pips(a)+'</span><span class="die'+(keptIdx===1?" kept":"")+'">'+A.pips(b)+'</span></div>'; }
+      /* de stenen na een worp; mag er nog een blijven liggen, dan is een 1 of een 2 zelf een knop: tik = laten liggen */
+      function holdDice(a,b,can){
+        function one(v,idx){ var ok=can&&(v===1||v===2);
+          return '<div class="diewrap">'+(ok?'<button class="die mexx-hold" data-act="keep" data-arg="'+idx+'" aria-label="De '+v+' laten liggen">'+A.pips(v)+'</button><span class="mexx-holdlbl">tik = laten liggen</span>':'<span class="die">'+A.pips(v)+'</span><span class="mexx-holdlbl">&nbsp;</span>')+'</div>'; }
+        return '<div class="dice mexx-static">'+one(a,0)+one(b,1)+'</div>';
+      }
       function hint(t){ return '<p class="hint">'+esc(t)+'</p>'; }
       function seg(lbl,items){ return '<div class="seg"><span class="mexx-lbl">'+esc(lbl)+'</span>'+items.map(function(x){ return '<button data-act="set" data-arg="'+x[0]+'" aria-pressed="'+!!x[2]+'">'+esc(x[1])+'</button>'; }).join("")+'</div>'; }
       function dealHtml(i){ return '<div class="btnrow">'+A.others(i).map(function(j){ return '<button class="btn gold" data-act="deal" data-arg="'+j+'">'+esc(A.name(j))+'</button>'; }).join("")+'</div>'; }
@@ -401,7 +412,8 @@
           opts.push({p:L===null?-1:d, html:'data-act="keep" data-arg="'+idx+'"><span class="num">'+dv+'</span><span class="lbl">De '+dv+' laten liggen<small>alleen de andere steen opnieuw, mag één keer per beurt</small></span><span class="odds kans">'+odds(d)+'</span>'});
         });
         if(L!==null) opts.forEach(function(o,x){ if(best<0||o.p>opts[best].p+1e-9) best=x; });
-        h+=staticDice(t.a,t.b,-1)+'<div class="opts">'+opts.map(function(o,x){ return '<button class="opt'+(x===best?' best':'')+'" '+o.html+'</button>'; }).join("")+'</div>';
+        if(ck&&[t.a,t.b].some(function(dv){ return dv===1||dv===2; })) h+='<p class="mexx-info">Een 1 of een 2 laten liggen? Tik op die steen. Dat mag één keer per beurt.</p>';
+        h+=holdDice(t.a,t.b,ck)+'<div class="opts">'+opts.map(function(o,x){ return '<button class="opt'+(x===best?' best':'')+'" '+o.html+'</button>'; }).join("")+'</div>';
         return h;
       }
       function tieHtml(){
