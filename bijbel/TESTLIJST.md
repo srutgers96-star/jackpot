@@ -187,7 +187,7 @@ Jackpot is af en opent als eigen app binnen de bijbel.
 
 - **Adtje kruk:** geldt alleen als één speler met twee stenen gooit, ook als er één bleef liggen zoals bij Mexx. Niet bij Drommels, waar ieder één steen gooit.
 - **Drommels met meer dan twee spelers:** ieder gooit één steen. De laagste drinkt één slok; gooien meerdere spelers samen het laagst, dan drinken ze allemaal. Elke groep met gelijke ogen deelt daarnaast het totaal van die stenen uit aan één ander. Gelijk laag is dus drinken én uitdelen. Gooit iedereen hetzelfde, dan is er geen laagste en wordt er alleen uitgedeeld (zo staat het voor twee spelers in de bijbel).
-- **Oude Bami, Nieuwe Bami:** voor 2, 3 of 6 spelers. Met 2: oude bami (1, 2, 3) en nieuwe bami (4, 5, 6). Met 3: linker, midden en rechter bami (1-2, 3-4, 5-6). Met 6: ieder één getal. Met 4 of 5 kan het niet. Adtje kruk telt hier wél, met die ene steen. Na een worp staat alleen de naam van wie drinkt groot in beeld. Reeksregel met twee spelers: moet je voor de derde keer op rij drinken, dan zijn het 2 slokken, daarna telkens één meer (3, 4, 5).
+- **Oude Bami, Nieuwe Bami:** voor 2, 3 of 6 spelers. Met 2: oude bami (1, 2, 3) en nieuwe bami (4, 5, 6). Met 3: linker, midden en rechter bami (1-2, 3-4, 5-6). Met 6: ieder één getal. Met 4 of 5 kan het niet. Adtje kruk telt hier wél, met die ene steen. Na een worp staat alleen de naam van wie drinkt groot in beeld. Reeksregel: met twee spelers is de derde keer op rij drinken 2 slokken, daarna telkens één meer (3, 4, 5); met drie of zes spelers begint dat al bij de tweede keer op rij (1, 2, 3, 4). Bij een kruk doet wie gooide het adtje en drinkt wie het getal heeft; het scherm noemt beide en blijft staan tot je tikt.
 - **Driemannen, 3 en 3:** de Drieman drinkt (één slok per drie) én mag er 10 uitdelen.
 - **Mexx-familie:** een Mexx in de extra ronde telt mee voor de straf (Mexx, PowerMexx, Inverse Mexx, Nostradamus PowerMexx en Mexxpot; bij PowerMexx telt 3 en 3 daar als twee).
 - **Kaartje Dobbelen:** de Vrouw telt als 12; het voorbeeld in de bijbel (11) is fout.
@@ -199,8 +199,6 @@ Jackpot is af en opent als eigen app binnen de bijbel.
 
 De bijbel laat op deze punten ruimte. De app kiest nu wat hieronder staat; zeg het als jullie het anders spelen.
 
-- **Oude Bami, Nieuwe Bami, reeksen met 3 of 6 spelers:** de reeksregel (2 slokken bij de derde keer op rij, daarna telkens één meer) is alleen voor twee spelers bekend; met 3 of 6 is elke worp nu één slok.
-- **Oude Bami, adtje kruk:** het adtje gaat naar wie de derde gelijke worp gooide, niet naar wie drinkt.
 - **Mexx:** PowerMexx (3 en 3) staat boven Mexx.
 - **Snelmexx, 31:** iedereen met stenen drinkt één slok; er wordt niets uitgedeeld.
 - **Sixteen, twee achten:** de vorige speler trekt een adtje en de volgende drinkt dan geen slok.

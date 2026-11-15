@@ -13,8 +13,10 @@
    - Na een worp staat alleen de NAAM van wie moet drinken groot in beeld. Geen "Slok!" en geen uitleg: het is een snel
      spel en niemand moet een zin hoeven lezen (en regel 6 van de bijbel: de regels mogen niet worden uitgelegd).
 
-   Reeksen (Stijn en Daan, 15 nov 2026), alleen met twee spelers: de derde keer op rij drinken is 2 slokken, daarna
-   telkens één meer. Voor 3 en 6 spelers is dat nog niet bekend (TODO); alle slokken komen uit sipsFor() hieronder.
+   Reeksen (Stijn en Daan, 15 nov 2026): met twee spelers is de derde keer op rij drinken 2 slokken, daarna telkens
+   één meer; met drie of zes spelers begint dat al bij de tweede keer op rij. Alle slokken komen uit sipsFor() hieronder.
+   Adtje kruk en de slokken kunnen bij verschillende mensen terechtkomen (wie gooit doet het adtje, wie het getal heeft
+   drinkt). Stijn: dat moet duidelijk zijn. Daarom blijft het scherm bij een kruk staan tot een tik en noemt het beide.
 
    Keuzes waar de bijbel en Stijn niets over zeggen:
    - Volgorde van gooien: de volgorde van de spelersbalk onder de deelnemers; de actieve speler begint als hij meedoet.
@@ -32,14 +34,14 @@
   /* Hoeveel slokken drinkt de eigenaar van het gegooide getal bij deze worp?
      owner = de plek (0, 1, …) van wie het getal is, value = het gegooide getal, history = de eerdere worpen van dit
      spel, de nieuwste eerst, elk {v: getal, o: plek die dronk, t: plek die gooide, s: slokken}, form = 2, 3 of 6.
-     Reeksregel van Stijn en Daan (15 nov 2026), voor het spel met TWEE spelers: moet je voor de derde keer op rij
-     drinken, dan zijn het 2 slokken; daarna bij elke verlenging één meer (3, 4, 5, …). De eerste twee keer is 1 slok.
-     TODO: voor 3 en 6 spelers is de reeksregel nog niet bekend; daar blijft elke worp één slok. */
+     Reeksregel van Stijn en Daan (15 nov 2026): moet dezelfde speler meerdere keren op rij drinken, dan loopt het op.
+     - twee spelers: de eerste twee keer 1 slok, de derde keer op rij 2 slokken, daarna telkens één meer (3, 4, 5, …);
+     - drie of zes spelers: de reeks begint al bij twee keer op rij: 1, dan 2, 3, 4, … slokken. */
   function sipsFor(owner,value,history,form){
     var streak=1, i;
-    if(form!==2) return 1;
     for(i=0;i<history.length&&history[i].o===owner;i++) streak++;
-    return streak<3?1:streak-1;
+    if(form===2) return streak<3?1:streak-1;
+    return streak;
   }
 
   function css(){
@@ -66,6 +68,12 @@
          de marge naar binnen en evenveel naar buiten geeft het afsnijvak ruimte zonder dat de regel hoger wordt */
       ".oudebami-name span{display:block;max-width:100%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;padding:.12em 0 .22em;margin:-.12em 0 -.22em}"+
       ".oudebami-more{margin-top:6px;font-size:20px;font-weight:900;color:#fff}"+
+      ".oudebami-kruk{margin-top:8px;padding:10px 12px;border-radius:14px;background:rgba(40,70,140,.55);border:1.5px solid rgba(140,170,240,.8);display:flex;align-items:baseline;justify-content:center;gap:10px;flex-wrap:wrap;text-align:center}"+
+      ".oudebami-kruk span{font-size:14px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:#dfe8ff}"+
+      ".oudebami-kruk b{font-size:28px;font-weight:900;color:#fff;overflow-wrap:anywhere}"+
+      ".overlay .oudebami-krukov{display:block;margin:18px auto 0;padding:10px 16px;border-radius:16px;background:rgba(40,70,140,.92);max-width:92vw;transform:none}"+
+      ".overlay .oudebami-krukov b{display:block;font-size:min(5.5vw,22px);font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:#dfe8ff}"+
+      ".overlay .oudebami-krukov i{display:block;font-style:normal;font-size:min(11vw,48px);font-weight:900;color:#fff;line-height:1.1;overflow-wrap:anywhere}"+
       ".oudebami-wait{max-width:100%;font-size:20px;color:var(--ivory-dim);text-align:center;overflow-wrap:anywhere}"+
       ".oudebami-wait b{color:var(--ivory)}"+
       ".oudebami-turn{margin:10px 0 0;font-size:17px;text-align:center;color:var(--ivory-dim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}"+
@@ -76,6 +84,7 @@
       ".oudebami-hist .oudebami-lbl{margin-right:4px}"+
       ".oudebami-measure{position:absolute;left:-9999px;top:0;visibility:hidden;white-space:nowrap;font-weight:900;font-size:100px;line-height:1;pointer-events:none}"+
       /* de naam in de overlay: breekt nooit buiten beeld, de lettergrootte zet het spel zelf */
+      ".overlay.dood.oudebami-ov{background:#a0281e}"+   /* dekkend: de naam op de pagina eronder mag er niet doorheen schemeren */
       ".overlay.oudebami-ov span.t{max-width:100%;overflow-wrap:anywhere}";
     document.head.appendChild(s);
   }
@@ -277,13 +286,14 @@
         /* adtje kruk telt hier wél, met één steen: core boekt het adtje voor de gooier en toont zijn eigen melding */
         kr=A.kruk(ID,[n],ti); if(kr) G.adt[t]++;
         G.rolls++; G.log.unshift({v:n,o:o,t:t,s:s}); if(G.log.length>60) G.log.length=60;
-        G.last={v:n,n:nm,s:s,o:o};
+        G.last={v:n,n:nm,s:s,o:o,k:kr?A.name(ti):""};
         /* om de beurt één worp: de volgende deelnemer in de balk */
         ord=order(); G.turn=ord[(ord.indexOf(t)+1)%ord.length];
         A.S.active=G.seat[G.turn].i; A.save(); A.renderPlayers();
         if(!kr) A.play("ding");
         /* alleen de naam, zo groot als past, met de steen eronder; geen "Slok!" en geen waarom (regel 6) */
-        ov=A.overlay("dood oudebami-ov",nm,s>1?[s+" slokken"]:null,1500,A.dicerow([n]));
+        /* bij een kruk blijft het staan tot een tik en staat erbij wie het adtje doet: dat kan een ander zijn dan wie drinkt */
+        ov=A.overlay("dood oudebami-ov",nm,s>1?[s+" slokken"]:null,kr?0:1500,A.dicerow([n])+(kr?'<span class="oudebami-krukov"><b>Adtje kruk</b><i>'+esc(A.name(ti))+'</i></span>':''));
         fitOverlay(ov,nm);
         render();
       }
@@ -335,7 +345,8 @@
           f=fitPage(L.n);
           h='<div class="oudebami-who" aria-live="assertive"><div class="oudebami-name" id="oudebami-name" style="font-size:'+f.px+'px">'+
             f.lines.map(function(l){ return "<span>"+esc(l)+"</span>"; }).join("")+'</div>'+
-            (L.s>1?'<div class="oudebami-more">'+L.s+' slokken</div>':'')+'</div>';
+            (L.s>1?'<div class="oudebami-more">'+L.s+' slokken</div>':'')+'</div>'+
+            (L.k?'<div class="oudebami-kruk"><span>Adtje kruk</span><b>'+esc(L.k)+'</b></div>':'');
         } else {
           h='<div class="oudebami-who oudebami-leeg"><div class="oudebami-wait"><b>'+esc(A.name(ti))+'</b> begint</div></div>';
         }
