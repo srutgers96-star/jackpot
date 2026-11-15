@@ -75,19 +75,19 @@ Link: https://srutgers96-star.github.io/jackpot/bijbel/
 3. Voeg een derde speler toe, tik Nieuw spel, kies ook een Midden bami en gooi een 3 en een 4 (dan drinken er twee, elk 1 slok); verwijder daarna tijdens het spel de oude bami uit de balk: je hoort terug te komen op het kiesscherm met de melding 'Een bami is weg'.
 
 ### Vieren
-1. Zet in bijbel/index.html de regel <script src="games/vieren.js"></script> tussen de GAMES-regels, open de app, kies Vieren met twee spelers: tik 'Roep: VIER!' en dan 'Gooi'; bij geen vier krijgt die speler 1 slok en is de ander aan de beurt, bij een vier 1 adtje.
+1. Open de app en kies Vieren met twee spelers: tik 'Roep: VIER!' en dan 'Gooi'; bij geen vier krijgt die speler 1 slok en is de ander aan de beurt, bij een vier 1 adtje.
 2. Tik 'Gooi' zonder eerst te roepen: rood scherm 'Halve bak!', 4 slokken erbij, dezelfde speler blijft aan de beurt. Tik daarna 'Vergissing? Worp terugdraaien' en kijk of de 4 slokken weer weg zijn.
 3. Tik op de steen (het vraagteken), kies zelf de ogen (echte dobbelsteen) met en zonder roepen; verwijder daarna de actieve speler via zijn naam en kijk of de regel 'X is aan de beurt' meteen de volgende naam toont. Kijk op de telefoon of niets buiten het scherm valt.
 
 ### Eigen Risico (hulp: een deel blijft op tafel)
-1. Zet eerst in bijbel/index.html de regel <script src="games/eigenrisico.js"></script> bij de andere spellen, open de Bierspelbijbel en tik op Eigen Risico (onder Eén dobbelsteen); zet 2 tot 4 spelers in zitvolgorde.
+1. Open de Bierspelbijbel en tik op Eigen Risico (onder Eén dobbelsteen); zet 2 tot 4 spelers in zitvolgorde.
 2. Speel een ronde: Bijgeschonken, tik een getal, Gooi. Bij mis gaat de beurt naar de volgende; laat iemand 'Pul is al vol' tikken en kijk of de schenkstap daarna wordt overgeslagen.
 3. Dwing een treffer af met een echte steen (tik op het vraagteken en kies het genoemde getal): rood scherm, 1 adtje bij die speler, daarna 'Pul is gevuld' en dezelfde speler is weer aan de beurt. Probeer ook 'Laatste worp terugdraaien': het adtje moet weer verdwijnen.
 
 ## Twee dobbelstenen
 
 ### Drommels
-1. Zet in bijbel/index.html de regel <script src="games/drommels.js"></script> bij de andere spellen, open de app en tik op Drommels: met twee spelers een paar keer 'Gooi tegelijk' en kijk of de laagste 1 slok in de spelersbalk krijgt.
+1. Open de app en tik op Drommels: met twee spelers een paar keer 'Gooi tegelijk' en kijk of de laagste 1 slok in de spelersbalk krijgt.
 2. Tik op de linker steen en vul met de hand twee gelijke ogen in (bijv. 4 en 4): de gouden 'Gelijk!' blijft staan tot je tikt, daarna kies je wie de 8 slokken krijgt; voeg met '+ speler' een derde toe en kijk of die als ontvanger verschijnt en of je onderaan het duo kunt wisselen.
 3. Vul drie keer achter elkaar dezelfde worp in (bijv. 3 en 5): bij de derde moet bovenin 'Adtje kruk!' komen met beide namen en bij allebei 1 atje; herlaad daarna de pagina midden in een uitdeling en kijk of die er nog staat.
 
