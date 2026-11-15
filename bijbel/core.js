@@ -258,16 +258,17 @@ var App=(function(){
     clearTimeout(toastTimer); toastTimer=setTimeout(function(){ t.className="toast"; },ms||4200);
     t.onclick=function(){ t.className="toast"; };
   }
-  /* ---- adtje kruk (regel uit Jackpot, geldt bij elk spel met twee dobbelstenen): drie keer op rij dezelfde ogen,
-     ook door beurten en spelers heen, ook als er een steen is blijven liggen (zoals bij Mexx). Roep aan bij ELKE worp waarbij één speler met twee stenen gooit;
-     niet bij spellen waar ieder één steen gooit (Drommels, Jessen) en niet bij één, drie of meer stenen. ---- */
+  /* ---- adtje kruk (regel uit Jackpot): drie keer op rij dezelfde ogen, ook door beurten en spelers heen, ook als er
+     een steen is blijven liggen (zoals bij Mexx). Geldt als één speler met TWEE stenen gooit: roep dan aan bij ELKE worp.
+     Niet bij spellen waar ieder één steen gooit (Drommels, Jessen) en niet bij drie of meer stenen.
+     Uitzondering van Stijn: Oude Bami, Nieuwe Bami telt de kruk wél, met zijn ene steen; daarom mag vals ook één steen zijn. ---- */
   function kruk(id,vals,player){
-    if(!vals||vals.length!==2||!vals[0]||!vals[1]) return false;
-    var g=S.gs[id]=S.gs[id]||{}, key=Math.min(vals[0],vals[1])+"-"+Math.max(vals[0],vals[1]);
+    if(!vals||(vals.length!==1&&vals.length!==2)||!vals[0]||(vals.length===2&&!vals[1])) return false;
+    var g=S.gs[id]=S.gs[id]||{}, one=vals.length===1, key=one?String(vals[0]):Math.min(vals[0],vals[1])+"-"+Math.max(vals[0],vals[1]);
     g._kruk=g._kruk||[]; g._kruk.push(key); if(g._kruk.length>3)g._kruk.shift();
     if(g._kruk.length===3&&g._kruk[0]===key&&g._kruk[1]===key){
       g._kruk=[]; atje(player,1); play("dood");
-      toast("Adtje kruk!",name(player)+" gooit voor de derde keer op rij "+vals[0]+" en "+vals[1]+". Adtje op de kruk, het spel gaat door.",6000); return true;
+      toast("Adtje kruk!",name(player)+" gooit voor de derde keer op rij "+(one?"een "+vals[0]:vals[0]+" en "+vals[1])+". Adtje op de kruk, het spel gaat door.",6000); return true;
     }
     save(); return false;
   }
