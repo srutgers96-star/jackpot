@@ -70,9 +70,9 @@ Link: https://srutgers96-star.github.io/jackpot/bijbel/
 3. Tik tijdens het rollen van de digitale steen op een andere speler (de worp telt dan niet), verwijder daarna de speler die aan de beurt is (de volgende gooit, shotjes blijven bij de juiste naam) en tik twee keer op 'Nieuw spel'.
 
 ### Oude Bami, Nieuwe Bami
-1. Open de Bierspelbijbel, tik onder 'Een dobbelsteen' op Oude Bami, Nieuwe Bami; met 2 spelers: tik bij Oude bami een naam aan (de ander wordt vanzelf nieuwe bami) en tik Start het spel.
-2. Gooi een paar keer met Dobbel en vul ook een keer een echte worp in (tik op de steen, kies het aantal ogen): bij 1-2-3 krijgt de oude bami 1 slok, bij 4-5-6 de nieuwe, de beurt wisselt elke worp en de tellers in de balk lopen mee; herlaad de pagina, het spel moet verdergaan waar het was.
-3. Voeg een derde speler toe, tik Nieuw spel, kies ook een Midden bami en gooi een 3 en een 4 (dan drinken er twee, elk 1 slok); verwijder daarna tijdens het spel de oude bami uit de balk: je hoort terug te komen op het kiesscherm met de melding 'Een bami is weg'.
+1. Open het spel met 2 spelers: de bami's staan al ingevuld, tik op Start het spel. Tik op de steen en kies 1, 2, 3, 1, 2: steeds dezelfde naam groot in beeld, met 1, 1, 2, 3 en 4 slokken (de reeksregel).
+2. Kies daarna drie keer een 5: bij de derde komt bovenin 'Adtje kruk!' voor wie gooide, en de andere speler drinkt 2 slokken (derde keer op rij).
+3. Voeg een derde speler toe, tik Nieuw spel en kies '3 spelers': linker, midden en rechter bami (1-2, 3-4, 5-6). Met 4 of 5 spelers zegt het scherm dat het niet kan; met 6 pakt ieder een getal.
 
 ### Vieren
 1. Open de app en kies Vieren met twee spelers: tik 'Roep: VIER!' en dan 'Gooi'; bij geen vier krijgt die speler 1 slok en is de ander aan de beurt, bij een vier 1 adtje.
@@ -87,9 +87,9 @@ Link: https://srutgers96-star.github.io/jackpot/bijbel/
 ## Twee dobbelstenen
 
 ### Drommels
-1. Open de app en tik op Drommels: met twee spelers een paar keer 'Gooi tegelijk' en kijk of de laagste 1 slok in de spelersbalk krijgt.
-2. Tik op de linker steen en vul met de hand twee gelijke ogen in (bijv. 4 en 4): de gouden 'Gelijk!' blijft staan tot je tikt, daarna kies je wie de 8 slokken krijgt; voeg met '+ speler' een derde toe en kijk of die als ontvanger verschijnt en of je onderaan het duo kunt wisselen.
-3. Vul drie keer achter elkaar dezelfde worp in (bijv. 3 en 5): er mag géén 'Adtje kruk' komen (ieder gooit hier maar één steen); herlaad daarna de pagina midden in een uitdeling en kijk of die er nog staat.
+1. Open Drommels met 2 spelers, tik de stenen aan en vul 4 en 4 in, dan Tel deze worp: niemand drinkt, 8 slokken uitdelen aan 'Iemand anders in de ruimte' of niet uitdelen.
+2. Voeg twee spelers toe en vul 2, 2, 5, 5 in: de twee laagsten drinken elk 1 slok en delen 4 uit; daarna delen de vijven 10 uit. Pas daarna kan de volgende worp.
+3. Zet onderaan iemand op 'kijkt toe' (die staat bij uitdelen bovenaan) en probeer met twee gooiers nog iemand uit te zetten: melding dat er minstens twee nodig zijn.
 
 ### 7, 8, 9 (hulp: een deel blijft op tafel)
 1. Open 7, 8, 9, tik de glazen op de stand van de tafel en tik Start; gooi tot je een 7 (melding blijft staan tot je tikt, daarna bijvullen en 'Bijgevuld, gooi opnieuw'), een 8 (helft geboekt) en een 9 (alles geboekt, linker glas terug op half) hebt gehad, en kijk of de slokken bij de juiste speler komen.
@@ -186,6 +186,8 @@ Jackpot is af en opent als eigen app binnen de bijbel.
 ## Beslist door Stijn (15 november 2026)
 
 - **Adtje kruk:** geldt alleen als één speler met twee stenen gooit, ook als er één bleef liggen zoals bij Mexx. Niet bij Drommels, waar ieder één steen gooit.
+- **Drommels met meer dan twee spelers:** ieder gooit één steen. De laagste drinkt één slok; gooien meerdere spelers samen het laagst, dan drinken ze allemaal. Elke groep met gelijke ogen deelt daarnaast het totaal van die stenen uit aan één ander. Gelijk laag is dus drinken én uitdelen. Gooit iedereen hetzelfde, dan is er geen laagste en wordt er alleen uitgedeeld (zo staat het voor twee spelers in de bijbel).
+- **Oude Bami, Nieuwe Bami:** voor 2, 3 of 6 spelers. Met 2: oude bami (1, 2, 3) en nieuwe bami (4, 5, 6). Met 3: linker, midden en rechter bami (1-2, 3-4, 5-6). Met 6: ieder één getal. Met 4 of 5 kan het niet. Adtje kruk telt hier wél, met die ene steen. Na een worp staat alleen de naam van wie drinkt groot in beeld. Reeksregel met twee spelers: moet je voor de derde keer op rij drinken, dan zijn het 2 slokken, daarna telkens één meer (3, 4, 5).
 - **Driemannen, 3 en 3:** de Drieman drinkt (één slok per drie) én mag er 10 uitdelen.
 - **Mexx-familie:** een Mexx in de extra ronde telt mee voor de straf (Mexx, PowerMexx, Inverse Mexx, Nostradamus PowerMexx en Mexxpot; bij PowerMexx telt 3 en 3 daar als twee).
 - **Kaartje Dobbelen:** de Vrouw telt als 12; het voorbeeld in de bijbel (11) is fout.
@@ -197,6 +199,8 @@ Jackpot is af en opent als eigen app binnen de bijbel.
 
 De bijbel laat op deze punten ruimte. De app kiest nu wat hieronder staat; zeg het als jullie het anders spelen.
 
+- **Oude Bami, Nieuwe Bami, reeksen met 3 of 6 spelers:** de reeksregel (2 slokken bij de derde keer op rij, daarna telkens één meer) is alleen voor twee spelers bekend; met 3 of 6 is elke worp nu één slok.
+- **Oude Bami, adtje kruk:** het adtje gaat naar wie de derde gelijke worp gooide, niet naar wie drinkt.
 - **Mexx:** PowerMexx (3 en 3) staat boven Mexx.
 - **Snelmexx, 31:** iedereen met stenen drinkt één slok; er wordt niets uitgedeeld.
 - **Sixteen, twee achten:** de vorige speler trekt een adtje en de volgende drinkt dan geen slok.
