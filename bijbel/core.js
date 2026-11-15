@@ -8,9 +8,12 @@ var App=(function(){
   function rnd(n){return 1+Math.floor(Math.random()*n);}
 
   /* ---- state ---- */
-  var S={ players:[{name:"Stijn",slokken:0,atjes:0},{name:"Daan",slokken:0,atjes:0}], active:0, sound:true, kans:false, game:null, gs:{} };
+  var S={ players:[{name:"Speler 1",slokken:0,atjes:0},{name:"Speler 2",slokken:0,atjes:0}], active:0, sound:true, kans:false, game:null, gs:{} };
   function save(){ try{ localStorage.setItem("bijbel-state",JSON.stringify(S)); }catch(e){} }
-  function load(){ try{ var raw=localStorage.getItem("bijbel-state"); if(raw){ var o=JSON.parse(raw); if(o&&o.players&&o.players.length) S=o; } }catch(e){} S.gs=S.gs||{}; }
+  function load(){ try{ var raw=localStorage.getItem("bijbel-state"); if(raw){ var o=JSON.parse(raw); if(o&&o.players&&o.players.length) S=o; } }catch(e){} S.gs=S.gs||{};
+    /* eenmalig: de oude standaardnamen (Stijn en Daan, nog niets gedronken) worden Speler 1 en 2; alleen Jackpot begint met die twee */
+    if(!S.namesV2){ S.namesV2=true; if(S.players.length===2&&S.players[0].name==="Stijn"&&S.players[1].name==="Daan"&&!S.players.some(function(q){return q.slokken||q.atjes;})){ S.players[0].name="Speler 1"; S.players[1].name="Speler 2"; } }
+  }
   load();
 
   /* ---- sound ---- */
@@ -94,12 +97,37 @@ var App=(function(){
   /* ---- players ---- */
   function renderPlayers(){
     var p=el("players"); if(!p)return;
-    p.innerHTML=S.players.map(function(q,i){ return '<button class="player'+(i===S.active?' active':'')+'" data-i="'+i+'"><span class="name">'+esc(q.name)+'</span><span class="stats"><b>'+q.slokken+'</b> slokken · <b>'+half(q.atjes)+'</b> atjes</span></button>'; }).join("")+'<button class="player add" id="addPlayer">+ speler</button>';
+    p.innerHTML=S.players.map(function(q,i){ return '<button class="player'+(i===S.active?' active':'')+'" data-i="'+i+'"><span class="name">'+esc(q.name)+'</span><span class="stats"><b>'+q.slokken+'</b> slokken · <b>'+half(q.atjes)+'</b> atjes</span></button>'; }).join("")+'<button class="player add" id="addPlayer">+ speler</button><button class="player add" id="editPlayers">✎ spelers</button>'; renderHomePlayers();
   }
   function half(x){ x=Math.round((x||0)*2)/2; var w=Math.floor(x), h=x-w>=0.5; return (w||!h?String(w):"")+(h?"½":""); } /* 0.5 → ½, 1.5 → 1½ */
   function refreshGame(){ if(current&&current.refresh)try{current.refresh();}catch(e){} }
+  /* ---- spelersscherm: overal (beginscherm en elk spel) toevoegen, hernoemen en verwijderen, zonder de beurt te verzetten ---- */
+  function renderHomePlayers(){
+    var h=el("homePlayers"); if(!h)return;
+    h.innerHTML='<button class="link" id="homePlayersBtn">Spelers ('+S.players.length+'): <b>'+esc(S.players.map(function(q){return q.name;}).join(", "))+'</b> · aanpassen</button>';
+  }
+  function playersChanged(){ if(S.active>=S.players.length)S.active=0; save(); renderPlayers(); refreshGame(); }
+  function openPlayers(){
+    var p=el("sheetPanel"); closeName();
+    function draw(focusNew){
+      var h='<button class="btn close" id="sheetClose">Klaar</button><h2>Spelers</h2><p class="meta">Pas een naam aan, haal iemand weg of voeg iemand toe. Dit geldt voor alle spellen in de bijbel; Jackpot heeft zijn eigen spelers.</p>';
+      S.players.forEach(function(q,i){ h+='<div class="prow"><input class="txt" data-pi="'+i+'" type="text" maxlength="20" value="'+esc(q.name)+'" autocomplete="off" aria-label="Naam speler '+(i+1)+'">'+(S.players.length>1?'<button class="btn danger" data-del="'+i+'">Verwijder</button>':'')+'</div>'; });
+      h+='<div class="prow"><input class="txt" id="newPlayer" type="text" maxlength="20" placeholder="Naam nieuwe speler" autocomplete="off"><button class="btn primary" id="newPlayerOk">Toevoegen</button></div>';
+      if(S.players.length===1) h+='<p class="meta">Er blijft altijd één speler over.</p>';
+      p.innerHTML=h;
+      el("sheetClose").onclick=closeRules; el("newPlayerOk").onclick=add;
+      el("newPlayer").onkeydown=function(e){ if(e.key==="Enter")add(); };
+      if(focusNew) el("newPlayer").focus();
+    }
+    function add(){ var nm=el("newPlayer").value.trim(); if(!nm)return; S.players.push({name:nm,slokken:0,atjes:0}); playersChanged(); draw(true); }
+    /* een naam typen werkt meteen door in de balk; het lopende spel ververst bij het sluiten */
+    p.oninput=function(e){ var a=e.target.getAttribute?e.target.getAttribute("data-pi"):null; if(a===null)return; var nm=e.target.value.trim(); if(nm&&S.players[+a]){ S.players[+a].name=nm; save(); renderPlayers(); } };
+    p.onclick=function(e){ var b=e.target.closest?e.target.closest("[data-del]"):null; if(!b)return; var i=+b.getAttribute("data-del"); if(S.players.length<=1||!S.players[i])return; S.players.splice(i,1); if(i<S.active)S.active--; playersChanged(); draw(false); };
+    onSheetClose=function(){ p.oninput=null; p.onclick=null; refreshGame(); };
+    draw(false); el("sheet").className="sheet open";
+  }
   var nameTarget=null;
-  function openName(i){ nameTarget=i; var f=el("nameform"), inp=el("nameInput"); inp.value=i===null?"":S.players[i].name; inp.placeholder=i===null?"Naam nieuwe speler":"Naam"; el("nameDel").style.display=(i!==null&&S.players.length>2)?"":"none"; f.className="nameform open"; inp.focus(); }
+  function openName(i){ nameTarget=i; var f=el("nameform"), inp=el("nameInput"); inp.value=i===null?"":S.players[i].name; inp.placeholder=i===null?"Naam nieuwe speler":"Naam"; el("nameDel").style.display=(i!==null&&S.players.length>1)?"":"none"; f.className="nameform open"; inp.focus(); }
   function closeName(){ el("nameform").className="nameform"; nameTarget=null; }
   function drink(i,n,reason){ if(S.players[i]){ S.players[i].slokken+=n; } save(); renderPlayers(); }
   function atje(i,n){ if(S.players[i]){ S.players[i].atjes+=(n||1); } save(); renderPlayers(); }
@@ -142,7 +170,8 @@ var App=(function(){
     el("sheetClose").onclick=closeRules;
     var st=el("sheetStart"); if(st) st.onclick=function(){ closeRules(); openGame(startId); };
   }
-  function closeRules(){ el("sheet").className="sheet"; }
+  var onSheetClose=null;
+  function closeRules(){ el("sheet").className="sheet"; if(onSheetClose){ var f=onSheetClose; onSheetClose=null; f(); } }
 
   /* ---- home ---- */
   var CATS=[["Een spel kaarten",["99","Fuck the Dealer","Kaartje Blazen","Kingsen","Magic Bussen","Piramide Spel","Poefen","Paardenrace","Vierkanten","Sixteen","Total Black-Out"]],
@@ -162,7 +191,7 @@ var App=(function(){
   function gameByTitle(t){ for(var k in GAMES) if(GAMES[k].title===t) return GAMES[k]; return null; }
   function levelOf(t){ var g=gameByTitle(t); return g?(g.level||"app"):"regels"; }
   function renderHome(){
-    var v=el("view-home"), h='<div class="hero"><p class="ed">Jeroen en Kevins</p><h1>Bierspelbijbel</h1><p>Tweede editie, januari 2024. Nu met rekenwerk.</p><button class="link" id="voorwoord">Voorwoord</button></div>';
+    var v=el("view-home"), h='<div class="hero"><p class="ed">Jeroen en Kevins</p><h1>Bierspelbijbel</h1><p>Tweede editie, januari 2024. Nu met rekenwerk.</p><button class="link" id="voorwoord">Voorwoord</button></div><div class="homeplayers" id="homePlayers"></div>';
     h+='<div class="tabel"><span></span><span class="h">Laag</span><span class="h">Gemiddeld</span><span class="h">Hoog</span>';
     ["Weinig bier","Gemiddeld","Veel bier"].forEach(function(lbl,bi){
       h+='<span class="h row">'+lbl+'</span>';
@@ -180,15 +209,15 @@ var App=(function(){
   var VOORWOORD=[];
   function init(rules,voorwoord){
     RULES=rules; VOORWOORD=voorwoord||[]; renderHome(); renderPlayers();
-    el("view-home").addEventListener("click",function(e){ var b=e.target.closest("[data-t]"); if(b)tapTitle(b.getAttribute("data-t")); });
+    el("view-home").addEventListener("click",function(e){ if(e.target.closest("#homePlayersBtn")){ openPlayers(); return; } var b=e.target.closest("[data-t]"); if(b)tapTitle(b.getAttribute("data-t")); });
     el("btnBack").onclick=goHome;
     el("btnRules").onclick=function(){ if(current) openRules(current.rules||current.title); };
     el("btnKans").onclick=function(){ S.kans=!S.kans; applyFlags(); save(); if(current&&current.refresh)current.refresh(); };
     el("btnSound").onclick=function(){ S.sound=!S.sound; applyFlags(); save(); ctx(); };
-    el("players").addEventListener("click",function(e){ var a=e.target.closest("#addPlayer"); if(a){openName(null);return;} var b=e.target.closest(".player"); if(!b)return; var i=+b.getAttribute("data-i"); if(i===S.active)openName(i); else { S.active=i; save(); renderPlayers(); if(current&&current.onPlayer)current.onPlayer(i); } });
+    el("players").addEventListener("click",function(e){ var a=e.target.closest("#addPlayer"); if(a){openName(null);return;} if(e.target.closest("#editPlayers")){openPlayers();return;} var b=e.target.closest(".player"); if(!b)return; var i=+b.getAttribute("data-i"); if(i===S.active)openName(i); else { S.active=i; save(); renderPlayers(); if(current&&current.onPlayer)current.onPlayer(i); } });
     el("nameCancel").onclick=closeName;
     el("nameOk").onclick=function(){ var nm=el("nameInput").value.trim(); if(!nm){closeName();return;} if(nameTarget===null)S.players.push({name:nm,slokken:0,atjes:0}); else S.players[nameTarget].name=nm; closeName(); save(); renderPlayers(); refreshGame(); };
-    el("nameDel").onclick=function(){ if(nameTarget!==null&&S.players.length>2){ var i=nameTarget; S.players.splice(i,1); if(i<S.active)S.active--; if(S.active>=S.players.length)S.active=0; } closeName(); save(); renderPlayers(); refreshGame(); };
+    el("nameDel").onclick=function(){ if(nameTarget!==null&&S.players.length>1){ var i=nameTarget; S.players.splice(i,1); if(i<S.active)S.active--; if(S.active>=S.players.length)S.active=0; } closeName(); save(); renderPlayers(); refreshGame(); };
     el("overlay").addEventListener("click",function(){ var o=el("overlay"); if(o.className.indexOf("sticky")>=0){ o.className="overlay"; if(onOverlayClose){var f=onOverlayClose;onOverlayClose=null;f();} } });
     el("sheet").addEventListener("click",function(e){ if(e.target.id==="sheet")closeRules(); });
     applyFlags();
@@ -206,7 +235,8 @@ var App=(function(){
     t.onclick=function(){ t.className="toast"; };
   }
   /* ---- adtje kruk (regel uit Jackpot, geldt bij elk spel met twee dobbelstenen): drie keer op rij dezelfde ogen,
-     ook door beurten en spelers heen, ook als er een steen is blijven liggen. Roep aan bij ELKE worp van twee stenen. ---- */
+     ook door beurten en spelers heen, ook als er een steen is blijven liggen (zoals bij Mexx). Roep aan bij ELKE worp waarbij één speler met twee stenen gooit;
+     niet bij spellen waar ieder één steen gooit (Drommels, Jessen) en niet bij één, drie of meer stenen. ---- */
   function kruk(id,vals,player){
     if(!vals||vals.length!==2||!vals[0]||!vals[1]) return false;
     var g=S.gs[id]=S.gs[id]||{}, key=Math.min(vals[0],vals[1])+"-"+Math.max(vals[0],vals[1]);

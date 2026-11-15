@@ -44,26 +44,21 @@
 
       function onRoll(v){
         if(!alive||G.pending||A.S.players.length<2)return;
-        var va=v[0], vb=v[1], a=G.a, b=G.b, low=va<vb?a:(vb<va?b:-1), kruk;
-        /* Adtje kruk (huisregel, staat niet in de bijbeltekst van Drommels): de twee stenen zijn samen één worp en die
-           gooien de spelers met z'n tweeën. Bij de derde gelijke worp op rij gaan ze daarom allebei op de kruk: core boekt
-           het adtje van de eerste, het spel dat van de tweede en vervangt de melding door één die beide namen noemt.
-           De slok of het uitdelen van deze worp gaat gewoon door. */
-        kruk=A.kruk(ID,[va,vb],a);
-        if(kruk){ A.atje(b,1); A.toast("Adtje kruk!",A.joinNames([a,b])+" gooien voor de derde keer op rij "+Math.min(va,vb)+" en "+Math.max(va,vb)+". Allebei een adtje op de kruk, het spel gaat door.",6000); }
+        var va=v[0], vb=v[1], a=G.a, b=G.b, low=va<vb?a:(vb<va?b:-1);
+        /* Geen adtje kruk: ieder gooit hier maar één steen. De kruk-regel geldt alleen als één speler met twee stenen gooit. */
         G.rounds++;
         if(low>=0){
           /* regel 2: de laagste roept 'drommels' en neemt een slok */
           if(low===a)G.sa++; else G.sb++;
           G.last={k:"low",v:[va,vb],who:low===a?0:1};
           A.S.active=low; A.drink(low,1);
-          if(!kruk)A.play("ding");
+          A.play("ding");
           big("dood","Drommels!",[A.name(low)+" gooit het laagst en neemt een slok."],1700,A.dicerow([va,vb]));
         } else {
           /* regel 3: gelijke ogen, het totaal van beide stenen mag naar één persoon die niet meespeelt.
              "Het totaal aantal ogen" is gelezen als beide stenen samen (4 en 4 = 8 slokken). */
           G.pending=va+vb; G.last={k:"tie",v:[va,vb]}; A.save();
-          if(!kruk)A.play("special");
+          A.play("special");
           /* blijft staan tot een tik: een tik om hem weg te halen mag niet op een uitdeelknop eronder terechtkomen */
           big("win","Gelijk!",[A.joinNames([a,b])+" gooien allebei "+va+".","Deel samen "+slok(va+vb)+" uit aan iemand die niet meespeelt."],0,A.dicerow([va,vb]));
         }

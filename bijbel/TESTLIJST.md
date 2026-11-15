@@ -89,7 +89,7 @@ Link: https://srutgers96-star.github.io/jackpot/bijbel/
 ### Drommels
 1. Open de app en tik op Drommels: met twee spelers een paar keer 'Gooi tegelijk' en kijk of de laagste 1 slok in de spelersbalk krijgt.
 2. Tik op de linker steen en vul met de hand twee gelijke ogen in (bijv. 4 en 4): de gouden 'Gelijk!' blijft staan tot je tikt, daarna kies je wie de 8 slokken krijgt; voeg met '+ speler' een derde toe en kijk of die als ontvanger verschijnt en of je onderaan het duo kunt wisselen.
-3. Vul drie keer achter elkaar dezelfde worp in (bijv. 3 en 5): bij de derde moet bovenin 'Adtje kruk!' komen met beide namen en bij allebei 1 atje; herlaad daarna de pagina midden in een uitdeling en kijk of die er nog staat.
+3. Vul drie keer achter elkaar dezelfde worp in (bijv. 3 en 5): er mag géén 'Adtje kruk' komen (ieder gooit hier maar één steen); herlaad daarna de pagina midden in een uitdeling en kijk of die er nog staat.
 
 ### 7, 8, 9 (hulp: een deel blijft op tafel)
 1. Open 7, 8, 9, tik de glazen op de stand van de tafel en tik Start; gooi tot je een 7 (melding blijft staan tot je tikt, daarna bijvullen en 'Bijgevuld, gooi opnieuw'), een 8 (helft geboekt) en een 9 (alles geboekt, linker glas terug op half) hebt gehad, en kijk of de slokken bij de juiste speler komen.
@@ -187,7 +187,7 @@ Jackpot is af en opent als eigen app binnen de bijbel.
 
 De bijbel laat op deze punten ruimte. De app kiest nu wat hieronder staat; zeg het als jullie het anders spelen.
 
-- **Drommels, adtje kruk:** elk gooit één steen, dus bij de derde gelijke worp op rij trekken beide spelers een adtje.
+- **Adtje kruk (beslist door Stijn, 15 november):** geldt alleen als één speler met twee stenen gooit, ook als er één bleef liggen zoals bij Mexx. Niet bij Drommels, waar ieder één steen gooit.
 - **Driemannen, 3 en 3:** de Drieman drinkt 2 slokken (één per drie) en mag er daarna 10 uitdelen.
 - **Mexx:** PowerMexx (3 en 3) staat boven Mexx. Een Mexx in de extra ronde telt niet mee voor de straf.
 - **Snelmexx, 31:** iedereen met stenen drinkt één slok; er wordt niets uitgedeeld.
